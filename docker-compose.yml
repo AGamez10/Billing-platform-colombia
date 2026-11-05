@@ -2,7 +2,7 @@
 #
 #   cp .env.example .env      # opcional: cambia las contraseñas
 #   docker compose up --build
-#   → http://localhost:8080
+#   → http://localhost:8080   (otro puerto: BILLING_HTTP_PORT=8081 en .env)
 #
 # Los puertos se publican solo en 127.0.0.1. No usar esta configuración en un servidor público
 # sin cambiar contraseñas y poner HTTPS delante (ver docs/DEPLOYMENT.md).
@@ -22,8 +22,11 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./infrastructure/postgres/init:/billing-init:ro
       - ./infrastructure/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:5432:5432"
+    # Sin puerto publicado: el backend la alcanza por la red interna de Docker, así no choca
+    # con un PostgreSQL instalado en el equipo ni queda expuesta. Para conectarte con una
+    # herramienta externa, descomenta y usa un puerto libre:
+    # ports:
+    #   - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d billing"]
       interval: 5s
@@ -43,7 +46,7 @@ services:
       BILLING_DB_OWNER_PASSWORD: ${BILLING_DB_OWNER_PASSWORD:-local-owner-change-me}
       BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD:-local-app-change-me}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${BILLING_HTTP_PORT:-8080}:8080"
 
 volumes:
   pgdata:
