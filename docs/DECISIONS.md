@@ -68,7 +68,7 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 ## ADR-0008 — Estrategia regulatoria: SaaS integrador sobre proveedores autorizados
 *2026-11-05*
 
-**Decisión.** La plataforma no transmite directamente a la DIAN. Usa proveedores tecnológicos autorizados mediante adaptadores. Se descarta un adaptador "Muisca" (es el sistema de la DIAN, no un proveedor; ver PROVIDERS.md). El adaptador simulado jamás opera fuera de `SIMULATION`.
+**Decisión.** La plataforma no transmite directamente a la DIAN. Usa proveedores tecnológicos autorizados mediante adaptadores. Corrección 2026-11-05: muisca.io (Aliaddo SAS) sí es un proveedor tecnológico autorizado y es el recomendado como primer adaptador (ver PROVIDERS.md); MUISCA, el sistema de la DIAN, es otra cosa. El adaptador simulado jamás opera fuera de `SIMULATION`.
 
 **Pendiente (bloqueo real, no técnico).** Confirmar con el proveedor elegido y con asesoría tributaria/legal que su contrato permite a un tercero operar emisión para múltiples contribuyentes, y bajo qué modalidad de credenciales.
 

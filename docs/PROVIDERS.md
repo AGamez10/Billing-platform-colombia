@@ -20,21 +20,46 @@ ProviderEvent parseWebhook(ProviderAccount account, InboundWebhook webhook);  //
 
 ## Adaptadores
 
-| Adaptador | Estado | Notas |
-|---|---|---|
-| `mock` | Implementado y probado | Solo ambiente `SIMULATION`; claves `SIMULATED-…`; no contacta a la DIAN ni imita sus respuestas; escenarios: aceptar, pendiente, rechazar, timeout tras recepción, no disponible |
-| Kiai | **Candidato, sin código** | Publica un SDK .NET en NuGet (`Kiai.Facturacion`, v1.0.0.18, actualizado 2025-04-21) que integra con la API de kiai.co, con ayuda en `apps.kiai.co/api/Help`. Falta: contrato comercial, modalidad multi-cliente, credenciales sandbox, capacidades reales |
-| Plemsi | Sin verificar | No se encontró documentación oficial de su API en la búsqueda del 2026-11-05 |
-| GridBilling | Sin verificar | Ídem |
-| "Muisca" | **No es un proveedor** | Ver abajo |
+| Adaptador | Estado |
+|---|---|
+| `mock` | Implementado y probado. Solo ambiente `SIMULATION`; claves `SIMULATED-…`; no contacta a la DIAN ni imita sus respuestas |
+| `muisca` (muisca.io) | **Recomendado como primer adaptador real** (ver comparación). Sin código hasta tener credenciales de sandbox |
 
 No se crean paquetes vacíos para proveedores sin verificar: un adaptador se agrega cuando hay documentación y credenciales de prueba reales.
 
-## MUISCA no es un proveedor tecnológico
+## Comparación con información pública (verificada 2026-11-05)
 
-MUISCA es el sistema informático de la DIAN. La "Facturación gratuita DIAN" es un servicio web para que un contribuyente facture por sí mismo; la página oficial de la DIAN no menciona API ni servicio web para integradores. Las vías que la DIAN describe son: solución gratuita, desarrollo propio (software propio habilitado por el facturador) y proveedor tecnológico autorizado.
+> Solo datos publicados en los sitios de cada proveedor. "No publicado" significa que no se encontró, no que no exista. Precios en COP.
 
-Implicación: no se planea un adaptador "Muisca". Integrarse directamente al servicio web de la DIAN en nombre de muchos contribuyentes es, en la práctica, el rol de proveedor tecnológico, que exige autorización — fuera del alcance decidido (ADR-0008).
+| Proveedor | Modelo DIAN | Documentos publicados | Multiempresa | Precio público | Firma / certificado | Sandbox | Webhooks |
+|---|---|---|---|---|---|---|---|
+| **Muisca** (muisca.io, Aliaddo SAS) | Proveedor tecnológico autorizado; ISO/IEC 27001:2022 | Factura, nota crédito, nota débito. POS y documento soporte **no confirmados** | Sí (subcuentas/multiempresa en todos los planes) | Prepago anual: Pro $399.900 / 5.000 docs (~$80); Business Plus $674.900 / 15.000 (~$45); Executive $1.599.900 / 40.000 (~$40); Enterprise $3.590.000 / 120.000 (~$30). Por demanda: $90 → $30 por tramos, mínimo 1.000 docs/mes. Sin IVA; no acumulables | Firma electrónica **incluida** | Habilitación asistida; sandbox no confirmado | Sí, en todos los prepago |
+| **MATIAS API** | **Software propio** (cada cliente se habilita como facturador con software propio) | Factura, notas, POS electrónico, documento soporte, RADIAN; nómina con estado contradictorio | Sí (bolsa de documentos repartible entre NITs; mínimo 3 clientes para precio distribuidor) | $220.000 / 5.000 docs/año ($44) … $10.000.000 / 1.000.000 ($10) | **Certificado aparte: $104.000 por NIT/año** ($99.000 desde 100 NITs) | Sí, aislado | No confirmado |
+| **Alegra e-provider** | Proveedor tecnológico autorizado (Soluciones Alegra S.A.S.) | Factura, notas, POS electrónico, documento soporte, nómina | Habilitación por compañía vía API (set de pruebas automatizable) | No publicado | No publicado | Sí | Sí (incluye `general.governmentStatusChanged`) |
+| Bilidox | Proveedor tecnológico autorizado | Todos, incluidos POS y documento soporte | No publicado | Solo planes para empresa final (desde $24.000/año por 15 docs) | No publicado | Sí | No publicado |
+| Data Invoice Colombia | Software propio | Todos | No publicado | $90.000/año con 3.000 docs y certificado; luego $30 → $20 | 1 certificado incluido | No publicado | No |
+| Factus | Se vincula como proveedor tecnológico en la DIAN | Factura, notas, documento soporte, nómina, salud; POS no | "Aliados e integradores", sin detalle | No publicado | No publicado | Sí | No |
+| Kiai, Plemsi, GridBilling | — | No se encontró API ni precios públicos | — | — | — | — | — |
+
+### Corrección (2026-11-05)
+
+La versión anterior de este documento decía que "Muisca no es un proveedor". Era una confusión: MUISCA es el sistema de la DIAN, pero **muisca.io** es una API comercial de Aliaddo SAS, proveedor tecnológico autorizado. Lo que sigue siendo cierto: la "Facturación gratuita DIAN" no tiene API para integradores.
+
+### Análisis económico por cliente (costo directo del proveedor)
+
+| Cliente tipo | Docs/año | Muisca (~$80 arranque / ~$40 escala) | MATIAS ($44 arranque / $21 escala) + certificado $104.000 |
+|---|---|---|---|
+| Micro (20/mes) | 240 | $19.200 / $9.600 | $114.560 / $109.040 |
+| Pequeño (120/mes) | 1.440 | $115.200 / $57.600 | $167.360 / $134.240 |
+| POS intensivo (1.500/mes) | 18.000 | $1.440.000 / $720.000 | $896.000 / $482.000 |
+
+Conclusión: el modelo de proveedor tecnológico con firma incluida (Muisca) es mucho más barato para el segmento objetivo (micro y pequeños), porque el certificado por NIT de un modelo de software propio cuesta más que todo su consumo. Para clientes con muy alto volumen (POS de restaurantes y tiendas con cientos de tiquetes diarios) el modelo de software propio (MATIAS) se vuelve más barato. La arquitectura ya permite un proveedor distinto por tenant.
+
+### Recomendación
+
+1. **Primario: Muisca (muisca.io).** Autorizado, firma incluida, multiempresa y webhooks en todos los planes, precio público y entrada baja ($399.900/año). Pendiente confirmar en su documentación (doc.muisca.io) si cubre POS electrónico y documento soporte.
+2. **Si Muisca no cubre POS/documento soporte, o para clientes POS de alto volumen: MATIAS API** (cubre todo, sandbox público, costo por documento muy bajo), asumiendo el certificado por NIT.
+3. **Alegra e-provider** cubre todo y está bien documentado, pero Alegra es competidor directo: depender de su infraestructura le da visibilidad sobre nuestros volúmenes y poder sobre nuestro costo. Solo como respaldo.
 
 ## Lista de verificación antes de usar un proveedor en producción
 
