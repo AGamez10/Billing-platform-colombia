@@ -52,6 +52,19 @@ jobs:
                           print(f"::error title={case.get('classname')}.{case.get('name')}::{msg}")
           PY
 
+      - name: Resumen de pruebas
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          t = f = e = s = 0; classes = 0
+          for path in glob.glob('target/surefire-reports/TEST-*.xml'):
+              r = ET.parse(path).getroot(); classes += 1
+              t += int(r.get('tests', 0)); f += int(r.get('failures', 0))
+              e += int(r.get('errors', 0)); s += int(r.get('skipped', 0))
+          print(f"::notice title=Pruebas::{t} pruebas en {classes} clases; fallidas {f}; errores {e}; omitidas {s}")
+          PY
+
       - name: Publicar reportes de pruebas
         if: always()
         uses: actions/upload-artifact@v4
