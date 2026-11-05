@@ -1,6 +1,15 @@
 # Despliegue
 
-## Hoy: base de datos (verificado)
+## Entorno local con Docker (verificado en CI)
+
+`docker compose up --build` en la raíz levanta PostgreSQL 16 y el backend:
+
+- `backend/Dockerfile`: compilación multi-etapa con Maven; la imagen final solo tiene el JRE 21 y corre con un usuario sin privilegios (`app`).
+- PostgreSQL se inicializa la primera vez con `infrastructure/postgres/docker-entrypoint-initdb.d/10-billing-roles.sh`, que reutiliza `01-roles.sql` (roles `billing_owner` y `billing_app`, base `billing`, `btree_gist`). Flyway migra al arrancar el backend.
+- Puertos publicados solo en `127.0.0.1`. Contraseñas por defecto de desarrollo, sobrescribibles con `.env` (ver `.env.example`).
+- El job `docker` del CI construye la imagen, levanta el stack y verifica: salud, página de estado, planes, tarifas, OpenAPI, que `/actuator/env` esté cerrado y que el contenedor no corra como root.
+
+## Base de datos sin Docker (verificado)
 
 Requiere PostgreSQL 16+ con la extensión `btree_gist` (contrib).
 

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Billing Platform Colombia — Estado</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --text: #17202a; --muted: #5f6b7a; --line: #e3e7ec;
+      --accent: #1f6feb; --ok: #1a7f37; --bad: #cf222e; --chip: #eef2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f1419; --card: #182029; --text: #e6edf3; --muted: #9aa7b4; --line: #26313d;
+              --accent: #4493f8; --ok: #3fb950; --bad: #f85149; --chip: #222c37; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+           font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+    header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    h1 { font-size: 22px; margin: 0; }
+    h2 { font-size: 17px; margin: 36px 0 12px; }
+    .muted { color: var(--muted); }
+    .status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+              background: var(--card); border: 1px solid var(--line); font-weight: 600; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+    .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .plan .name { font-weight: 700; }
+    .plan .price { font-size: 24px; font-weight: 700; margin: 6px 0 2px; }
+    .plan ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line);
+            border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 13px; color: var(--muted); font-weight: 600; }
+    tr:last-child td { border-bottom: 0; }
+    .chip { display: inline-block; padding: 1px 8px; border-radius: 6px; background: var(--chip); font-size: 13px; }
+    a { color: var(--accent); }
+    .links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .links a { text-decoration: none; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+               background: var(--card); font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    .error { color: var(--bad); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Billing Platform Colombia</h1>
+      <div class="muted">Entorno local de desarrollo — los datos aquí no tienen validez tributaria.</div>
+    </div>
+    <span class="status"><span id="health-dot" class="dot"></span><span id="health-text">Verificando…</span></span>
+  </header>
+
+  <h2>Explorar</h2>
+  <div class="links">
+    <a href="/swagger-ui.html">Documentación interactiva de la API</a>
+    <a href="/api/v1/public/plans">Planes (JSON)</a>
+    <a href="/api/v1/public/tax-rates">Tarifas vigentes (JSON)</a>
+    <a href="/actuator/health">Salud del servicio</a>
+  </div>
+
+  <h2>Planes</h2>
+  <div id="plans" class="grid"><div class="muted">Cargando…</div></div>
+
+  <h2>Tarifas tributarias vigentes hoy</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Código</th><th>Tributo</th><th>Tratamiento</th><th>Tarifa</th><th>Fundamento</th></tr></thead>
+      <tbody id="taxes"><tr><td colspan="5" class="muted">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script>
+  const cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+  const treatment = { TAXED: 'Gravado', EXEMPT: 'Exento', EXCLUDED: 'Excluido' };
+
+  function el(tag, text, cls) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (cls) node.className = cls;
+    return node;
+  }
+
+  async function getJson(url) {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(url + ' → ' + res.status);
+    return res.json();
+  }
+
+  async function loadHealth() {
+    const dot = document.getElementById('health-dot'), text = document.getElementById('health-text');
+    try {
+      const h = await getJson('/actuator/health');
+      const up = h.status === 'UP';
+      dot.className = 'dot ' + (up ? 'ok' : 'bad');
+      text.textContent = up ? 'Servicio en línea' : 'Servicio con problemas';
+    } catch (e) {
+      dot.className = 'dot bad'; text.textContent = 'Sin respuesta';
+    }
+  }
+
+  async function loadPlans() {
+    const box = document.getElementById('plans');
+    try {
+      const plans = await getJson('/api/v1/public/plans');
+      box.replaceChildren();
+      for (const p of plans) {
+        const card = el('div', undefined, 'card plan');
+        card.append(el('div', p.name, 'name'));
+        let price, period;
+        if (p.monthlyPrice === '0' || p.monthlyPrice === '0.00') { price = 'Gratis'; period = ''; }
+        else if (!p.monthlyBillingAllowed && p.annualPrice) { price = cop.format(Number(p.annualPrice)); period = 'al año'; }
+        else { price = cop.format(Number(p.monthlyPrice)); period = 'al mes'; }
+        card.append(el('div', price, 'price'), el('div', period, 'muted'));
+        const ul = el('ul');
+        const docs = p.quotaDocuments == null ? 'Documentos ilimitados'
+          : p.quotaDocuments + (p.quotaScope === 'TOTAL' ? ' documentos en total' : ' documentos al mes');
+        ul.append(el('li', docs));
+        ul.append(el('li', p.maxUsers == null ? 'Usuarios ilimitados' : p.maxUsers + ' usuarios'));
+        if (p.monthlyBillingAllowed && p.annualPrice) ul.append(el('li', 'Anual: ' + cop.format(Number(p.annualPrice))));
+        if (p.overageUnitPrice) ul.append(el('li', 'Adicional: ' + cop.format(Number(p.overageUnitPrice)) + ' c/u, solo si lo aceptas'));
+        card.append(ul);
+        box.append(card);
+      }
+    } catch (e) {
+      box.replaceChildren(el('div', 'No se pudieron cargar los planes.', 'error'));
+    }
+  }
+
+  async function loadTaxes() {
+    const body = document.getElementById('taxes');
+    try {
+      const rates = await getJson('/api/v1/public/tax-rates');
+      body.replaceChildren();
+      for (const r of rates) {
+        const tr = el('tr');
+        const code = el('td'); code.append(el('span', r.code, 'chip'));
+        tr.append(code, el('td', r.type), el('td', treatment[r.treatment] || r.treatment),
+                  el('td', r.percentage + ' %'), el('td', r.legalReference, 'muted'));
+        body.append(tr);
+      }
+    } catch (e) {
+      body.replaceChildren();
+      const tr = el('tr'); const td = el('td', 'No se pudieron cargar las tarifas.', 'error');
+      td.colSpan = 5; tr.append(td); body.append(tr);
+    }
+  }
+
+  loadHealth(); loadPlans(); loadTaxes();
+</script>
+</body>
+</html>

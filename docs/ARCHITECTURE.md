@@ -30,7 +30,13 @@ backend/src/main/java/co/billingplatform/
     └── adapter/
         ├── common           HmacWebhookVerifier
         └── mock             MockElectronicInvoicingProvider (solo SIMULATION)
-backend/src/main/resources/db/migration   V1–V5 (Flyway)
+├── platform/                Composición Spring: TenantTransactions, SecurityConfiguration (todo cerrado salvo
+│                            lo público), errores RFC 9457, PublicCatalogController
+├── tax/adapter/persistence  JdbcTaxCatalog
+└── subscriptions/adapter/persistence  JdbcPlanCatalog
+backend/src/main/resources/db/migration   V1–V6 (Flyway)
+backend/src/main/resources/static         Página de estado local
+backend/Dockerfile, docker-compose.yml     Entorno local completo
 infrastructure/postgres/init               roles de base de datos
 ```
 

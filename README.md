@@ -14,6 +14,22 @@ SaaS multi-tenant de facturación electrónica para Colombia: organizaciones, cl
 
 Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Levantar todo en tu computador
+
+Requisito: Docker Desktop (Windows/Mac) o Docker Engine con Compose (Linux).
+
+```bash
+git clone https://github.com/AGamez10/Billing-platform-colombia.git
+cd Billing-platform-colombia
+docker compose up --build
+```
+
+Abre **http://localhost:8080**: página de estado con planes y tarifas vigentes, y enlace a la documentación interactiva de la API (`/swagger-ui.html`). La primera construcción tarda varios minutos (descarga dependencias); las siguientes son rápidas.
+
+- Detener: `Ctrl+C` o `docker compose down`. Borrar también la base: `docker compose down -v`.
+- Ver los cambios más recientes: `git pull` y de nuevo `docker compose up --build`.
+- Contraseñas: por defecto usa valores de desarrollo; para cambiarlas copia `.env.example` como `.env`. Los puertos solo se abren en tu propio equipo (127.0.0.1).
+
 ## Estructura
 
 ```
