@@ -29,7 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <archunit.version>1.4.1</archunit.version>
-        <bouncycastle.version>1.81</bouncycastle.version>
+        <bouncycastle.version>1.86</bouncycastle.version>
         <springdoc.version>3.0.0</springdoc.version>
     </properties>
 
