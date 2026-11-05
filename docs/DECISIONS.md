@@ -102,6 +102,17 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 
 **Consecuencias.** El código es visible para cualquiera. Aceptable porque no hay secretos en el repositorio y la seguridad no depende de ocultar el código; el repositorio no tiene licencia abierta (todos los derechos reservados). Nunca se suben `.env`, credenciales de proveedores ni datos de clientes.
 
+## ADR-0013 — Persistencia con JDBC explícito (JdbcClient) en vez de JPA/Hibernate
+*2026-11-05*
+
+**Contexto.** El stack inicial proponía Spring Data JPA. El modelo de persistencia tiene RLS, triggers de inmutabilidad, FK compuestas, `jsonb`, funciones `SECURITY DEFINER` y asignación atómica de números.
+
+**Problemas de JPA aquí.** Las entidades JPA tienden a convertirse en el modelo de dominio (lo que el proyecto prohíbe) o a duplicarlo; el *dirty checking* puede emitir `UPDATE` de columnas que los triggers declaran inmutables; el SQL generado es menos auditable para un sistema con RLS; consume más memoria y arranque.
+
+**Decisión.** Adaptadores de repositorio con `JdbcClient` y SQL explícito, mapeando a/desde los agregados del dominio. Un único punto (`TenantTransactions`) abre la transacción y fija `app.tenant_id`.
+
+**Costo.** Más código de mapeo manual; se compensa con pruebas de integración por adaptador contra PostgreSQL real.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
