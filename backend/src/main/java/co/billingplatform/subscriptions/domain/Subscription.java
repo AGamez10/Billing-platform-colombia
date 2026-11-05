@@ -23,7 +23,7 @@ public record Subscription(
 
     public enum Status {
         TRIAL, ACTIVE,
-        /** Pago vencido: se permite seguir facturando (periodo de gracia, decisión de producto pendiente de confirmar). */
+        /** Pago vencido: no se emiten documentos nuevos hasta regularizar (decisión del propietario, 2026-11-05). */
         PAST_DUE,
         CANCELLED
     }
@@ -52,6 +52,6 @@ public record Subscription(
     }
 
     public boolean allowsIssuing() {
-        return status != Status.CANCELLED;
+        return status == Status.TRIAL || status == Status.ACTIVE;
     }
 }

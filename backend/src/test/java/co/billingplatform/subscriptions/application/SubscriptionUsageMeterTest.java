@@ -46,13 +46,14 @@ class SubscriptionUsageMeterTest {
     }
 
     @Test
-    @DisplayName("sin suscripción o con suscripción cancelada no se emite")
+    @DisplayName("sin suscripción, cancelada o con pago vencido no se emite")
     void requiresUsableSubscription() {
         assertEquals("SUBSCRIPTION_REQUIRED", assertThrows(DomainException.class, () -> meter.ensureCanIssue(tenant)).code());
         current = subscription(Status.CANCELLED, null, null);
         assertEquals("SUBSCRIPTION_INACTIVE", assertThrows(DomainException.class, () -> meter.ensureCanIssue(tenant)).code());
         current = subscription(Status.PAST_DUE, null, null);
-        assertDoesNotThrow(() -> meter.ensureCanIssue(tenant), "periodo de gracia con pago vencido");
+        assertEquals("SUBSCRIPTION_INACTIVE", assertThrows(DomainException.class, () -> meter.ensureCanIssue(tenant)).code(),
+                "con pago vencido no se emiten documentos");
     }
 
     @Test

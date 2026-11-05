@@ -85,11 +85,11 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 **Decisión.** La fecha de emisión y los periodos se calculan con `ColombianTime.today(clock)` (`America/Bogota`), nunca con la zona del servidor. Un VPS en UTC emitiría con fecha del día siguiente entre las 19:00 y la medianoche.
 
 ## ADR-0011 — Medición de consumo y cuota
-*2026-11-05 — decisión de producto provisional, confirmar con el propietario*
+*2026-11-05*
 
 - Cuenta documentos **emitidos** (numerados), no solo validados: cada número consume resolución y costo con el proveedor.
 - Solo los de `PRODUCTION` consumen cuota; los de habilitación se registran para medir costo de pruebas; los simulados no se registran.
-- Suscripción `PAST_DUE` sigue facturando (gracia); `CANCELLED` bloquea.
+- Solo `TRIAL` y `ACTIVE` emiten; `PAST_DUE` y `CANCELLED` bloquean la emisión (confirmado por el propietario).
 - Límite `NULL` = sin límite. Condiciones particulares (p. ej. un convenio) = sobrescrituras genéricas en la suscripción.
 - La verificación bloquea la fila de suscripción en la transacción para que finalizaciones concurrentes no superen el límite.
 
