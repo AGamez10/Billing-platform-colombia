@@ -8,11 +8,21 @@ Monolito modular con puertos y adaptadores (hexagonal). Un solo artefacto desple
 
 ```
 backend/src/main/java/co/billingplatform/
-├── shared/domain            TenantId, Party, PartyIdentification (NIT+DV), RoundingPolicy, DomainException
+├── shared/
+│   ├── domain               TenantId, Party, PartyIdentification (NIT+DV), RoundingPolicy, Actor, ColombianTime
+│   └── application          AuditTrail (puerto)
+├── identity/
+│   ├── domain               Role, Permission, PasswordPolicy, LoginThrottlePolicy, OpaqueTokens
+│   └── application          AuthenticationService, RefreshTokenService, ApiKeyService, IdentityPorts
+├── subscriptions/
+│   ├── domain               Subscription (límites del plan + sobrescrituras)
+│   └── application          SubscriptionUsageMeter (implementa UsageMeter de facturación)
 ├── tax/domain               TaxRate (con vigencia y fundamento legal), TaxCatalog, Discount, DocumentCalculator
 ├── invoicing/
 │   ├── domain               Invoice (agregado + máquina de estados), InvoiceLine, NumberingRange, DocumentNumber
-│   └── application          SubmitInvoiceService, ProviderWebhookService, puertos InvoiceRepository, IssuerDirectory
+│   └── application          InvoiceDraftService, FinalizeInvoiceService, SubmitInvoiceService, ProviderWebhookService;
+│                            puertos InvoiceRepository, NumberingRangeRepository, CustomerDirectory,
+│                            SubmissionQueue (outbox), UsageMeter, IssuerDirectory
 └── electronicinvoicing/     Módulo de contrato con proveedores tecnológicos
     ├── domain               ElectronicDocument (modelo neutral), SubmissionResult, ValidationEvidence, ProviderCapabilities…
     ├── port                 ElectronicInvoicingProvider, ProviderAccountRepository, SecretResolver, ProcessedEventStore
@@ -24,7 +34,7 @@ backend/src/main/resources/db/migration   V1–V5 (Flyway)
 infrastructure/postgres/init               roles de base de datos
 ```
 
-Planeado (aún sin código, bloqueado por dependencias — ver [ROADMAP.md](ROADMAP.md)): `identity` (registro, login, tokens, API keys), `organizations`, `customers`, `products`, `subscriptions`, `audit`, capa web REST, adaptadores JPA/JDBC, worker de envíos, frontend React.
+Planeado (aún sin código, requiere el build con red — ver [ROADMAP.md](ROADMAP.md)): `organizations`, `customers`, `products` (CRUD), capa web REST, adaptadores JPA/JDBC y criptográficos (Argon2id, JWT), worker de envíos, frontend React.
 
 ## Dirección de dependencias
 
@@ -45,11 +55,12 @@ Reglas verificadas automáticamente:
 3. `electronicinvoicing` no conoce `invoicing` ni `tax` (es un contrato publicado; el núcleo lo usa, no al revés).
 4. `tax` no depende de `invoicing` ni de proveedores.
 5. Ningún archivo de `main` usa `float`/`double`.
+6. `invoicing` no depende de `subscriptions` ni de `identity` (los usa solo mediante puertos que él declara).
 
 ## Flujo de una factura
 
 1. **Borrador** — `Invoice.draft(...)`: el motor (`DocumentCalculator`) calcula totales; el cliente HTTP nunca envía totales.
-2. **Finalizar** — `finalizeWith(range, issueDate, …)`: recalcula con las tarifas vigentes en la fecha de emisión, asigna número de la resolución y congela el contenido. En base de datos la asignación es atómica (`allocate_document_number`, probada con 500 asignaciones concurrentes sin duplicados) y el job de envío se inserta en la misma transacción (outbox).
+2. **Finalizar** — `FinalizeInvoiceService`: verifica cuota, toma la cuenta de proveedor activa y bloquea la resolución de su mismo ambiente; `finalizeWith(range, account, issueDate, …)` recalcula con las tarifas vigentes en la fecha de emisión (hora de Colombia), asigna número, fija cuenta y ambiente, y congela el contenido. Repetir la llamada no hace nada. En base de datos la asignación es atómica (`allocate_document_number`, probada con 500 asignaciones concurrentes sin duplicados) y el job de envío se inserta en la misma transacción (outbox).
 3. **Transmitir** — `SubmitInvoiceService.submit(tenant, id)`, invocado por el worker. Resuelve la cuenta de proveedor del tenant, verifica capacidades, envía el `ElectronicDocument` neutral con una clave de idempotencia estable por factura y aplica el `SubmissionResult` normalizado.
 4. **Resultado** — por respuesta directa, consulta de estado o webhook verificado (`ProviderWebhookService`). Solo `Accepted` con `ValidationEvidence` lleva a `ACCEPTED`; `isLegallyValid()` exige además ambiente `PRODUCTION`.
 

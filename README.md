@@ -6,9 +6,9 @@ SaaS multi-tenant de facturación electrónica para Colombia: organizaciones, cl
 
 | Área | Estado |
 |---|---|
-| Núcleo de dominio (impuestos, facturas, numeración, contrato de proveedores, adaptador simulado, envío idempotente, webhooks) | Implementado, 53 pruebas pasan |
+| Núcleo de dominio (impuestos, facturas, numeración, contrato de proveedores, adaptador simulado, envío idempotente, webhooks, borrador/finalización, cuotas, identidad) | Implementado, 82 pruebas pasan |
 | Esquema PostgreSQL con Row-Level Security (V1–V5) | Implementado, 49 pruebas SQL pasan |
-| Capa Spring (REST, seguridad, persistencia), worker, frontend | Pendiente — bloqueado por falta de acceso a Maven Central/npm en el entorno de desarrollo |
+| Capa Spring (REST, seguridad, persistencia), worker, frontend | Pendiente — se construirá con CI en GitHub Actions (el entorno de desarrollo no accede a Maven Central/npm) |
 | Adaptador de proveedor real | Pendiente de contrato |
 
 Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).

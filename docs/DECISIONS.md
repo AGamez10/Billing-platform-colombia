@@ -72,6 +72,36 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 
 **Pendiente (bloqueo real, no técnico).** Confirmar con el proveedor elegido y con asesoría tributaria/legal que su contrato permite a un tercero operar emisión para múltiples contribuyentes, y bajo qué modalidad de credenciales.
 
+## ADR-0009 — La factura queda ligada al ambiente y a la cuenta de proveedor al finalizarse
+*2026-11-05*
+
+**Contexto.** En la primera versión la cuenta se elegía al transmitir. Eso permitía numerar con una resolución de producción y transmitir por una cuenta de habilitación (o al revés), quemando números reales en pruebas.
+
+**Decisión.** `Invoice.finalizeWith(range, account, …)` exige que resolución y cuenta sean del mismo tenant y del mismo ambiente, fija ambas en la factura, y rechaza cualquier evidencia de validación de un ambiente distinto (`CONFLICTING_PROVIDER_RESULT`). Las resoluciones de numeración llevan ambiente.
+
+## ADR-0010 — Fechas de negocio en hora de Colombia
+*2026-11-05*
+
+**Decisión.** La fecha de emisión y los periodos se calculan con `ColombianTime.today(clock)` (`America/Bogota`), nunca con la zona del servidor. Un VPS en UTC emitiría con fecha del día siguiente entre las 19:00 y la medianoche.
+
+## ADR-0011 — Medición de consumo y cuota
+*2026-11-05 — decisión de producto provisional, confirmar con el propietario*
+
+- Cuenta documentos **emitidos** (numerados), no solo validados: cada número consume resolución y costo con el proveedor.
+- Solo los de `PRODUCTION` consumen cuota; los de habilitación se registran para medir costo de pruebas; los simulados no se registran.
+- Suscripción `PAST_DUE` sigue facturando (gracia); `CANCELLED` bloquea.
+- Límite `NULL` = sin límite. Condiciones particulares (p. ej. un convenio) = sobrescrituras genéricas en la suscripción.
+- La verificación bloquea la fila de suscripción en la transacción para que finalizaciones concurrentes no superen el límite.
+
+## ADR-0012 — Repositorio público en GitHub con CI en GitHub Actions
+*2026-11-05 — por decisión del propietario*
+
+**Contexto.** El entorno de desarrollo no accede a Maven Central/npm/Docker Hub; GitHub sí es accesible. En repositorios públicos GitHub Actions no cobra minutos.
+
+**Decisión.** CI en `.github/workflows/ci.yml`: `mvn verify` (JUnit real, Testcontainers) y migraciones + pruebas de aislamiento contra un PostgreSQL 16 de servicio. Los fallos se publican como anotaciones del check, legibles por API. Dependabot semanal para Maven y Actions.
+
+**Consecuencias.** El código es visible para cualquiera. Aceptable porque no hay secretos en el repositorio y la seguridad no depende de ocultar el código; el repositorio no tiene licencia abierta (todos los derechos reservados). Nunca se suben `.env`, credenciales de proveedores ni datos de clientes.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

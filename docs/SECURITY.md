@@ -13,11 +13,17 @@
 | Falsa afirmación de validez tributaria | `ACCEPTED` exige `ValidationEvidence` (en dominio y por `CHECK` en base); validez legal solo en `PRODUCTION`; el adaptador simulado no opera en otro ambiente | `InvoiceTest`, `SubmitInvoiceServiceTest` |
 | Exposición de secretos en logs | `ProviderAccount` solo lleva referencias y su `toString` las omite; secretos de proveedor cifrados por la app (tabla `provider_secrets`) | `MockElectronicInvoicingProviderTest` |
 | Manipulación de auditoría | `audit_log` sin `UPDATE`/`DELETE` para la app | `tenant_isolation_test.sql` |
-| Enumeración de recursos | Factura de otro tenant devuelve el mismo error que una inexistente | `SubmitInvoiceServiceTest` |
+| Enumeración de recursos | Factura de otro tenant devuelve el mismo error que una inexistente | `SubmitInvoiceServiceTest`, `InvoiceLifecycleServiceTest` |
+| Enumeración de usuarios en login | Mismo error para usuario inexistente, contraseña errada, cuenta deshabilitada o bloqueada; verificación de hash siempre ejecutada | `IdentityServicesTest` |
+| Fuerza bruta por cuenta | Bloqueo progresivo: 5 fallos → 15 min, duplicando hasta 24 h | `IdentityDomainTest`, `IdentityServicesTest` |
+| Robo de refresh token | Rotación en cada uso; reúso de un token gastado revoca la familia; rol releído en cada rotación | `IdentityServicesTest` |
+| Claves de API filtradas o sobredimensionadas | Formato con prefijo + secreto de 256 bits, guardado como SHA-256, comparación en tiempo constante, expiración, sin permisos administrativos | `IdentityServicesTest` |
+| Escalada de privilegios por asignación de roles | `Role.canGrant`: solo se asignan roles con permisos contenidos en los propios | `IdentityDomainTest` |
+| Uso de numeración real en pruebas | Resolución y cuenta de proveedor deben ser del mismo ambiente; evidencia de otro ambiente se rechaza | `InvoiceTest`, `InvoiceLifecycleServiceTest` |
 
 ## Diseñado, pendiente de implementar (capa Spring)
 
-**Autenticación de usuarios** (ADR-0003)
+**Autenticación de usuarios** (ADR-0003) — núcleo implementado y probado; pendientes la capa web, Argon2id real y la emisión de JWT
 - Contraseñas con Argon2id (`Argon2PasswordEncoder` de Spring Security + BouncyCastle). Mínimo 12 caracteres, verificación contra listas de contraseñas comprometidas en la roadmap.
 - Access token JWT de 15 min firmado por la plataforma (validado con el resource server de Spring); claims: `sub`, `tid` (tenant), `role`, `jti`.
 - Refresh token opaco de 256 bits, guardado como hash SHA-256, rotado en cada uso; reúso de un token ya rotado revoca toda la familia. Viaja en cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. Al usar cookie, el endpoint de refresh exige verificación de `Origin` (CSRF).
@@ -38,7 +44,7 @@
 
 ## Riesgos residuales conocidos
 
-1. La capa web, autenticación y rate limiting **no existen todavía**: hoy no hay superficie expuesta, pero tampoco producto usable.
+1. La capa web, la emisión de JWT, Argon2id real y el rate limiting por IP **no existen todavía**: hoy no hay superficie expuesta, pero tampoco producto usable.
 2. El código Java solo se ha ejecutado con un runner offline compatible con la API de JUnit 5, no con JUnit/Surefire reales.
 3. Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS (ver MULTITENANCY.md).
 4. Las funciones `SECURITY DEFINER` corren como dueño con `BYPASSRLS`; deben revisarse en cada cambio.
