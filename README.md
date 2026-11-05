@@ -8,7 +8,8 @@ SaaS multi-tenant de facturación electrónica para Colombia: organizaciones, cl
 |---|---|
 | Núcleo de dominio (impuestos, facturas, numeración, contrato de proveedores, adaptador simulado, envío idempotente, webhooks, borrador/finalización, cuotas, identidad) | Implementado, 82 pruebas pasan |
 | Esquema PostgreSQL con Row-Level Security (V1–V5) | Implementado, 49 pruebas SQL pasan |
-| Capa Spring (REST, seguridad, persistencia), worker, frontend | Pendiente — se construirá con CI en GitHub Actions (el entorno de desarrollo no accede a Maven Central/npm) |
+| Arranque Spring Boot + CI en GitHub Actions | Implementado: 84 pruebas (JUnit/Surefire) y 49 SQL en verde en CI |
+| REST, seguridad web, adaptadores de persistencia, worker, frontend | Pendiente |
 | Adaptador de proveedor real | Pendiente de contrato |
 
 Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -16,7 +17,7 @@ Detalle en [docs/ROADMAP.md](docs/ROADMAP.md).
 ## Estructura
 
 ```
-backend/      Java 21, Spring Boot 4.1 (POM aún no resuelto), migraciones Flyway, pruebas
+backend/      Java 21, Spring Boot 4.1, migraciones Flyway, pruebas
 docs/         ARCHITECTURE, MULTITENANCY, SECURITY, PROVIDERS, DECISIONS (ADR), ROADMAP, API, DEPLOYMENT
 infrastructure/postgres/init/   roles de base de datos
 ```

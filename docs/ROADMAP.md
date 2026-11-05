@@ -4,9 +4,8 @@
 
 | Bloqueo | Impacto | Cómo se desbloquea |
 |---|---|---|
-| El entorno de desarrollo no accede a Maven Central, Spring Initializr, npm ni Docker Hub (proxy 403); sin daemon de Docker | No se puede compilar la capa Spring ni el frontend localmente | **En curso:** repositorio público en GitHub + CI en Actions (ADR-0012). Falta que el propietario cree el repositorio vacío |
-| Contrato con un proveedor tecnológico | No hay adaptador real | Elegir proveedor (Kiai es el candidato con API pública verificada) y obtener credenciales de pruebas |
-| Precios y límites de planes | La tabla `plans` existe sin datos | Decisión comercial del propietario |
+| Credenciales de sandbox del proveedor | No hay adaptador real | Proveedor recomendado: Muisca (PROVIDERS.md). Falta confirmar en su documentación si cubre POS y documento soporte, y crear la cuenta de pruebas |
+| Precios y límites de planes | La tabla `plans` existe sin datos | Propuesta en PRICING.md, pendiente de aprobación del propietario |
 
 ## Hecho (2026-11-05, con pruebas ejecutadas)
 
@@ -23,9 +22,16 @@
 - CI de GitHub Actions y Dependabot, listos para el primer push.
 - Pruebas: 82 Java y 49 SQL, todas pasan.
 
-## Siguiente (requiere el build con red) — orden recomendado
+## Hecho (2026-11-05, tercera sesión)
 
-1. **Build**: `mvn verify` real; reemplazar el runner offline por Surefire; agregar ArchUnit; fijar parche de Spring Boot 4.1.x.
+- Código en GitHub (`AGamez10/billing-platform-colombia`, público). **Primer CI real en verde**: Spring Boot 4.1.0 resuelve y compila; Surefire ejecutó 84 pruebas en 15 clases (0 fallos), incluida la de arranque con PostgreSQL en Testcontainers (Flyway migra como `billing_owner`, la app opera como `billing_app`); las 49 pruebas SQL de aislamiento pasan contra PostgreSQL 16 de servicio.
+- Arranque Spring: `TenantTransactions`, errores RFC 9457, configuración por variables de entorno; JDBC en vez de JPA (ADR-0013).
+- Suscripción con pago vencido ya no emite documentos.
+- Comparación pública de proveedores y propuesta de planes (PROVIDERS.md, PRICING.md).
+
+## Siguiente — orden recomendado
+
+1. **Build**: agregar ArchUnit a las reglas de arquitectura; seguridad de Spring configurada explícitamente.
 2. **Persistencia**: adaptadores JDBC/JPA de los puertos existentes + aspecto transaccional que fija `app.tenant_id` desde el principal autenticado; Testcontainers corriendo `tenant_isolation_test.sql`.
 3. **Identidad (capa web)**: Argon2id real, JWT de acceso, endpoints de registro/login/refresh/logout, gestión de membresías y API keys, rate limiting por IP. (El núcleo ya existe y está probado.)
 4. **API REST v1**: clientes, productos, resoluciones de numeración, facturas (borrador → finalizar → estado), cuentas de proveedor, webhooks; OpenAPI; `Idempotency-Key`.
