@@ -29,6 +29,11 @@
 - Suscripción con pago vencido ya no emite documentos.
 - Comparación pública de proveedores y propuesta de planes (PROVIDERS.md, PRICING.md).
 
+## Hecho (2026-11-05, cuarta sesión)
+
+- Planes aprobados en base de datos (V6) y excedentes solo con aceptación expresa (ADR-0014).
+- Entorno local con Docker: `docker compose up --build` levanta PostgreSQL + backend con página de estado, catálogo público (planes, tarifas) y OpenAPI. Seguridad cerrada por defecto. CI verifica la imagen y el stack de punta a punta: 95 pruebas Java, pruebas SQL y job Docker en verde.
+
 ## Siguiente — orden recomendado
 
 1. **Build**: agregar ArchUnit a las reglas de arquitectura; seguridad de Spring configurada explícitamente.
