@@ -113,6 +113,14 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 
 **Costo.** Más código de mapeo manual; se compensa con pruebas de integración por adaptador contra PostgreSQL real.
 
+## ADR-0014 — Planes aprobados y excedentes solo con aceptación expresa
+*2026-11-05 — decisión del propietario*
+
+- Planes: Micro ($69.000/año, **solo pago anual**, 15 docs/mes), Emprendedor ($12.900/mes, 40), Negocio ($29.900/mes, 120), Pro ($69.900/mes, 300). Pago anual = 10 meses. Usuarios ilimitados. Prueba gratis: 20 documentos en total, sin excedentes.
+- La cuota es **por ciclo mensual** aunque el pago sea anual; los ciclos se anclan a la fecha de inicio de la suscripción.
+- Al llegar al límite **no se cobra nada automáticamente**: la emisión responde `DOCUMENT_QUOTA_REACHED` y la interfaz ofrece mejorar el plan. Solo si el cliente acepta expresamente se emiten documentos adicionales a $150 c/u.
+- La aceptación vale para esa suscripción y ese ciclo; al cambiar de plan o empezar un ciclo nuevo se vuelve a ofrecer la mejora antes de cobrar (supuesto: evita cargos sorpresa y empuja la mejora de plan). Queda auditada y con el precio congelado; cada documento excedente se registra con su precio en `usage_events`.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

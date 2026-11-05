@@ -1,4 +1,4 @@
-# Propuesta de planes (borrador para decisión del propietario)
+# Planes (aprobados por el propietario el 2026-11-05)
 
 > Actualizado 2026-11-05. Basado en el costo público de Muisca (proveedor recomendado, ver PROVIDERS.md) y en precios públicos de competidores consultados ese día. Precios en COP antes de IVA (el tratamiento de IVA de la suscripción debe confirmarlo un contador).
 
@@ -22,11 +22,11 @@
 
 | Plan | Precio/mes | Documentos/mes | Usuarios | Margen bruto arranque | Margen bruto escala |
 |---|---|---|---|---|---|
-| Micro | $6.900 | 15 | Ilimitados | 83% | 91% |
+| Micro (solo anual: $69.000/año) | $6.900 equivalente | 15 | Ilimitados | 83% | 91% |
 | Emprendedor | $12.900 | 40 | Ilimitados | 75% | 88% |
 | Negocio | $29.900 | 120 | Ilimitados | 68% | 84% |
 | Pro | $69.900 | 300 | Ilimitados | 66% | 83% |
-| Documento adicional | $150 c/u | — | — | 47% | 73% |
+| Documento adicional (solo con aceptación expresa) | $150 c/u | — | — | 47% | 73% |
 
 Todos los planes incluyen todos los tipos de documento que cubra el proveedor (factura, notas, POS electrónico, documento soporte), API e integraciones. Pago anual = 10 meses.
 
@@ -42,6 +42,14 @@ Todos los planes incluyen todos los tipos de documento que cubra el proveedor (f
 | Aliaddo Initial | $59.900/mes | 100/mes |
 | Siigo Facturación 1500 | $76.931/mes (pago anual) | 1.500/año |
 | Bilidox Básico 100 | $60.000/año | 100/año |
+
+## Excedentes
+
+Al llegar al límite no se cobra nada automáticamente: se ofrece mejorar el plan, y solo si el cliente acepta expresamente se emiten documentos adicionales a $150. La aceptación vale para el ciclo mensual en curso y el plan actual (ADR-0014).
+
+## Sostenibilidad desde el inicio
+
+Costos fijos conocidos: prepago del proveedor $399.900/año (~$33.300/mes). Cada cliente Micro aporta ~$4.550/mes después del costo de sus documentos ($5.750 − 15 × $80), así que **unos 8 clientes Micro cubren el compromiso con el proveedor**. Servidor, dominio, correo y comisión de Mercado Pago se suman cuando se contraten (no se inventan aquí): punto de equilibrio = costos fijos mensuales ÷ aporte mensual promedio por cliente. El margen mejora solo con el volumen, porque el costo por documento baja de ~$80 a ~$40 sin cambiar precios.
 
 ## Prueba gratis
 

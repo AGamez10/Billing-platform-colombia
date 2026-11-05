@@ -83,7 +83,7 @@ class InvoiceLifecycleServiceTest {
         final List<UUID> recorded = new ArrayList<>();
 
         @Override
-        public void ensureCanIssue(TenantId tenantId) {
+        public void ensureCanIssue(TenantId tenantId, ProviderEnvironment environment) {
             if (refuseWith != null) throw refuseWith;
         }
 

@@ -65,7 +65,7 @@ public final class FinalizeInvoiceService {
         ProviderAccount account = accounts.findActive(tenantId)
                 .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
                         "The organization has no electronic invoicing provider configured"));
-        usage.ensureCanIssue(tenantId);
+        usage.ensureCanIssue(tenantId, account.environment());
 
         LocalDate issueDate = ColombianTime.today(clock);
         NumberingRange range = ranges.lockActiveInvoiceRange(tenantId, account.environment(), issueDate)

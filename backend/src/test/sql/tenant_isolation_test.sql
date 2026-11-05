@@ -213,6 +213,14 @@ SELECT set_config('app.tenant_id', 'cccccccc-0000-0000-0000-000000000003', false
 SELECT t.expect_eq((SELECT count(*) FROM memberships WHERE role = 'OWNER'), 1, 'registro crea organización con su dueño');
 SELECT t.expect_eq((SELECT count(*) FROM invoices), 0, 'una organización nueva no ve facturas de otras');
 
+-- 10. Planes: visibles para la app, inmodificables por ella.
+SELECT t.expect_eq((SELECT count(*) FROM plans WHERE active), 5, 'planes aprobados sembrados (prueba + 4 pagos)');
+SELECT t.expect_eq((SELECT count(*) FROM plans WHERE code = 'MICRO' AND NOT monthly_billing_allowed AND annual_price_cop = 69000), 1,
+                   'Micro solo con pago anual de $69.000');
+SELECT t.expect_eq((SELECT count(*) FROM plans WHERE code = 'TRIAL' AND quota_scope = 'TOTAL' AND quota_documents = 20 AND overage_unit_price_cop IS NULL), 1,
+                   'prueba gratis: 20 documentos en total, sin excedentes');
+SELECT t.expect_sqlstate($$UPDATE plans SET monthly_price_cop = 0$$, '42501', 'la aplicación no modifica precios de planes');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(
@@ -221,6 +229,9 @@ SELECT t.expect_sqlstate(
 SELECT t.expect_sqlstate(
     $$INSERT INTO tax_rates VALUES ('IVA_X', 'IVA', 'EXEMPT', 5, '2026-01-01', NULL, 'test', '2026-11-05')$$,
     '23514', 'una tarifa exenta debe ser 0%');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO plans (code, name, quota_scope, overage_unit_price_cop, monthly_billing_allowed) VALUES ('X', 'x', 'TOTAL', 150, true)$$,
+    '23514', 'una prueba gratis (cuota total) no puede tener excedentes');
 SELECT t.expect_eq((SELECT count(*) FROM pg_roles WHERE rolname = 'billing_app' AND (rolbypassrls OR rolsuper)), 0,
                    'billing_app no tiene BYPASSRLS ni SUPERUSER');
 SELECT t.expect_eq((SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'billing_app'), 0,
