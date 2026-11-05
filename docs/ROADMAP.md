@@ -38,6 +38,10 @@
 
 - Registro de organización (con prueba gratis automática) e inicio de sesión por API: Argon2id, JWT de 15 min, refresh rotatorio en cookie segura con detección de reúso, bloqueo por cuenta, límite por IP, `/api/v1/auth/me`. Swagger con botón Authorize. CI: 105 pruebas + Docker con registro y sesión de punta a punta.
 
+## Hecho (2026-11-05, sexta sesión)
+
+- Clientes y productos por API (`/api/v1/customers`, `/api/v1/products`): permisos por rol desde el token, bloqueo optimista con `version`, búsqueda paginada con comodines escapados, desactivación en vez de borrado, auditoría en `audit_log`, validación de tarifas vigentes. CI: 113 pruebas en verde, incluidas pruebas HTTP de aislamiento entre organizaciones.
+
 ## Siguiente — orden recomendado
 
 1. **Build**: agregar ArchUnit a las reglas de arquitectura; seguridad de Spring configurada explícitamente.

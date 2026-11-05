@@ -14,6 +14,8 @@ backend/src/main/java/co/billingplatform/
 ├── identity/
 │   ├── domain               Role, Permission, PasswordPolicy, LoginThrottlePolicy, OpaqueTokens
 │   └── application          AuthenticationService, RefreshTokenService, ApiKeyService, IdentityPorts
+├── customers/               Customer, CustomerService (implementa CustomerDirectory de facturación), JDBC, REST
+├── products/                Product, ProductService (valida tarifas vigentes), JDBC, REST
 ├── subscriptions/
 │   ├── domain               Subscription (límites del plan + sobrescrituras)
 │   └── application          SubscriptionUsageMeter (implementa UsageMeter de facturación)
