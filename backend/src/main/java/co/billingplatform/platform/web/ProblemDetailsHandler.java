@@ -48,7 +48,13 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("ORGANIZATION_ALREADY_REGISTERED", HttpStatus.CONFLICT),
             Map.entry("CLIENT_HEADER_REQUIRED", HttpStatus.BAD_REQUEST),
             Map.entry("DOCUMENT_QUOTA_REACHED", HttpStatus.PAYMENT_REQUIRED),
-            Map.entry("TRIAL_QUOTA_EXHAUSTED", HttpStatus.PAYMENT_REQUIRED));
+            Map.entry("TRIAL_QUOTA_EXHAUSTED", HttpStatus.PAYMENT_REQUIRED),
+            Map.entry("UNAUTHENTICATED", HttpStatus.UNAUTHORIZED),
+            Map.entry("FORBIDDEN", HttpStatus.FORBIDDEN),
+            Map.entry("VERSION_CONFLICT", HttpStatus.CONFLICT),
+            Map.entry("CUSTOMER_ALREADY_EXISTS", HttpStatus.CONFLICT),
+            Map.entry("PRODUCT_SKU_ALREADY_EXISTS", HttpStatus.CONFLICT),
+            Map.entry("PRODUCT_NOT_FOUND", HttpStatus.NOT_FOUND));
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException e) {
