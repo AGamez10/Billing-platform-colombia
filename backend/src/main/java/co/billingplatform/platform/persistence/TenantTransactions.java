@@ -1,5 +1,6 @@
 package co.billingplatform.platform.persistence;
 
+import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.TenantId;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -48,6 +49,28 @@ public class TenantTransactions {
     /** Sin contexto: solo para las funciones SECURITY DEFINER acotadas (registro, auth, cola). */
     public <T> T withoutTenant(Supplier<T> work) {
         return transactions.execute(status -> work.get());
+    }
+
+    /**
+     * Como {@link #withoutTenant}, pero si el caso de uso termina con una {@link DomainException}
+     * se CONFIRMAN las escrituras hechas antes de la excepción y luego se relanza. Solo para
+     * flujos donde registrar el intento es parte de la defensa: contador de logins fallidos y
+     * revocación de una familia de refresh tokens al detectar reúso.
+     */
+    public <T> T withoutTenantKeepingWritesOnDomainError(Supplier<T> work) {
+        DomainException[] failure = new DomainException[1];
+        T result = transactions.execute(status -> {
+            try {
+                return work.get();
+            } catch (DomainException e) {
+                failure[0] = e;
+                return null;
+            }
+        });
+        if (failure[0] != null) {
+            throw failure[0];
+        }
+        return result;
     }
 
     private void setLocal(String setting, String value) {

@@ -23,6 +23,13 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+billing:
+  security:
+    # Secreto HS256 de los access tokens: base64 de al menos 32 bytes aleatorios.
+    # Generar: openssl rand -base64 48
+    jwt-secret: ${BILLING_JWT_SECRET}
+    auth-requests-per-minute: ${BILLING_AUTH_REQUESTS_PER_MINUTE:10}
+
 server:
   error:
     include-stacktrace: never

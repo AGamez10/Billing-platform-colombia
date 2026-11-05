@@ -8,16 +8,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * Traduce errores a RFC 9457 ({@code application/problem+json}) con un {@code code} estable.
- * Nunca devuelve trazas ni mensajes internos de errores inesperados.
+ * Nunca devuelve trazas ni mensajes internos de errores inesperados. Los errores estándar de
+ * Spring MVC (validación, JSON mal formado, método no soportado, 404) los resuelve la clase base.
  */
 @RestControllerAdvice
-public class ProblemDetailsHandler {
+public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ProblemDetailsHandler.class);
 
@@ -41,7 +43,12 @@ public class ProblemDetailsHandler {
             Map.entry("REFRESH_TOKEN_REUSED", HttpStatus.UNAUTHORIZED),
             Map.entry("INVALID_API_KEY", HttpStatus.UNAUTHORIZED),
             Map.entry("TENANT_ACCESS_DENIED", HttpStatus.FORBIDDEN),
-            Map.entry("PROVIDER_NOT_AVAILABLE", HttpStatus.SERVICE_UNAVAILABLE));
+            Map.entry("PROVIDER_NOT_AVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
+            Map.entry("EMAIL_ALREADY_REGISTERED", HttpStatus.CONFLICT),
+            Map.entry("ORGANIZATION_ALREADY_REGISTERED", HttpStatus.CONFLICT),
+            Map.entry("CLIENT_HEADER_REQUIRED", HttpStatus.BAD_REQUEST),
+            Map.entry("DOCUMENT_QUOTA_REACHED", HttpStatus.PAYMENT_REQUIRED),
+            Map.entry("TRIAL_QUOTA_EXHAUSTED", HttpStatus.PAYMENT_REQUIRED));
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException e) {

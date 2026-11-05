@@ -45,6 +45,8 @@ services:
       BILLING_DB_URL: jdbc:postgresql://postgres:5432/billing
       BILLING_DB_OWNER_PASSWORD: ${BILLING_DB_OWNER_PASSWORD:-local-owner-change-me}
       BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD:-local-app-change-me}
+      # Secreto de desarrollo; en cualquier otro entorno usar uno propio (openssl rand -base64 48).
+      BILLING_JWT_SECRET: ${BILLING_JWT_SECRET:-bG9jYWwtZGV2LW9ubHktand0LXNlY3JldC1jaGFuZ2UtbWUtMDEyMzQ1Njc4OQ==}
     ports:
       - "127.0.0.1:${BILLING_HTTP_PORT:-8080}:8080"
 

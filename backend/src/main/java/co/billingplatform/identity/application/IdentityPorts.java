@@ -24,7 +24,12 @@ public final class IdentityPorts {
         void recordSuccessfulLogin(UUID userId);
     }
 
-    public record Membership(TenantId tenantId, Role role) {}
+    /** @param organizationName nombre para que el usuario elija organización; puede faltar en pruebas */
+    public record Membership(TenantId tenantId, Role role, String organizationName) {
+        public Membership(TenantId tenantId, Role role) {
+            this(tenantId, role, null);
+        }
+    }
 
     public interface Memberships {
         /** Membresías activas de organizaciones activas. */
@@ -59,6 +64,21 @@ public final class IdentityPorts {
 
     public record ApiKeyRecord(TenantId tenantId, UUID id, String name, String prefix, byte[] keyHash,
                                Set<Permission> scopes, Instant expiresAt) {}
+
+    /** Alta atómica de organización + usuario dueño + membresía ({@code register_organization}). */
+    public interface OrganizationOnboarding {
+        /**
+         * @throws co.billingplatform.shared.domain.DomainException {@code EMAIL_ALREADY_REGISTERED}
+         *         u {@code ORGANIZATION_ALREADY_REGISTERED}
+         */
+        void register(UUID organizationId, String legalName, co.billingplatform.shared.domain.PartyIdentification identification,
+                      String organizationEmail, UUID ownerUserId, String ownerEmail, String passwordHash, String ownerFullName);
+    }
+
+    /** Lo implementa {@code subscriptions}: toda organización nueva arranca con la prueba gratis. */
+    public interface TrialProvisioning {
+        void startTrial(TenantId tenantId);
+    }
 
     public interface ApiKeys {
         /** Solo claves no revocadas de organizaciones activas ({@code auth_find_api_key}). */

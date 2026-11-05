@@ -25,5 +25,7 @@ public abstract class PostgresIntegrationTest {
         registry.add("BILLING_DB_URL", POSTGRES::getJdbcUrl);
         registry.add("BILLING_DB_APP_PASSWORD", () -> "app-test");
         registry.add("BILLING_DB_OWNER_PASSWORD", () -> "owner-test");
+        registry.add("BILLING_JWT_SECRET", () -> "dGVzdC1vbmx5LWp3dC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC0wMTIzNDU=");
+        registry.add("BILLING_AUTH_REQUESTS_PER_MINUTE", () -> "1000");
     }
 }
