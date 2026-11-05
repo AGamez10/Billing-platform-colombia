@@ -55,6 +55,11 @@ final class InMemoryAdapters {
             saves++;
             store.put(invoice.id(), invoice);
         }
+
+        @Override
+        public void deleteDraft(TenantId tenantId, UUID invoiceId) {
+            findById(tenantId, invoiceId).ifPresent(i -> store.remove(i.id()));
+        }
     }
 
     static final class Accounts implements ProviderAccountRepository {

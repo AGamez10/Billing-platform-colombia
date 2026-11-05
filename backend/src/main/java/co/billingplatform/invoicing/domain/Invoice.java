@@ -2,6 +2,8 @@ package co.billingplatform.invoicing.domain;
 
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
 import co.billingplatform.electronicinvoicing.domain.ExternalReference;
+import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
+import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.domain.SubmissionResult;
 import co.billingplatform.electronicinvoicing.domain.ValidationEvidence;
 import co.billingplatform.shared.domain.DomainException;
@@ -24,8 +26,10 @@ import java.util.UUID;
  *   <li>solo es editable en borrador;</li>
  *   <li>los totales siempre se derivan del motor de cálculo (nunca se aceptan del cliente);</li>
  *   <li>solo se valida con evidencia del proveedor;</li>
- *   <li>una vez enviada a un proveedor, permanece ligada a esa cuenta de proveedor hasta
- *       tener resultado final (cambiar de proveedor no deja documentos huérfanos);</li>
+ *   <li>al finalizarse queda ligada a la cuenta de proveedor activa y a su ambiente; la
+ *       numeración usada debe ser del mismo ambiente, y cambiar de proveedor después no deja
+ *       documentos huérfanos;</li>
+ *   <li>una validación reportada en un ambiente distinto al de emisión se rechaza;</li>
  *   <li>pertenece a un único tenant, inmutable.</li>
  * </ul>
  */
@@ -46,6 +50,7 @@ public final class Invoice {
     private DocumentNumber number;
     private NumberingAuthorization authorization;
     private UUID providerAccountId;
+    private ProviderEnvironment environment;
     private ExternalReference externalReference;
     private ValidationEvidence evidence;
     private List<String> rejectionReasons = List.of();
@@ -79,11 +84,20 @@ public final class Invoice {
      * Asigna número y fecha de emisión y congela el contenido. Los tributos se recalculan
      * con las tarifas vigentes en la fecha de emisión real.
      */
-    public void finalizeWith(NumberingRange range, LocalDate issueDate, TaxCatalog taxes,
-                             DocumentCalculator calculator, Instant now) {
+    public void finalizeWith(NumberingRange range, ProviderAccount account, LocalDate issueDate,
+                             TaxCatalog taxes, DocumentCalculator calculator, Instant now) {
         requireStatus(InvoiceStatus.DRAFT);
+        Objects.requireNonNull(account);
         if (!range.tenantId().equals(tenantId)) {
             throw new DomainException("NUMBERING_RANGE_NOT_FOUND", "Numbering range does not belong to this organization");
+        }
+        if (!account.tenantId().equals(tenantId)) {
+            throw new DomainException("PROVIDER_ACCOUNT_NOT_FOUND", "Provider account does not belong to this organization");
+        }
+        if (range.environment() != account.environment()) {
+            throw new DomainException("NUMBERING_ENVIRONMENT_MISMATCH",
+                    "Numbering resolution is for %s but the provider account operates in %s"
+                            .formatted(range.environment(), account.environment()));
         }
         applyContent(customer, lines, issueDate, taxes, calculator);
         if (calculation.payableAmount().signum() <= 0) {
@@ -91,17 +105,9 @@ public final class Invoice {
         }
         this.number = range.allocate(issueDate);
         this.authorization = range.authorization();
-        transition(InvoiceStatus.PENDING_SUBMISSION, now, "finalized as " + number.formatted());
-    }
-
-    /** Liga la factura a la cuenta de proveedor con la que se envía por primera vez. */
-    public void bindProviderAccount(UUID accountId) {
-        Objects.requireNonNull(accountId);
-        if (providerAccountId != null && !providerAccountId.equals(accountId)) {
-            throw new DomainException("PROVIDER_ACCOUNT_MISMATCH",
-                    "Invoice was already sent through another provider account and must be reconciled there");
-        }
-        this.providerAccountId = accountId;
+        this.providerAccountId = account.id();
+        this.environment = account.environment();
+        transition(InvoiceStatus.PENDING_SUBMISSION, now, "finalized as " + number.formatted() + " (" + environment + ")");
     }
 
     /** Aplica un resultado normalizado del proveedor (envío, consulta o webhook). Idempotente ante repeticiones. */
@@ -117,6 +123,11 @@ public final class Invoice {
         providerInteractions++;
         switch (result) {
             case SubmissionResult.Accepted a -> {
+                if (a.evidence().environment() != environment) {
+                    throw new DomainException("CONFLICTING_PROVIDER_RESULT",
+                            "Validation reported for %s but the invoice was issued in %s"
+                                    .formatted(a.evidence().environment(), environment));
+                }
                 this.externalReference = a.reference();
                 this.evidence = a.evidence();
                 this.outcomeUncertain = false;
@@ -221,6 +232,8 @@ public final class Invoice {
     public Optional<DocumentNumber> number() { return Optional.ofNullable(number); }
     public Optional<NumberingAuthorization> authorization() { return Optional.ofNullable(authorization); }
     public Optional<UUID> providerAccountId() { return Optional.ofNullable(providerAccountId); }
+    /** Ambiente en que se emitió (fijado al finalizar). Vacío en borrador. */
+    public Optional<ProviderEnvironment> environment() { return Optional.ofNullable(environment); }
     public Optional<ExternalReference> externalReference() { return Optional.ofNullable(externalReference); }
     public Optional<ValidationEvidence> evidence() { return Optional.ofNullable(evidence); }
     public List<String> rejectionReasons() { return rejectionReasons; }

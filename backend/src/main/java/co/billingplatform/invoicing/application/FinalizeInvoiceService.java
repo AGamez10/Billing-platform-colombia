@@ -1,0 +1,87 @@
+package co.billingplatform.invoicing.application;
+
+import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
+import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
+import co.billingplatform.invoicing.domain.Invoice;
+import co.billingplatform.invoicing.domain.InvoiceStatus;
+import co.billingplatform.invoicing.domain.NumberingRange;
+import co.billingplatform.shared.application.AuditTrail;
+import co.billingplatform.shared.domain.Actor;
+import co.billingplatform.shared.domain.ColombianTime;
+import co.billingplatform.shared.domain.DomainException;
+import co.billingplatform.shared.domain.TenantId;
+import co.billingplatform.tax.domain.DocumentCalculator;
+import co.billingplatform.tax.domain.TaxCatalog;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Caso de uso: finalizar (numerar) un borrador y programar su transmisión.
+ *
+ * <p>Todo ocurre en una transacción: verificación de cuota, bloqueo de la resolución,
+ * asignación de número, cambio de estado, job en el outbox, registro de consumo y
+ * auditoría. Si algo falla, nada se confirma y no se consume número.
+ *
+ * <p>Repetir la llamada sobre una factura ya finalizada no hace nada (doble clic, reintento
+ * de red): devuelve la factura tal como está.
+ */
+public final class FinalizeInvoiceService {
+
+    private final InvoiceRepository invoices;
+    private final NumberingRangeRepository ranges;
+    private final ProviderAccountRepository accounts;
+    private final SubmissionQueue queue;
+    private final UsageMeter usage;
+    private final TaxCatalog taxes;
+    private final DocumentCalculator calculator;
+    private final AuditTrail audit;
+    private final Clock clock;
+
+    public FinalizeInvoiceService(InvoiceRepository invoices, NumberingRangeRepository ranges,
+                                  ProviderAccountRepository accounts, SubmissionQueue queue, UsageMeter usage,
+                                  TaxCatalog taxes, DocumentCalculator calculator, AuditTrail audit, Clock clock) {
+        this.invoices = Objects.requireNonNull(invoices);
+        this.ranges = Objects.requireNonNull(ranges);
+        this.accounts = Objects.requireNonNull(accounts);
+        this.queue = Objects.requireNonNull(queue);
+        this.usage = Objects.requireNonNull(usage);
+        this.taxes = Objects.requireNonNull(taxes);
+        this.calculator = Objects.requireNonNull(calculator);
+        this.audit = Objects.requireNonNull(audit);
+        this.clock = Objects.requireNonNull(clock);
+    }
+
+    public Invoice finalizeInvoice(TenantId tenantId, Actor actor, UUID invoiceId) {
+        Invoice invoice = invoices.findById(tenantId, invoiceId)
+                .orElseThrow(() -> new DomainException("INVOICE_NOT_FOUND", "Invoice not found"));
+        if (invoice.status() != InvoiceStatus.DRAFT) {
+            return invoice;
+        }
+
+        ProviderAccount account = accounts.findActive(tenantId)
+                .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
+                        "The organization has no electronic invoicing provider configured"));
+        usage.ensureCanIssue(tenantId);
+
+        LocalDate issueDate = ColombianTime.today(clock);
+        NumberingRange range = ranges.lockActiveInvoiceRange(tenantId, account.environment(), issueDate)
+                .orElseThrow(() -> new DomainException("NUMBERING_RANGE_NOT_FOUND",
+                        "No active numbering resolution for " + account.environment()));
+
+        invoice.finalizeWith(range, account, issueDate, taxes, calculator, clock.instant());
+
+        ranges.save(range);
+        invoices.save(invoice);
+        queue.enqueue(tenantId, invoice.id());
+        usage.recordIssued(tenantId, invoice.id(), account);
+        audit.record(new AuditTrail.Event(tenantId, actor, "INVOICE_FINALIZED", "invoice", invoice.id().toString(),
+                Map.of("number", invoice.number().orElseThrow().formatted(),
+                        "environment", account.environment().name(),
+                        "provider", account.providerId().value())));
+        return invoice;
+    }
+}

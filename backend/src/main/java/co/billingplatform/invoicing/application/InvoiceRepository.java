@@ -19,4 +19,7 @@ public interface InvoiceRepository {
     Optional<Invoice> findByExternalReference(TenantId tenantId, ExternalReference reference);
 
     void save(Invoice invoice);
+
+    /** Solo borradores (la base de datos también lo impide para facturas numeradas). */
+    void deleteDraft(TenantId tenantId, UUID invoiceId);
 }

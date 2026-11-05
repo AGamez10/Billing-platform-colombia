@@ -1,5 +1,8 @@
 package co.billingplatform.invoicing.domain;
 
+import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
+import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
+import co.billingplatform.electronicinvoicing.domain.ProviderId;
 import co.billingplatform.shared.domain.IdentificationType;
 import co.billingplatform.shared.domain.Party;
 import co.billingplatform.shared.domain.PartyIdentification;
@@ -41,14 +44,28 @@ public final class InvoiceFixtures {
         return Invoice.draft(UUID.randomUUID(), tenant, customer(), lines(), TODAY, TestTaxRates.catalog(), CALCULATOR, NOW);
     }
 
+    public static ProviderAccount account(TenantId tenant, ProviderEnvironment environment) {
+        return new ProviderAccount(UUID.randomUUID(), tenant, new ProviderId("alpha"), environment,
+                "secret://creds", "secret://webhook");
+    }
+
     public static NumberingRange range(TenantId tenant) {
-        return NumberingRange.create(tenant, "18760000001", "SETP", 990000000, 995000000,
+        return range(tenant, ProviderEnvironment.HABILITATION);
+    }
+
+    public static NumberingRange range(TenantId tenant, ProviderEnvironment environment) {
+        return NumberingRange.create(tenant, environment, "18760000001", "SETP", 990000000, 995000000,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2027, 12, 31));
     }
 
+    /** Finalizada con una cuenta de proveedor de habilitación. */
     public static Invoice finalized(TenantId tenant) {
+        return finalized(tenant, account(tenant, ProviderEnvironment.HABILITATION));
+    }
+
+    public static Invoice finalized(TenantId tenant, ProviderAccount account) {
         Invoice invoice = draft(tenant);
-        invoice.finalizeWith(range(tenant), TODAY, TestTaxRates.catalog(), CALCULATOR, NOW);
+        invoice.finalizeWith(range(tenant, account.environment()), account, TODAY, TestTaxRates.catalog(), CALCULATOR, NOW);
         return invoice;
     }
 }

@@ -48,8 +48,9 @@ class SubmitInvoiceServiceTest {
                 tenant -> InvoiceFixtures.issuer(), CLOCK, 3);
     }
 
+    /** Finalizada con la cuenta de proveedor activa del tenant (como lo hace FinalizeInvoiceService). */
     private Invoice storedFinalizedInvoice(TenantId tenant) {
-        Invoice invoice = InvoiceFixtures.finalized(tenant);
+        Invoice invoice = InvoiceFixtures.finalized(tenant, accounts.findActive(tenant).orElseThrow());
         invoices.save(invoice);
         return invoice;
     }
@@ -217,18 +218,15 @@ class SubmitInvoiceServiceTest {
                 assertThrows(DomainException.class, () -> service(mock).submit(tenantA, invoice.id())).code());
 
         accounts.activate(tenantA, MockElectronicInvoicingProvider.ID, ProviderEnvironment.PRODUCTION, null);
+        Invoice productionInvoice = storedFinalizedInvoice(tenantA);
         assertEquals("PROVIDER_ENVIRONMENT_UNSUPPORTED",
-                assertThrows(DomainException.class, () -> service(mock).submit(tenantA, invoice.id())).code(),
+                assertThrows(DomainException.class, () -> service(mock).submit(tenantA, productionInvoice.id())).code(),
                 "el adaptador simulado jamás opera en producción");
     }
 
     @Test
-    @DisplayName("sin proveedor configurado o con borrador, el envío se rechaza")
-    void preconditions() {
-        Invoice invoice = storedFinalizedInvoice(tenantA);
-        assertEquals("NO_PROVIDER_CONFIGURED",
-                assertThrows(DomainException.class, () -> service(mock).submit(tenantA, invoice.id())).code());
-
+    @DisplayName("un borrador no se transmite")
+    void draftsAreNotSubmitted() {
         Invoice draft = InvoiceFixtures.draft(tenantA);
         invoices.save(draft);
         assertEquals("INVALID_STATE_TRANSITION",

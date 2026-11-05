@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.domain;
 
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
+import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.TenantId;
 
@@ -20,6 +21,7 @@ public final class NumberingRange {
 
     private final UUID id;
     private final TenantId tenantId;
+    private final ProviderEnvironment environment;
     private final String resolutionNumber;
     private final String prefix;
     private final long rangeFrom;
@@ -28,10 +30,12 @@ public final class NumberingRange {
     private final LocalDate validTo;
     private long nextNumber;
 
-    public NumberingRange(UUID id, TenantId tenantId, String resolutionNumber, String prefix,
-                          long rangeFrom, long rangeTo, LocalDate validFrom, LocalDate validTo, long nextNumber) {
+    public NumberingRange(UUID id, TenantId tenantId, ProviderEnvironment environment, String resolutionNumber,
+                          String prefix, long rangeFrom, long rangeTo, LocalDate validFrom, LocalDate validTo,
+                          long nextNumber) {
         this.id = Objects.requireNonNull(id);
         this.tenantId = Objects.requireNonNull(tenantId);
+        this.environment = Objects.requireNonNull(environment);
         if (resolutionNumber == null || resolutionNumber.isBlank()) {
             throw new DomainException("INVALID_NUMBERING_RANGE", "Resolution number is required");
         }
@@ -59,9 +63,14 @@ public final class NumberingRange {
         this.nextNumber = nextNumber;
     }
 
-    public static NumberingRange create(TenantId tenantId, String resolutionNumber, String prefix,
-                                        long rangeFrom, long rangeTo, LocalDate validFrom, LocalDate validTo) {
-        return new NumberingRange(UUID.randomUUID(), tenantId, resolutionNumber, prefix,
+    /**
+     * @param environment ambiente al que pertenece la resolución: una numeración de pruebas
+     *                    nunca se usa en producción ni al revés.
+     */
+    public static NumberingRange create(TenantId tenantId, ProviderEnvironment environment, String resolutionNumber,
+                                        String prefix, long rangeFrom, long rangeTo,
+                                        LocalDate validFrom, LocalDate validTo) {
+        return new NumberingRange(UUID.randomUUID(), tenantId, environment, resolutionNumber, prefix,
                 rangeFrom, rangeTo, validFrom, validTo, rangeFrom);
     }
 
@@ -88,6 +97,7 @@ public final class NumberingRange {
 
     public UUID id() { return id; }
     public TenantId tenantId() { return tenantId; }
+    public ProviderEnvironment environment() { return environment; }
     public String prefix() { return prefix; }
     public long nextNumber() { return nextNumber; }
 }

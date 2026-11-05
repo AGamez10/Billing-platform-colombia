@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.domain;
 
 import co.billingplatform.electronicinvoicing.domain.ExternalReference;
+import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.domain.SubmissionResult;
 import co.billingplatform.electronicinvoicing.domain.ValidationEvidence;
@@ -66,7 +67,7 @@ class InvoiceTest {
                 LocalDate.of(2026, 12, 31), catalog, CALCULATOR, NOW);
         assertEquals(new BigDecimal("100.00"), invoice.calculation().taxTotal());
 
-        invoice.finalizeWith(range(tenant), LocalDate.of(2027, 1, 1), catalog, CALCULATOR, NOW);
+        invoice.finalizeWith(range(tenant), account(tenant, ProviderEnvironment.HABILITATION), LocalDate.of(2027, 1, 1), catalog, CALCULATOR, NOW);
         assertEquals(new BigDecimal("120.00"), invoice.calculation().taxTotal());
         assertEquals(LocalDate.of(2027, 1, 1), invoice.issueDate());
     }
@@ -77,7 +78,7 @@ class InvoiceTest {
         Invoice invoice = draft(tenant);
         NumberingRange foreign = range(new TenantId(UUID.randomUUID()));
         assertEquals("NUMBERING_RANGE_NOT_FOUND", assertThrows(DomainException.class, () ->
-                invoice.finalizeWith(foreign, TODAY, TestTaxRates.catalog(), CALCULATOR, NOW)).code());
+                invoice.finalizeWith(foreign, account(tenant, ProviderEnvironment.HABILITATION), TODAY, TestTaxRates.catalog(), CALCULATOR, NOW)).code());
         assertEquals(InvoiceStatus.DRAFT, invoice.status());
     }
 
@@ -89,14 +90,14 @@ class InvoiceTest {
                 TODAY, TestTaxRates.catalog(), CALCULATOR, NOW);
         NumberingRange range = range(tenant);
         assertEquals("INVOICE_TOTAL_NOT_POSITIVE", assertThrows(DomainException.class, () ->
-                invoice.finalizeWith(range, TODAY, TestTaxRates.catalog(), CALCULATOR, NOW)).code());
+                invoice.finalizeWith(range, account(tenant, ProviderEnvironment.HABILITATION), TODAY, TestTaxRates.catalog(), CALCULATOR, NOW)).code());
         assertEquals(990000000, range.nextNumber(), "no consume número");
     }
 
     @Test
     @DisplayName("validada en simulación o habilitación NO tiene validez tributaria")
     void legalValidityRequiresProduction() {
-        Invoice sim = finalized(tenant);
+        Invoice sim = finalized(tenant, account(tenant, ProviderEnvironment.SIMULATION));
         sim.recordProviderResult(new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.SIMULATION)), NOW);
         assertEquals(InvoiceStatus.ACCEPTED, sim.status());
         assertFalse(sim.isLegallyValid());
@@ -105,7 +106,7 @@ class InvoiceTest {
         hab.recordProviderResult(new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.HABILITATION)), NOW);
         assertFalse(hab.isLegallyValid());
 
-        Invoice prod = finalized(tenant);
+        Invoice prod = finalized(tenant, account(tenant, ProviderEnvironment.PRODUCTION));
         prod.recordProviderResult(new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.PRODUCTION)), NOW);
         assertTrue(prod.isLegallyValid());
     }
@@ -121,7 +122,7 @@ class InvoiceTest {
     @DisplayName("resultados repetidos son idempotentes; resultados contradictorios se rechazan")
     void duplicateAndConflictingResults() {
         Invoice invoice = finalized(tenant);
-        var accepted = new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.SIMULATION));
+        var accepted = new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.HABILITATION));
         invoice.recordProviderResult(accepted, NOW);
         int historySize = invoice.history().size();
 
@@ -151,14 +152,37 @@ class InvoiceTest {
     }
 
     @Test
-    @DisplayName("una factura enviada queda ligada a su cuenta de proveedor")
-    void bindsProviderAccount() {
-        Invoice invoice = finalized(tenant);
-        UUID account = UUID.randomUUID();
-        invoice.bindProviderAccount(account);
-        assertDoesNotThrow(() -> invoice.bindProviderAccount(account));
-        assertEquals("PROVIDER_ACCOUNT_MISMATCH", assertThrows(DomainException.class,
-                () -> invoice.bindProviderAccount(UUID.randomUUID())).code());
+    @DisplayName("al finalizar queda ligada a la cuenta de proveedor y a su ambiente")
+    void finalizeBindsAccountAndEnvironment() {
+        Invoice invoice = draft(tenant);
+        ProviderAccount account = account(tenant, ProviderEnvironment.HABILITATION);
+        invoice.finalizeWith(range(tenant, ProviderEnvironment.HABILITATION), account, TODAY,
+                TestTaxRates.catalog(), CALCULATOR, NOW);
+        assertEquals(account.id(), invoice.providerAccountId().orElseThrow());
+        assertEquals(ProviderEnvironment.HABILITATION, invoice.environment().orElseThrow());
+    }
+
+    @Test
+    @DisplayName("no se usa numeración de producción con una cuenta de pruebas, ni al revés")
+    void rejectsNumberingFromAnotherEnvironment() {
+        Invoice invoice = draft(tenant);
+        NumberingRange productionRange = range(tenant, ProviderEnvironment.PRODUCTION);
+        assertEquals("NUMBERING_ENVIRONMENT_MISMATCH", assertThrows(DomainException.class, () ->
+                invoice.finalizeWith(productionRange, account(tenant, ProviderEnvironment.HABILITATION), TODAY,
+                        TestTaxRates.catalog(), CALCULATOR, NOW)).code());
+        assertEquals(990000000, productionRange.nextNumber(), "no consume número de producción");
+        assertEquals("PROVIDER_ACCOUNT_NOT_FOUND", assertThrows(DomainException.class, () ->
+                invoice.finalizeWith(range(tenant), account(new TenantId(UUID.randomUUID()), ProviderEnvironment.HABILITATION),
+                        TODAY, TestTaxRates.catalog(), CALCULATOR, NOW)).code());
+    }
+
+    @Test
+    @DisplayName("una validación reportada en otro ambiente se rechaza")
+    void rejectsEvidenceFromAnotherEnvironment() {
+        Invoice invoice = finalized(tenant);   // habilitación
+        assertEquals("CONFLICTING_PROVIDER_RESULT", assertThrows(DomainException.class, () ->
+                invoice.recordProviderResult(new SubmissionResult.Accepted(ref, evidence(ProviderEnvironment.PRODUCTION)), NOW)).code());
+        assertFalse(invoice.isLegallyValid());
     }
 
     @Test

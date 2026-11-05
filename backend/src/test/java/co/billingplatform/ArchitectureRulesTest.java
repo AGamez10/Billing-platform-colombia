@@ -81,6 +81,14 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    @DisplayName("facturación no conoce planes ni identidad: los usa solo a través de sus puertos")
+    void invoicingDoesNotDependOnSubscriptionsOrIdentity() {
+        List<String> v = violations("invoicing/.*",
+                List.of("co.billingplatform.subscriptions", "co.billingplatform.identity"));
+        assertTrue(v.isEmpty(), "Violaciones: " + v);
+    }
+
+    @Test
     @DisplayName("el núcleo no usa float/double para dinero")
     void noFloatingPointInCore() {
         List<String> found = new ArrayList<>();

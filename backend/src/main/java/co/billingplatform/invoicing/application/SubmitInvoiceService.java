@@ -29,7 +29,7 @@ import java.util.UUID;
  *       solo se reintenta si el proveedor deduplica por clave o permite buscar el
  *       documento por su número; si no, se exige reconciliación manual en lugar de
  *       arriesgar una factura duplicada;</li>
- *   <li>una factura ya enviada sigue con la misma cuenta de proveedor aunque el tenant
+ *   <li>una factura usa la cuenta de proveedor fijada al finalizarla, aunque el tenant
  *       haya cambiado de proveedor entretanto.</li>
  * </ul>
  */
@@ -69,7 +69,6 @@ public final class SubmitInvoiceService {
 
         ProviderAccount account = resolveAccount(invoice);
         ElectronicInvoicingProvider provider = registry.providerFor(account, DocumentKind.INVOICE);
-        invoice.bindProviderAccount(account.id());
 
         SubmissionResult result = callProvider(invoice, account, provider);
         invoice.recordProviderResult(result, clock.instant());
@@ -85,16 +84,13 @@ public final class SubmitInvoiceService {
         return invoice;
     }
 
+    /** La cuenta se fijó al finalizar: se usa esa aunque el tenant haya activado otra después. */
     private ProviderAccount resolveAccount(Invoice invoice) {
-        Optional<UUID> bound = invoice.providerAccountId();
-        if (bound.isPresent()) {
-            return accounts.findById(invoice.tenantId(), bound.get())
-                    .orElseThrow(() -> new DomainException("PROVIDER_ACCOUNT_NOT_FOUND",
-                            "The provider account used for this invoice no longer exists"));
-        }
-        return accounts.findActive(invoice.tenantId())
-                .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
-                        "The organization has no electronic invoicing provider configured"));
+        UUID accountId = invoice.providerAccountId().orElseThrow(() ->
+                new DomainException("INVALID_STATE_TRANSITION", "Invoice has no provider account bound"));
+        return accounts.findById(invoice.tenantId(), accountId)
+                .orElseThrow(() -> new DomainException("PROVIDER_ACCOUNT_NOT_FOUND",
+                        "The provider account used for this invoice no longer exists"));
     }
 
     private SubmissionResult callProvider(Invoice invoice, ProviderAccount account, ElectronicInvoicingProvider provider) {

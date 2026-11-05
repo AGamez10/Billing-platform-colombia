@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.domain;
 
+import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.TenantId;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +20,7 @@ class NumberingRangeTest {
     @Test
     @DisplayName("asigna consecutivos dentro del rango autorizado")
     void allocatesSequentially() {
-        NumberingRange range = NumberingRange.create(TENANT, "18760000001", "SETP", 990000000, 990000002, FROM, TO);
+        NumberingRange range = NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, "18760000001", "SETP", 990000000, 990000002, FROM, TO);
         LocalDate day = LocalDate.of(2026, 11, 5);
 
         assertEquals(new DocumentNumber("SETP", 990000000), range.allocate(day));
@@ -32,7 +33,7 @@ class NumberingRangeTest {
     @Test
     @DisplayName("no asigna números fuera de la vigencia de la resolución")
     void rejectsOutsideValidity() {
-        NumberingRange range = NumberingRange.create(TENANT, "R-1", "FE", 1, 100, FROM, TO);
+        NumberingRange range = NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, "R-1", "FE", 1, 100, FROM, TO);
         assertEquals("NUMBERING_RESOLUTION_NOT_VALID",
                 assertThrows(DomainException.class, () -> range.allocate(LocalDate.of(2028, 1, 1))).code());
         assertEquals(1, range.nextNumber(), "un intento fallido no consume número");
@@ -41,9 +42,9 @@ class NumberingRangeTest {
     @Test
     @DisplayName("valida la definición del rango")
     void validatesDefinition() {
-        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, "R", "FE", 10, 5, FROM, TO));
-        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, "R", "fe", 1, 5, FROM, TO));
-        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, "R", "FE", 1, 5, TO, FROM));
-        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, " ", "FE", 1, 5, FROM, TO));
+        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, "R", "FE", 10, 5, FROM, TO));
+        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, "R", "fe", 1, 5, FROM, TO));
+        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, "R", "FE", 1, 5, TO, FROM));
+        assertThrows(DomainException.class, () -> NumberingRange.create(TENANT, ProviderEnvironment.HABILITATION, " ", "FE", 1, 5, FROM, TO));
     }
 }

@@ -57,7 +57,7 @@ class ProviderWebhookServiceTest {
     private Invoice pendingInvoiceOfA() {
         accounts.activate(tenantA, MockElectronicInvoicingProvider.ID, ProviderEnvironment.SIMULATION, "tok-a");
         accounts.activate(tenantB, MockElectronicInvoicingProvider.ID, ProviderEnvironment.SIMULATION, "tok-b");
-        Invoice invoice = InvoiceFixtures.finalized(tenantA);
+        Invoice invoice = InvoiceFixtures.finalized(tenantA, accounts.findActive(tenantA).orElseThrow());
         invoices.save(invoice);
         new SubmitInvoiceService(invoices, accounts, registry, t -> InvoiceFixtures.issuer(), CLOCK, 3)
                 .submit(tenantA, invoice.id());
