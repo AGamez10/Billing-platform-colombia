@@ -134,7 +134,11 @@ jobs:
           if [ "$code" != "401" ] && [ "$code" != "403" ]; then echo "::error title=Docker::/actuator/env respondió $code"; exit 1; fi
           user=$(docker compose exec -T backend id -un)
           [ "$user" = "app" ] || { echo "::error title=Docker::el contenedor corre como $user"; exit 1; }
-          echo "::notice title=Docker::Stack completo arriba: página de estado, planes, tarifas, OpenAPI; contenedor sin root"
+          # Registro + sesión de punta a punta dentro del stack de Docker
+          body='{"organizationName":"Fundación CI","identificationType":"NIT","identificationNumber":"800197268","checkDigit":4,"fullName":"CI","email":"ci@example.com","password":"caballo bateria grapa"}'
+          token=$(curl -fsS -X POST -H 'Content-Type: application/json' -d "$body" http://127.0.0.1:8080/api/v1/auth/register | python3 -c "import json,sys;print(json.load(sys.stdin)['accessToken'])")
+          curl -fsS -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/v1/auth/me | grep -q '"role":"OWNER"'
+          echo "::notice title=Docker::Stack completo arriba: página de estado, planes, tarifas, OpenAPI, registro y sesión; contenedor sin root"
 
       - name: Anotar fallos
         if: failure()

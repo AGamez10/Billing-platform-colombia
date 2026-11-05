@@ -34,6 +34,10 @@
 - Planes aprobados en base de datos (V6) y excedentes solo con aceptación expresa (ADR-0014).
 - Entorno local con Docker: `docker compose up --build` levanta PostgreSQL + backend con página de estado, catálogo público (planes, tarifas) y OpenAPI. Seguridad cerrada por defecto. CI verifica la imagen y el stack de punta a punta: 95 pruebas Java, pruebas SQL y job Docker en verde.
 
+## Hecho (2026-11-05, quinta sesión)
+
+- Registro de organización (con prueba gratis automática) e inicio de sesión por API: Argon2id, JWT de 15 min, refresh rotatorio en cookie segura con detección de reúso, bloqueo por cuenta, límite por IP, `/api/v1/auth/me`. Swagger con botón Authorize. CI: 105 pruebas + Docker con registro y sesión de punta a punta.
+
 ## Siguiente — orden recomendado
 
 1. **Build**: agregar ArchUnit a las reglas de arquitectura; seguridad de Spring configurada explícitamente.

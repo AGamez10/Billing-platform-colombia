@@ -23,7 +23,7 @@
 
 ## Diseñado, pendiente de implementar (capa Spring)
 
-**Autenticación de usuarios** (ADR-0003) — núcleo implementado y probado; pendientes la capa web, Argon2id real y la emisión de JWT
+**Autenticación de usuarios** (ADR-0003) — **implementada y probada por HTTP real** (`AuthFlowTest`, CI): registro, login, refresh rotatorio, logout, `/api/v1/auth/me`; Argon2id; JWT HS256 de 15 min con secreto ≥ 256 bits por variable de entorno (`BILLING_JWT_SECRET`); cookie `bp_refresh` HttpOnly/Secure/SameSite=Strict en `/api/v1/auth` + cabecera `X-Billing-Client` obligatoria para refresh/logout; límite de 10 intentos/min por IP en endpoints de sesión; el contador de fallos y la revocación por reúso se confirman aunque la petición falle
 - Contraseñas con Argon2id (`Argon2PasswordEncoder` de Spring Security + BouncyCastle). Mínimo 12 caracteres, verificación contra listas de contraseñas comprometidas en la roadmap.
 - Access token JWT de 15 min firmado por la plataforma (validado con el resource server de Spring); claims: `sub`, `tid` (tenant), `role`, `jti`.
 - Refresh token opaco de 256 bits, guardado como hash SHA-256, rotado en cada uso; reúso de un token ya rotado revoca toda la familia. Viaja en cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. Al usar cookie, el endpoint de refresh exige verificación de `Origin` (CSRF).
@@ -44,7 +44,8 @@
 
 ## Riesgos residuales conocidos
 
-1. La capa web, la emisión de JWT, Argon2id real y el rate limiting por IP **no existen todavía**: hoy no hay superficie expuesta, pero tampoco producto usable.
+1. El límite por IP es en memoria (una instancia). Si se escala a varias instancias hay que moverlo a la base de datos o a un almacén compartido.
+2. El registro informa si un correo ya existe (`EMAIL_ALREADY_REGISTERED`): facilita la enumeración de correos a cambio de usabilidad; lo mitiga el límite por IP. Revisar cuando haya verificación por correo.
 2. El código Java solo se ha ejecutado con un runner offline compatible con la API de JUnit 5, no con JUnit/Surefire reales.
 3. Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS (ver MULTITENANCY.md).
 4. Las funciones `SECURITY DEFINER` corren como dueño con `BYPASSRLS`; deben revisarse en cada cambio.
