@@ -41,6 +41,10 @@ class CustomerAndProductTest {
         Product p = Product.create(tenant, " SKU-1 ", " Consulta ", Product.Kind.SERVICE, "94", new BigDecimal("50000"), List.of("IVA_19"));
         assertEquals("SKU-1", p.sku());
         assertEquals("Consulta", p.name());
+        assertEquals("40000.5", Product.create(tenant, null, "X", Product.Kind.PRODUCT, "94", new BigDecimal("40000.50"), null)
+                .unitPrice().toPlainString(), "precio en forma canónica");
+        assertEquals("10000", Product.create(tenant, null, "X", Product.Kind.PRODUCT, "94", new BigDecimal("10000.000000"), null)
+                .unitPrice().toPlainString());
         assertThrows(DomainException.class, () -> Product.create(tenant, null, "X", Product.Kind.PRODUCT, "94", new BigDecimal("-1"), null));
         assertThrows(DomainException.class, () -> Product.create(tenant, null, "X", Product.Kind.PRODUCT, "94", new BigDecimal("1.1234567"), null));
         assertThrows(DomainException.class, () -> Product.create(tenant, "con espacio", "X", Product.Kind.PRODUCT, "94", BigDecimal.ONE, null));

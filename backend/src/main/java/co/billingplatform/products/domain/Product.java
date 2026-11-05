@@ -50,6 +50,9 @@ public record Product(
                 || unitPrice.compareTo(new BigDecimal("999999999999")) > 0) {
             throw new DomainException("INVALID_PRODUCT", "Unit price must be between 0 and 999,999,999,999 with at most 6 decimals");
         }
+        // Representación canónica: sin ceros decimales sobrantes (40000.50 → 40000.5), igual al leer de la base.
+        BigDecimal stripped = unitPrice.stripTrailingZeros();
+        unitPrice = stripped.scale() < 0 ? stripped.setScale(0) : stripped;
         taxRateCodes = List.copyOf(taxRateCodes == null ? List.of() : taxRateCodes);
         if (taxRateCodes.size() > 5 || taxRateCodes.stream().distinct().count() != taxRateCodes.size()) {
             throw new DomainException("INVALID_PRODUCT", "Tax rate codes must be distinct (max 5)");

@@ -105,12 +105,6 @@ class JdbcProductRepository implements ProductRepository {
         return m;
     }
 
-    /** numeric(18,6) devuelve 10000.000000; se presenta como 10000. */
-    private static java.math.BigDecimal normalized(java.math.BigDecimal value) {
-        java.math.BigDecimal v = value.stripTrailingZeros();
-        return v.scale() < 0 ? v.setScale(0) : v;
-    }
-
     private static Product map(ResultSet rs, int row) throws SQLException {
         String[] taxes = (String[]) rs.getArray("tax_rate_codes").getArray();
         return new Product(
@@ -120,7 +114,7 @@ class JdbcProductRepository implements ProductRepository {
                 rs.getString("name"),
                 Product.Kind.valueOf(rs.getString("kind")),
                 rs.getString("unit_code"),
-                normalized(rs.getBigDecimal("unit_price")),
+                rs.getBigDecimal("unit_price"),
                 Arrays.asList(taxes),
                 rs.getBoolean("active"),
                 rs.getInt("version"));
