@@ -45,6 +45,26 @@ No se crean paquetes vacíos para proveedores sin verificar: un adaptador se agr
 
 La versión anterior de este documento decía que "Muisca no es un proveedor". Era una confusión: MUISCA es el sistema de la DIAN, pero **muisca.io** es una API comercial de Aliaddo SAS, proveedor tecnológico autorizado. Lo que sigue siendo cierto: la "Facturación gratuita DIAN" no tiene API para integradores.
 
+### Muisca: lo que dice su documentación técnica (doc.muisca.io, leída el 2026-11-05)
+
+La documentación también se refiere a la API como "Aliaddo Nitro"; Muisca es su marca comercial.
+
+| Tema | Lo documentado | Consecuencia en nuestro adaptador |
+|---|---|---|
+| URL base | `https://api.muisca.io/v2`, la misma para todos los ambientes | Una sola URL configurada por despliegue (protección SSRF: nunca viene del tenant) |
+| Ambiente | Campo `mode` en el cuerpo: `Test` (validación interna sin DIAN), `Habilitation` (set de pruebas DIAN, requiere `testSetId` GUID), `Production` | `HABILITATION` → `Habilitation`, `PRODUCTION` → `Production`. `Test` es un sandbox del proveedor sin DIAN: se usará para pruebas de contrato del adaptador, nunca como evidencia de validación |
+| Autenticación | `Authorization: Bearer <token>`; el token se genera en el portal **por organización** | Un token por tenant, guardado cifrado en `provider_secrets`: coincide con el diseño de `ProviderAccount` |
+| Alta de empresas | Existe el esquema `AddCompany`, pero no se pudo leer si hay endpoint o si es solo por portal | **Por confirmar**: si es solo por portal, dar de alta a cada cliente es un paso manual en Muisca |
+| Endpoints | Factura `POST /documents/invoices`; POS y documentos equivalentes `POST /documents/equivalent-documents` (`code` "20" para POS); documento soporte `POST /documents/bills` (con `supplier` en vez de `customer`); notas crédito/débito y de ajuste con rutas propias | Un mapeo por `DocumentKind` |
+| Respuesta | Sincrónica en el ejemplo: `Id`, `Cufe`, `Sequence`, `Qr`, `Status` ("Aprobada"), `StatusReasons` | `Aprobada` + `Cufe` → `Accepted` con evidencia; rechazo → `Rejected` con `StatusReasons` |
+| Consulta | `GET /documents/{tipo}/{id}` y `GET /documents/{tipo}/find-by-prefix-and-consecutive` | `statusQuery = true`, `lookupByDocumentNumber = true` |
+| DIAN no responde | Muisca reintenta solo (4 intentos inmediatos y 6 cada 30 min, hasta 3 h) y marca `DianNoDisponible` (contingencia 04). **No se debe volver a crear el documento** | `DianNoDisponible` → `Pending`; el worker consulta por id, nunca reenvía |
+| Rechazo | Corregir la causa y reenviar; no cambiar prefijo/consecutivo para esquivar el rechazo | Requiere el flujo de corrección de rechazados (ROADMAP) |
+| Idempotencia | No documentada | `idempotentSubmission = false`: ante resultado incierto, primero se busca por prefijo y consecutivo (ya implementado en `SubmitInvoiceService`) |
+| Webhooks | No aparecen en la documentación técnica, aunque la página de precios los incluye | `webhooks = false` hasta confirmarlo; el worker consulta el estado |
+| Límites | Responde `429`; los planes limitan a 20–300 peticiones/min | El worker respeta `429` con espera exponencial |
+| Datos de las partes | Cliente con tipo de persona, régimen, responsabilidades fiscales, dirección con códigos DANE; sucursal; resolución completa | Hay que ampliar `Party` y el perfil del emisor antes del adaptador real |
+
 ### Análisis económico por cliente (costo directo del proveedor)
 
 | Cliente tipo | Docs/año | Muisca (~$80 arranque / ~$40 escala) | MATIAS ($44 arranque / $21 escala) + certificado $104.000 |
