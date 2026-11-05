@@ -7,6 +7,11 @@
 -- Las contraseñas llegan por variables de entorno (psql -v); nunca se versionan.
 
 \set ON_ERROR_STOP on
+-- Nombre de la base: -v db_name=... (por defecto "billing").
+\if :{?db_name}
+\else
+\set db_name billing
+\endif
 
 SELECT format('CREATE ROLE billing_owner LOGIN PASSWORD %L NOSUPERUSER NOCREATEROLE BYPASSRLS', :'owner_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'billing_owner') \gexec
@@ -14,10 +19,10 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'billing_owner') \gexec
 SELECT format('CREATE ROLE billing_app LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS', :'app_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'billing_app') \gexec
 
-SELECT 'CREATE DATABASE billing OWNER billing_owner'
-WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'billing') \gexec
+SELECT format('CREATE DATABASE %I OWNER billing_owner', :'db_name')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name') \gexec
 
-\connect billing
+\connect :db_name
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA public TO billing_owner;
 GRANT USAGE ON SCHEMA public TO billing_app;
