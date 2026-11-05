@@ -4,7 +4,7 @@
 
   ESTADO: este POM NO ha sido resuelto todavía. El entorno donde se creó no tiene
   acceso a Maven Central (ver docs/ROADMAP.md, "Bloqueos"). Las versiones se fijaron
-  según información pública verificada el 2026-11-05 (Spring Boot 4.1 es la rama
+  según información pública verificada el 2026-11-05 y actualizadas por Dependabot (Spring Boot 4.1 es la rama
   con soporte OSS vigente; 4.0.x termina soporte el 2026-12-31). Al primer build con
   red: `./mvnw versions:display-dependency-updates` y fijar el último parche 4.1.x.
 -->
@@ -29,7 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <archunit.version>1.4.1</archunit.version>
-        <bouncycastle.version>1.81</bouncycastle.version>
+        <bouncycastle.version>1.86</bouncycastle.version>
         <springdoc.version>3.2.0</springdoc.version>
     </properties>
 
