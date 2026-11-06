@@ -11,7 +11,7 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -q -DskipTests package \
     && cp target/billing-platform-backend-*.jar /src/app.jar
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 RUN groupadd --system app && useradd --system --gid app --home /app --shell /usr/sbin/nologin app
 WORKDIR /app
 COPY --from=build --chown=app:app /src/app.jar /app/app.jar
