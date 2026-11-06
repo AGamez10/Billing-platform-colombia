@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.adapter.web;
 
 import co.billingplatform.identity.domain.Permission;
+import co.billingplatform.invoicing.adapter.web.InvoiceController.LineRequest;
 import co.billingplatform.invoicing.application.PosSaleService;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.web.CurrentUser;
@@ -32,7 +33,7 @@ class PosSaleController {
 
     /** @param customerId opcional: sin él, la venta es a consumidor final. */
     record SaleRequest(UUID customerId,
-                       @NotEmpty @Size(max = 200) List<@NotNull @Valid InvoiceController.LineRequest> lines) {}
+                       @NotEmpty @Size(max = 200) List<@NotNull @Valid LineRequest> lines) {}
 
     private final PosSaleService sales;
     private final TenantTransactions tx;
@@ -52,7 +53,7 @@ class PosSaleController {
         CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_FINALIZE);
         u.require(Permission.INVOICE_WRITE);
         return tx.inTenant(u.tenantId(), () -> InvoiceView.of(sales.sell(u.tenantId(), u.actor(), idempotencyKey,
-                new PosSaleService.SaleCommand(r.customerId(), r.lines().stream().map(InvoiceController.LineRequest::toDomain).toList()),
+                new PosSaleService.SaleCommand(r.customerId(), r.lines().stream().map(LineRequest::toDomain).toList()),
                 r.toString())));
     }
 }
