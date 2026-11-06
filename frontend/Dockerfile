@@ -1,5 +1,5 @@
 # Interfaz web: se construye con pnpm (lockfile obligatorio) y se sirve con nginx sin root.
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
