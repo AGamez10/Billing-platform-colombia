@@ -206,7 +206,7 @@ Así la plataforma puede moverse a otro servidor sin cambios de código.
 **Pendiente:** el porcentaje (decisión del propietario) y el tratamiento contable del aporte (contador).
 
 ## ADR-0020 — Cobro en tienda: cada comercio conecta su propia cuenta de pasarela
-*2026-11-06 — evaluación en curso*
+*2026-11-06 — aceptada; Bold implementado contra un servidor de pruebas local (falta probar con llaves de prueba reales)*
 
 **Decisión de arquitectura:**
 - La plataforma no recibe el dinero de las ventas del comercio. Cada comercio conecta su propia cuenta de pasarela; sus credenciales se guardan cifradas, como las de proveedor.
@@ -222,6 +222,18 @@ Así la plataforma puede moverse a otro servidor sin cambios de código.
 - **Riesgos:** el QR directo por API exige certificación previa del comercio, y el webhook puede tardar hasta 10 minutos. Por eso la confirmación también se consulta por referencia mientras la caja espera.
 
 **Otras opciones:** ePayco anunció Bre-B para sus comercios; Kushki y EBANX lo tienen con documentación cerrada o enfocada en empresas grandes. Falta confirmar las tarifas del QR de cada una.
+
+**Implementación (2026-11-06):**
+- Módulo `payments` con puerto `MerchantPaymentGateway` y adaptador Bold (`BoldGateway`, cliente HTTP del JDK, sin SDK). `invoicing` no conoce a `payments` (regla de arquitectura `paymentsIsOneDirectional`).
+- Se usa la **API de links de pago** de Bold (`POST /online/link/v1`, `GET /online/link/v1/{id}`), no el QR directo, porque no exige certificación previa. El QR que se muestra en caja es el del link; el checkout de Bold ofrece los medios que el comercio tenga activos (Bre-B incluido, según su panel).
+- Montos del cobro en pesos enteros (redondeo HALF_UP sobre el total del POS).
+- **La pasarela es la fuente de verdad.** El webhook no se cree: con firma válida solo dispara la consulta del estado a Bold. Tres caminos llegan al mismo `refresh` (pantalla de caja cada 2,5 s, webhook, conciliación cada 30 s de lo pendiente en 24 h); el cobro se bloquea (`FOR UPDATE`) y un estado final no cambia, así que el POS se emite una sola vez.
+- **Antes de cobrar** se verifica, en una transacción corta, que el documento podrá salir (proveedor, suscripción, cupo, resolución POS). No se recibe un pago cuya venta no pueda documentarse.
+- Si el pago se confirma pero el documento no puede salir (cupo agotado en ese instante, borrador editado después de cobrar), el cobro queda PAID, la venta en borrador y `issueBlockedCode` explica el motivo. Nunca se documenta un valor distinto al cobrado (`CHARGE_AMOUNT_MISMATCH`).
+- Ambientes coherentes: llaves de PRUEBA solo con documentos de simulación/habilitación; llaves de PRODUCCIÓN solo con documentos en producción (`PAYMENT_ENVIRONMENT_MISMATCH`).
+- URL de webhook por comercio con token opaco de 256 bits (se guarda su SHA-256) + firma `x-bold-signature` (HMAC-SHA256 del cuerpo en Base64 con la llave secreta; en pruebas, llave vacía). Cuerpo máximo 64 KB.
+- **Riesgo aceptado para el piloto:** la creación del link se hace dentro de la transacción del borrador (hasta 10 s si Bold tarda). Si Bold falla, no queda nada a medias; si la base falla después, queda un link huérfano en Bold que nadie ve.
+- **Pendiente:** probar con llaves de prueba reales de Bold (GitHub Secrets `BOLD_TEST_IDENTITY_KEY` / `BOLD_TEST_SECRET_KEY`) y confirmar los nombres exactos de los estados y del medio de pago Bre-B en sus respuestas; hoy se aceptan `PAID`/`APPROVED` como pagado y cualquier estado desconocido se trata como pendiente.
 
 Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integración Bold con QR Bre-B (código abierto)](https://github.com/hansellramos/cabania-app/pull/48), [ePayco + Bre-B](https://www.valoraanalitik.com/epayco-integra-bre-b-a-su-plataforma-y-habilita-pagos-inmediatos-para-mas-de-15-millones-de-comercios/).
 

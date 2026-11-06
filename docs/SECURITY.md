@@ -42,7 +42,9 @@
 
 **SSRF**: las URLs de proveedores se fijan en configuración del despliegue por adaptador; nunca se aceptan URLs de proveedor desde datos de un tenant.
 
-**Secretos**: llave maestra AES-256-GCM en variable de entorno (o gestor de secretos), con `key_version` para rotación. Nada de secretos en el repositorio (`.gitignore` excluye `.env*`).
+**Secretos**: almacén `AesGcmSecretVault` **implementado**: AES-256-GCM con llave maestra `BILLING_SECRETS_KEY` (Base64 de 32 bytes, fuera de la base), nonce aleatorio de 96 bits por secreto, datos asociados = tenant + referencia (un cifrado copiado a otra fila u organización no se descifra) y `key_version` para rotación. La lectura respeta RLS. Si la llave maestra se pierde, los secretos guardados no se recuperan: se respalda aparte de la base. Nada de secretos en el repositorio (`.gitignore` excluye `.env*`).
+
+**Cobros con la pasarela del comercio (ADR-0020)**: las llaves de Bold se verifican contra Bold antes de guardarse, se guardan cifradas y nunca se devuelven ni se registran (los `toString` las enmascaran). Conectar requiere PROVIDER_MANAGE (solo el dueño). El webhook es público pero exige un token opaco de 256 bits por comercio (solo se guarda su hash) **y** la firma HMAC de Bold; aun así su contenido no se usa: solo dispara la consulta del estado a Bold. Un cobro de prueba nunca emite un documento con validez tributaria, y un cobro real nunca emite un documento simulado. `charges` y `payment_accounts` tienen RLS; la aplicación no puede borrarlos.
 
 **Dependencias**: OWASP Dependency-Check o equivalente en CI cuando exista acceso a los registros.
 

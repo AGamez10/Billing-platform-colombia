@@ -28,6 +28,11 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
 | `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |
 | `POST /subscription/overage-consent` | BILLING_MANAGE (dueño/admin) | Aceptación expresa de documentos adicionales a $150 en el ciclo actual (ADR-0014) |
+| `POST /pos-sales` | INVOICE_WRITE + INVOICE_FINALIZE | Venta rápida: crea y emite el POS en un paso. Exige `Idempotency-Key` (ADR-0018) |
+| `GET/POST /payment-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Conecta la cuenta Bold del comercio (`mode` TEST/LIVE, `identityKey`, `secretKey`). Verifica las llaves; devuelve los medios activos y, **una sola vez**, `webhookPath` (ADR-0020) |
+| `POST /pos-charges` | INVOICE_WRITE + INVOICE_FINALIZE | Cobro con QR: verifica que el POS podrá emitirse, crea el borrador y un link de pago por el total (pesos enteros). Exige `Idempotency-Key`. Devuelve `checkoutUrl` para el QR |
+| `GET /pos-charges/{id}` | INVOICE_FINALIZE | Estado del cobro (`PENDING`, `PAID`, `REJECTED`, `EXPIRED`, `CANCELLED`); consulta a Bold si sigue pendiente. Si está pagado, `sale` es el POS ya emitido, o `issueBlockedCode` dice por qué aún no |
+| `POST /webhooks/bold/{token}` | público (token + firma `x-bold-signature`) | Aviso de Bold. Solo dispara la consulta de los cobros pendientes del comercio |
 
 ### Flujo mínimo para emitir (simulación)
 
@@ -44,9 +49,9 @@ Toda factura incluye `status`, `environment`, `validationEnvironment`, `simulate
 
 ## Pendiente
 
-- Cabecera `Idempotency-Key` en los POST (la tabla ya existe).
+- Cabecera `Idempotency-Key` en los demás POST (hoy la exigen `/pos-sales` y `/pos-charges`).
 - API keys aceptadas en las rutas (integración de AdoptaFácil).
 - Usuarios e invitaciones (`/users`), gestión de API keys (`/api-keys`).
 - Webhooks de proveedor (`/webhooks/{providerId}/{token}`); el núcleo y la verificación de firma ya existen.
-- Notas crédito, POS electrónico y documento soporte.
+- Notas crédito y documento soporte.
 - Modo de sesión móvil (ADR-0015).

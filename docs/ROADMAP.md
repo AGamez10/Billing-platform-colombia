@@ -74,13 +74,19 @@
 - Planes de comercio en el catálogo (V10), POS electrónico con numeración propia (V11), venta rápida idempotente (`/api/v1/pos-sales`) y pantalla **Vender** para celular (ADR-0018).
 - Corregido: el número del documento ahora es único por tipo y ambiente.
 
+## Hecho (2026-11-06, cobro con QR)
+
+- **"Cobra y la factura sale sola"** con la cuenta Bold de cada comercio (ADR-0020): V12 (`payment_accounts`, `charges`), almacén de secretos AES-256-GCM, API de conexión y de cobro, webhook firmado, conciliación periódica y pantallas en Ajustes y Vender (QR en SVG).
+- Pruebas: Bold simulado localmente (adaptador y API de punta a punta), 22 pruebas SQL nuevas de aislamiento e invariantes, prueba del componente QR.
+- Falta: probar con llaves de prueba reales de Bold.
+
 ## Producto: lo que el mercado ya tiene + lo nuestro
 
 | Función | Estado | Por qué |
 |---|---|---|
 | Facturar por WhatsApp (texto y nota de voz con IA) | Pendiente | Lo ofrece Siigo; hay que tenerlo |
 | Asistente con IA dentro de la app | Pendiente | Lo ofrece Alegra; hay que tenerlo |
-| "Cobra y la factura sale sola" (Bre-B + POS automático) | Diseño (ADR-0020) | Diferenciador |
+| "Cobra y la factura sale sola" (Bre-B + POS automático) | Hecho con Bold simulado; falta probar con llaves reales | Diferenciador |
 | Billetera del comprador: compras deducibles (1 %) | Por validar con contador | Diferenciador y efecto red |
 | Habilitación DIAN asistida (set de pruebas automático) | Por confirmar con Muisca | Diferenciador |
 | Fondo solidario con panel de impacto | Diseño (ADR-0019) | Bandera de la marca |
