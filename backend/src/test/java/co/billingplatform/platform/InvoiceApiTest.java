@@ -68,7 +68,7 @@ class InvoiceApiTest extends ApiTest {
         assertEquals(201, draft.statusCode(), draft.body());
         String id = field(draft.body(), "id");
         assertEquals("DRAFT", field(draft.body(), "status"));
-        assertTrue(draft.body().contains("\"number\":null"), "un borrador no consume número");
+        assertFalse(draft.body().contains("\"number\":"), "un borrador no consume número (los nulos no se serializan)");
         // 2 × 50.000 = 100.000 − 10 % = 90.000 + IVA 19 % 17.100 = 107.100; libro excluido 40.000,50
         assertEquals("147100.50", field(draft.body(), "payableAmount"));
         assertEquals("17100.00", field(draft.body(), "taxTotal"));

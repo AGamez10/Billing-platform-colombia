@@ -80,7 +80,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                                ARRAY(SELECT jsonb_array_elements_text(i.rejection_reasons)) AS reasons
                         FROM invoices i
                         LEFT JOIN numbering_ranges r ON r.tenant_id = i.tenant_id AND r.id = i.numbering_range_id
-                        WHERE """ + where + (lock ? " FOR UPDATE OF i" : ""))
+                        """ + " WHERE " + where + (lock ? " FOR UPDATE OF i" : ""))
                 .params(params)
                 .query((rs, n) -> rowToMap(rs))
                 .optional();
