@@ -92,6 +92,17 @@ final class InMemoryAdapters {
         public Optional<ProviderAccount> findByWebhookToken(String webhookToken) {
             return Optional.ofNullable(webhookTokens.get(webhookToken)).map(byId::get);
         }
+
+        @Override
+        public void activate(ProviderAccount account) {
+            byId.put(account.id(), account);
+            active.put(account.tenantId(), account.id());
+        }
+
+        @Override
+        public java.util.List<ProviderAccount> list(TenantId tenantId) {
+            return byId.values().stream().filter(a -> a.tenantId().equals(tenantId)).toList();
+        }
     }
 
     static final class ProcessedEvents implements ProcessedEventStore {

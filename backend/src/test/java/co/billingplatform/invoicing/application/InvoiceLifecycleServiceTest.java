@@ -63,8 +63,14 @@ class InvoiceLifecycleServiceTest {
         final Map<String, NumberingRange> active = new HashMap<>();
         int saves;
 
-        void add(NumberingRange range) {
+        @Override
+        public void add(NumberingRange range) {
             active.put(range.tenantId() + ":" + range.environment(), range);
+        }
+
+        @Override
+        public List<NumberingRange> list(TenantId tenantId) {
+            return active.values().stream().filter(r -> r.tenantId().equals(tenantId)).toList();
         }
 
         @Override

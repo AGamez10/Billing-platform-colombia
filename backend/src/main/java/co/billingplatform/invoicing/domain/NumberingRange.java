@@ -99,5 +99,10 @@ public final class NumberingRange {
     public TenantId tenantId() { return tenantId; }
     public ProviderEnvironment environment() { return environment; }
     public String prefix() { return prefix; }
+    public String resolutionNumber() { return resolutionNumber; }
+    public long rangeFrom() { return rangeFrom; }
+    public long rangeTo() { return rangeTo; }
+    public LocalDate validFrom() { return validFrom; }
+    public LocalDate validTo() { return validTo; }
     public long nextNumber() { return nextNumber; }
 }

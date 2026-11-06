@@ -13,10 +13,12 @@ public enum Permission {
     USAGE_READ,
     USERS_MANAGE,
     API_KEYS_MANAGE,
-    PROVIDER_MANAGE;
+    PROVIDER_MANAGE,
+    /** Decisiones con efecto en el cobro (aceptar documentos adicionales). */
+    BILLING_MANAGE;
 
     /** Permisos administrativos que nunca se delegan a una clave de API. */
     public boolean isAdministrative() {
-        return this == USERS_MANAGE || this == API_KEYS_MANAGE || this == PROVIDER_MANAGE;
+        return this == USERS_MANAGE || this == API_KEYS_MANAGE || this == PROVIDER_MANAGE || this == BILLING_MANAGE;
     }
 }

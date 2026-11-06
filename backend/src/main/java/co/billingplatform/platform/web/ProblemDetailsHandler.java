@@ -54,7 +54,8 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("VERSION_CONFLICT", HttpStatus.CONFLICT),
             Map.entry("CUSTOMER_ALREADY_EXISTS", HttpStatus.CONFLICT),
             Map.entry("PRODUCT_SKU_ALREADY_EXISTS", HttpStatus.CONFLICT),
-            Map.entry("PRODUCT_NOT_FOUND", HttpStatus.NOT_FOUND));
+            Map.entry("PRODUCT_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("OVERAGE_NOT_AVAILABLE", HttpStatus.CONFLICT));
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException e) {

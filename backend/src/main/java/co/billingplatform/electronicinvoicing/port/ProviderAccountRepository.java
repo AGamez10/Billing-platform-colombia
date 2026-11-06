@@ -3,6 +3,7 @@ package co.billingplatform.electronicinvoicing.port;
 import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
 import co.billingplatform.shared.domain.TenantId;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +22,12 @@ public interface ProviderAccountRepository {
      * del webhook, y el webhook solo se acepta si luego pasa la verificación de firma.
      */
     Optional<ProviderAccount> findByWebhookToken(String webhookToken);
+
+    /**
+     * Guarda la cuenta y la deja como la activa del tenant. La anterior se desactiva (no se
+     * borra): las facturas ya emitidas siguen usando la cuenta con la que se finalizaron.
+     */
+    void activate(ProviderAccount account);
+
+    List<ProviderAccount> list(TenantId tenantId);
 }

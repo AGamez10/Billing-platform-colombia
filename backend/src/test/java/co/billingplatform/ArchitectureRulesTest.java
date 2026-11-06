@@ -83,8 +83,10 @@ class ArchitectureRulesTest {
     @Test
     @DisplayName("facturación no conoce planes ni identidad: los usa solo a través de sus puertos")
     void invoicingDoesNotDependOnSubscriptionsOrIdentity() {
-        List<String> v = violations("invoicing/.*",
-                List.of("co.billingplatform.subscriptions", "co.billingplatform.identity"));
+        List<String> v = violations("invoicing/.*", List.of("co.billingplatform.subscriptions"));
+        // La capa web de cada módulo exige permisos (vocabulario común de autorización, igual que
+        // clientes y productos); el núcleo de facturación no conoce identidad en absoluto.
+        v.addAll(violations("invoicing/(domain|application)/.*", List.of("co.billingplatform.identity")));
         assertTrue(v.isEmpty(), "Violaciones: " + v);
     }
 

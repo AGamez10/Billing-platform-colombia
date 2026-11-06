@@ -84,7 +84,7 @@ INSERT INTO invoice_lines (tenant_id, invoice_id, line_number, description, unit
     (:tenant_a, 'f0000000-0000-0000-0000-0000000000a1', 1, 'Item', '94', 1, 100, 100, 0, 100, 19, 119, '[]'),
     (:tenant_a, 'f0000000-0000-0000-0000-0000000000a2', 1, 'Item', '94', 1, 100, 100, 0, 100, 19, 119, '[]');
 
-UPDATE invoices SET status = 'PENDING_SUBMISSION', prefix = 'SETP', number = 1,
+UPDATE invoices SET status = 'PENDING_SUBMISSION', prefix = 'SETP', number = 1, environment = 'HABILITATION',
        numbering_range_id = CASE tenant_id WHEN :tenant_a THEN 'e0000000-0000-0000-0000-0000000000a1'::uuid
                                            ELSE 'e0000000-0000-0000-0000-0000000000b1'::uuid END
  WHERE id IN ('f0000000-0000-0000-0000-0000000000a2', 'f0000000-0000-0000-0000-0000000000b1');
@@ -160,6 +160,12 @@ SELECT t.expect_sqlstate(
     '23514', 'borrador con número viola la restricción de numeración');
 
 -- 7. Invariantes documentales.
+SELECT t.expect_sqlstate(
+    $$UPDATE invoices SET environment = NULL WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
+    '23514', 'una factura numerada siempre conserva el ambiente en que se emitió');
+SELECT t.expect_sqlstate(
+    $$UPDATE invoice_status_history SET detail = 'x'$$,
+    '42501', 'el historial de estados no se modifica desde la aplicación');
 SELECT t.expect_sqlstate(
     $$UPDATE invoices SET status = 'ACCEPTED' WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
     '23514', 'ACCEPTED sin evidencia (CUFE/ambiente) es rechazado');

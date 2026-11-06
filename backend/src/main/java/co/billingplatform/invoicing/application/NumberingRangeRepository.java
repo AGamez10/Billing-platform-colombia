@@ -5,6 +5,7 @@ import co.billingplatform.invoicing.domain.NumberingRange;
 import co.billingplatform.shared.domain.TenantId;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface NumberingRangeRepository {
@@ -17,4 +18,9 @@ public interface NumberingRangeRepository {
     Optional<NumberingRange> lockActiveInvoiceRange(TenantId tenantId, ProviderEnvironment environment, LocalDate onDate);
 
     void save(NumberingRange range);
+
+    /** Registra una resolución nueva (activa). */
+    void add(NumberingRange range);
+
+    List<NumberingRange> list(TenantId tenantId);
 }

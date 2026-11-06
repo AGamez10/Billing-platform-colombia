@@ -49,6 +49,7 @@ public final class Invoice {
     private InvoiceStatus status;
     private DocumentNumber number;
     private NumberingAuthorization authorization;
+    private UUID numberingRangeId;
     private UUID providerAccountId;
     private ProviderEnvironment environment;
     private ExternalReference externalReference;
@@ -71,6 +72,42 @@ public final class Invoice {
         invoice.status = InvoiceStatus.DRAFT;
         invoice.applyContent(customer, lines, today, taxes, calculator);
         invoice.history.add(new StatusChange(null, InvoiceStatus.DRAFT, now, "created"));
+        return invoice;
+    }
+
+    /** Estado persistido de una factura, para reconstruirla desde la base de datos. */
+    public record Snapshot(UUID id, TenantId tenantId, Party customer, List<InvoiceLine> lines, LocalDate issueDate,
+                           InvoiceStatus status, DocumentNumber number, NumberingAuthorization authorization,
+                           UUID numberingRangeId, UUID providerAccountId, ProviderEnvironment environment, ExternalReference externalReference,
+                           ValidationEvidence evidence, List<String> rejectionReasons, boolean outcomeUncertain,
+                           int providerInteractions, String lastError, List<StatusChange> history,
+                           java.math.BigDecimal storedPayableAmount) {}
+
+    /**
+     * Reconstruye una factura persistida. Los totales se recalculan con el motor y se comparan
+     * con los guardados: si no coinciden, el registro fue alterado o el cálculo cambió, y la
+     * factura no se carga (falla segura en vez de transmitir montos distintos a los guardados).
+     */
+    public static Invoice restore(Snapshot s, TaxCatalog taxes, DocumentCalculator calculator) {
+        Invoice invoice = new Invoice(s.id(), s.tenantId(), CURRENCY_COP);
+        invoice.applyContent(s.customer(), s.lines(), s.issueDate(), taxes, calculator);
+        if (s.storedPayableAmount() != null
+                && invoice.calculation.payableAmount().compareTo(s.storedPayableAmount()) != 0) {
+            throw new IllegalStateException("Stored totals of invoice " + s.id() + " do not match recalculation");
+        }
+        invoice.status = Objects.requireNonNull(s.status());
+        invoice.number = s.number();
+        invoice.authorization = s.authorization();
+        invoice.numberingRangeId = s.numberingRangeId();
+        invoice.providerAccountId = s.providerAccountId();
+        invoice.environment = s.environment();
+        invoice.externalReference = s.externalReference();
+        invoice.evidence = s.evidence();
+        invoice.rejectionReasons = s.rejectionReasons() == null ? List.of() : List.copyOf(s.rejectionReasons());
+        invoice.outcomeUncertain = s.outcomeUncertain();
+        invoice.providerInteractions = s.providerInteractions();
+        invoice.lastError = s.lastError();
+        invoice.history.addAll(s.history() == null ? List.of() : s.history());
         return invoice;
     }
 
@@ -105,6 +142,7 @@ public final class Invoice {
         }
         this.number = range.allocate(issueDate);
         this.authorization = range.authorization();
+        this.numberingRangeId = range.id();
         this.providerAccountId = account.id();
         this.environment = account.environment();
         transition(InvoiceStatus.PENDING_SUBMISSION, now, "finalized as " + number.formatted() + " (" + environment + ")");
@@ -231,6 +269,7 @@ public final class Invoice {
     public InvoiceStatus status() { return status; }
     public Optional<DocumentNumber> number() { return Optional.ofNullable(number); }
     public Optional<NumberingAuthorization> authorization() { return Optional.ofNullable(authorization); }
+    public Optional<UUID> numberingRangeId() { return Optional.ofNullable(numberingRangeId); }
     public Optional<UUID> providerAccountId() { return Optional.ofNullable(providerAccountId); }
     /** Ambiente en que se emitió (fijado al finalizar). Vacío en borrador. */
     public Optional<ProviderEnvironment> environment() { return Optional.ofNullable(environment); }
