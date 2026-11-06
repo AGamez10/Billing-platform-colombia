@@ -1,36 +1,52 @@
-# API REST v1 — diseño
+# API REST v1
 
-> **No implementada todavía.** Este es el contrato objetivo; se publicará con OpenAPI generado desde el código cuando exista la capa web. Ninguna ruta de esta página responde hoy.
+La documentación interactiva se genera desde el código: `http://localhost:8080/swagger-ui.html` (botón **Authorize** con el `accessToken`).
 
 ## Convenciones
 
-- Base: `/api/v1`. JSON UTF-8. Montos como cadenas decimales (`"119000.00"`), nunca números de punto flotante.
-- Autenticación: `Authorization: Bearer <access JWT>` (usuarios) o `Authorization: Bearer bpk_…` (API keys de integraciones).
+- Base: `/api/v1`. JSON UTF-8. Los montos y precios se escriben como cadenas decimales (`"40000.50"`) y se responden como números decimales exactos. Nunca se usa punto flotante.
+- Autenticación: `Authorization: Bearer <access JWT>`. Las API keys de integración (`bpk_…`) ya existen en el núcleo, pero todavía no se aceptan en las rutas web.
 - El tenant **no** se envía: sale del token. Un id de otra organización responde `404`, igual que uno inexistente.
-- `POST` acepta `Idempotency-Key` (8–128 caracteres): misma clave y mismo cuerpo → misma respuesta; cuerpo distinto → `422`.
-- Errores: `application/problem+json` (RFC 9457) con `code` estable (`INVALID_NIT`, `NUMBERING_RANGE_EXHAUSTED`, …), sin trazas internas.
-- Listados paginados por cursor; `limit` máximo 100.
+- Errores: `application/problem+json` (RFC 9457) con `code` estable (`INVALID_NIT`, `NUMBERING_RANGE_NOT_FOUND`, `DOCUMENT_QUOTA_REACHED`, …) y sin trazas internas. Validación de forma → `400`; regla de negocio → `422`; conflicto de estado → `409`; plan o cuota → `402`.
+- Listados paginados con `limit` (máx. 100) y `offset`. La respuesta trae `items` y `hasMore`.
 
-## Recursos
+## Implementado (con pruebas HTTP contra PostgreSQL real)
 
-| Método y ruta | Rol mínimo | Descripción |
+| Método y ruta | Permiso | Descripción |
 |---|---|---|
-| `POST /auth/register` | público (rate limit) | Crea organización + usuario dueño |
-| `POST /auth/login` · `POST /auth/refresh` · `POST /auth/logout` | público / cookie | Sesión |
-| `GET/POST /users`, `PATCH /users/{id}` | ADMIN | Membresías y roles |
-| `GET/POST /api-keys`, `DELETE /api-keys/{id}` | ADMIN | Claves de integración (la clave completa se muestra una sola vez) |
-| `GET/POST /customers`, `GET/PATCH /customers/{id}` | BILLER | Adquirientes (NIT con DV validado) |
-| `GET/POST /products`, `GET/PATCH /products/{id}` | BILLER | Productos y servicios con códigos de tarifa |
-| `GET /tax-rates` | VIEWER | Tarifas vigentes con fundamento legal |
-| `GET/POST /numbering-ranges` | ADMIN | Resoluciones de numeración |
-| `POST /invoices` | BILLER | Crea borrador; el servidor calcula totales |
-| `PUT /invoices/{id}` · `DELETE /invoices/{id}` | BILLER | Solo borradores |
-| `POST /invoices/{id}/finalize` | BILLER | Numera y encola transmisión |
-| `GET /invoices`, `GET /invoices/{id}` | VIEWER | Incluye `status`, `environment`, `legallyValid`, historial |
-| `GET/POST /provider-accounts`, `POST /provider-accounts/{id}/activate` | OWNER | Proveedor por organización |
-| `POST /webhooks/{providerId}/{token}` | firma del proveedor | Notificaciones de proveedor |
-| `GET /usage` | ADMIN | Consumo del periodo |
+| `POST /auth/register` | público (rate limit) | Crea la organización, el usuario dueño y la prueba gratis (20 documentos) |
+| `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `GET /auth/me` | público / cookie / token | Sesión (refresh rotatorio en cookie segura) |
+| `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. Bloqueo optimista con `version`; DELETE desactiva |
+| `GET/POST /products`, `GET/PUT/DELETE /products/{id}` | PRODUCT_* | Productos y servicios con códigos de tarifa vigentes |
+| `GET /public/plans`, `GET /public/tax-rates` | público | Catálogo comercial y tarifas con fundamento legal |
+| `GET/POST /provider-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Proveedor y ambiente activos para nuevas facturas. Hoy solo está disponible `mock` en `SIMULATION` |
+| `GET/POST /numbering-ranges` | POST: NUMBERING_MANAGE | Resolución de numeración tal como figura en la resolución DIAN, por ambiente |
+| `POST /invoices` | INVOICE_WRITE | Crea un borrador. Totales e impuestos los calcula el servidor; no consume número |
+| `PUT /invoices/{id}` · `DELETE /invoices/{id}` | INVOICE_WRITE | Solo borradores (`409` si ya se emitió) |
+| `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente |
+| `GET /invoices/{id}` | INVOICE_READ | Devuelve estado, número, ambiente, totales, subtotales por tarifa, evidencia del proveedor e historial |
+| `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
+| `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |
+| `POST /subscription/overage-consent` | BILLING_MANAGE (dueño/admin) | Aceptación expresa de documentos adicionales a $150 en el ciclo actual (ADR-0014) |
+
+### Flujo mínimo para emitir (simulación)
+
+1. `POST /provider-accounts` con `{"providerId":"mock","environment":"SIMULATION"}`.
+2. `POST /numbering-ranges` con `environment` `SIMULATION`, número de resolución, prefijo, rango y vigencia.
+3. `POST /customers`.
+4. `POST /invoices` con `customerId` y `lines`. Cada línea lleva `description`, `unitCode`, `quantity`, `unitPrice` y, opcionalmente, `discount {kind: PERCENT|AMOUNT, value}` y `taxRateCodes`.
+5. `POST /invoices/{id}/finalize`. El worker la envía en segundos.
+6. `GET /invoices/{id}` hasta que `status` sea `ACCEPTED`, `REJECTED` o `FAILED`.
 
 ## Campo `legallyValid`
 
-Toda respuesta de factura incluye `status`, `validationEnvironment` y `legallyValid`. La interfaz solo puede mostrar "Factura electrónica válida" cuando `legallyValid = true` (validada con evidencia en producción).
+Toda factura incluye `status`, `environment`, `validationEnvironment`, `simulated` y `legallyValid`. La interfaz solo puede mostrar "Factura electrónica válida" cuando `legallyValid = true`, es decir, cuando está validada con evidencia en **producción**. Lo emitido con el proveedor simulado lleva `simulated = true`, una clave `SIMULATED-…` y nunca tiene efecto tributario.
+
+## Pendiente
+
+- Cabecera `Idempotency-Key` en los POST (la tabla ya existe).
+- API keys aceptadas en las rutas (integración de AdoptaFácil).
+- Usuarios e invitaciones (`/users`), gestión de API keys (`/api-keys`).
+- Webhooks de proveedor (`/webhooks/{providerId}/{token}`); el núcleo y la verificación de firma ya existen.
+- Notas crédito, POS electrónico y documento soporte.
+- Modo de sesión móvil (ADR-0015).

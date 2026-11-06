@@ -121,6 +121,41 @@ Formato: contexto → decisión → consecuencias. Estado: Aceptada salvo que se
 - Al llegar al límite **no se cobra nada automáticamente**: la emisión responde `DOCUMENT_QUOTA_REACHED` y la interfaz ofrece mejorar el plan. Solo si el cliente acepta expresamente se emiten documentos adicionales a $150 c/u.
 - La aceptación vale para esa suscripción y ese ciclo; al cambiar de plan o empezar un ciclo nuevo se vuelve a ofrecer la mejora antes de cobrar (supuesto: evita cargos sorpresa y empuja la mejora de plan). Queda auditada y con el precio congelado; cada documento excedente se registra con su precio en `usage_events`.
 
+## ADR-0015 — Una sola aplicación web, instalable como PWA y empaquetable como app móvil
+*2026-11-05 — por pedido del propietario*
+
+**Contexto.** El propietario quiere que la aplicación web pueda convertirse fácilmente en app móvil.
+
+**Decisión.** Un único frontend en React, diseñado *mobile-first*:
+1. **PWA** (manifest + service worker): se instala desde el navegador en Android/iOS/escritorio, sin tiendas.
+2. **Capacitor** cuando se quiera estar en Play Store / App Store: empaqueta el mismo build web en una app nativa; no se reescribe la interfaz.
+
+Se descartan React Native o Flutter por ahora: obligan a mantener una segunda base de código de interfaz.
+
+**Impacto en el backend.** Toda la funcionalidad ya está en la API REST, así que el backend no cambia de arquitectura. Lo único que cambia es la sesión. El refresh token web viaja en una cookie `HttpOnly; Secure; SameSite=Strict` con `Path=/api/v1/auth`, y dentro de un WebView nativo (origen `capacitor://localhost` / `https://localhost`) esa cookie no funciona de forma confiable. Al empaquetar la app nativa se agregará un **modo de sesión móvil**:
+- el refresh token se entrega en el cuerpo de la respuesta solo cuando el cliente se identifica como app nativa;
+- se guarda en el almacenamiento seguro del sistema (Keychain / Keystore);
+- se envía en una cabecera;
+- conserva la rotación y la revocación por familia que ya existen.
+
+El modo web con cookie no cambia. Sigue pendiente en ROADMAP.
+
+## ADR-0016 — Hosting del piloto: VPS en Hostinger, aislado de otros productos
+*2026-11-05 — elección del propietario; condiciones técnicas propias*
+
+**Decisión.** El piloto corre en un VPS Linux de Hostinger con Docker Compose, la misma composición que ya se valida en CI, detrás de un proxy con HTTPS.
+
+**Condición.** Se recomienda un VPS **dedicado** a esta plataforma: maneja datos tributarios, y un incidente o una caída de otro producto no debe arrastrarla. Si al inicio comparte VPS con otro desarrollo del propietario, el aislamiento mínimo es:
+- PostgreSQL propio, con roles propios y sin puerto público;
+- red Docker propia;
+- límites de CPU y memoria por contenedor;
+- secretos propios;
+- backups cifrados propios, fuera del VPS, con restauración probada.
+
+Así la plataforma puede moverse a otro servidor sin cambios de código.
+
+**Pendiente.** Elegir plan (RAM mínima sugerida: 4 GB si comparte, 2 GB si es dedicado; a verificar con medición real del consumo), dominio y política de backups. Detalle en DEPLOYMENT.md.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

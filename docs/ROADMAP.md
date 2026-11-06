@@ -5,7 +5,7 @@
 | Bloqueo | Impacto | Cómo se desbloquea |
 |---|---|---|
 | Credenciales de sandbox del proveedor | No hay adaptador real | Proveedor recomendado: Muisca (PROVIDERS.md). Falta confirmar en su documentación si cubre POS y documento soporte, y crear la cuenta de pruebas |
-| Precios y límites de planes | La tabla `plans` existe sin datos | Propuesta en PRICING.md, pendiente de aprobación del propietario |
+| Datos legales de la empresa y revisión de abogado | Términos y política no se pueden publicar | El propietario completa los datos entre corchetes y un abogado revisa los borradores |
 
 ## Hecho (2026-11-05, con pruebas ejecutadas)
 
@@ -42,15 +42,35 @@
 
 - Clientes y productos por API (`/api/v1/customers`, `/api/v1/products`): permisos por rol desde el token, bloqueo optimista con `version`, búsqueda paginada con comodines escapados, desactivación en vez de borrado, auditoría en `audit_log`, validación de tarifas vigentes. CI: 113 pruebas en verde, incluidas pruebas HTTP de aislamiento entre organizaciones.
 
-## Siguiente — orden recomendado
+## Hecho (2026-11-05, séptima sesión)
 
-1. **Build**: agregar ArchUnit a las reglas de arquitectura; seguridad de Spring configurada explícitamente.
-2. **Persistencia**: adaptadores JDBC/JPA de los puertos existentes + aspecto transaccional que fija `app.tenant_id` desde el principal autenticado; Testcontainers corriendo `tenant_isolation_test.sql`.
-3. **Identidad (capa web)**: Argon2id real, JWT de acceso, endpoints de registro/login/refresh/logout, gestión de membresías y API keys, rate limiting por IP. (El núcleo ya existe y está probado.)
-4. **API REST v1**: clientes, productos, resoluciones de numeración, facturas (borrador → finalizar → estado), cuentas de proveedor, webhooks; OpenAPI; `Idempotency-Key`.
-5. **Worker de envíos** con backoff y *lease*; métricas.
-6. **Frontend** React + TypeScript + Vite + Tailwind: login, panel, clientes, productos, facturación, historial, configuración, consumo.
-7. **Docker Compose** completo y guía de despliegue en VPS con backups.
+- **Facturas por API, de punta a punta con el proveedor simulado**:
+  - borrador con totales calculados por el servidor;
+  - edición y borrado de borradores;
+  - emisión idempotente con número consecutivo de la resolución vigente del mismo ambiente;
+  - cola de envíos (outbox) procesada por un worker con reintentos exponenciales;
+  - consulta con evidencia, historial y `legallyValid`;
+  - listado paginado.
+- Resoluciones de numeración, cuenta de proveedor (hoy solo `mock` en `SIMULATION`), consulta de cuota y aceptación expresa de excedentes (`BILLING_MANAGE`, solo dueño/admin).
+- V8: datos para reconstruir la factura desde la base y verificar que los totales coincidan al leerla; ambiente obligatorio en facturas numeradas.
+- CI: **116 pruebas Java en verde**. Incluyen la prueba HTTP que cubre registro → proveedor → resolución → cliente → borrador → emisión → aceptada `SIMULATED-` con `legallyValid=false`, numeración SETT1/SETT2, inmutabilidad y aislamiento entre organizaciones. También pasan las pruebas SQL (dos invariantes nuevas) y Docker.
+- Borradores de Términos y Condiciones y de Política de Tratamiento de Datos (documentos para revisión del abogado).
+- ADR-0015 (web → PWA → Capacitor) y ADR-0016 (VPS Hostinger aislado).
+
+## Para salir con clientes piloto (orden recomendado)
+
+1. **Interfaz web** (React, mobile-first, PWA): registro, clientes, productos, nueva factura, listado y detalle, resolución y proveedor, consumo con oferta de mejora de plan.
+2. **Registro de la aceptación** de términos y política (versión, fecha, usuario) en el alta. Lo exigen los propios borradores legales.
+3. **Datos fiscales completos** de emisor y adquiriente que exige el proveedor real: tipo de persona, régimen, responsabilidades, dirección con municipio DANE.
+4. **Adaptador Muisca** en `Test` y luego en `Habilitation`, cuando lleguen las credenciales (GitHub Secrets); secretos cifrados (AES-GCM) en `provider_secrets`.
+5. **Descarga de documentos** (PDF/XML del proveedor) y envío por correo al adquiriente.
+6. **Despliegue** en VPS: dominio, HTTPS, backups cifrados fuera del VPS con restauración probada, monitoreo básico.
+7. **Landing page** y página de precios.
+8. Cobro de suscripción con Mercado Pago (para el piloto basta un link de pago manual).
+
+Riesgos conocidos del piloto:
+- El worker llama al proveedor dentro de la transacción que bloquea la factura. Es aceptable con este volumen y se separará antes de escalar.
+- El proveedor simulado guarda su estado en memoria; un reinicio en medio de un envío *pendiente* lo deja sin referencia. No afecta producción.
 
 ## Después del MVP
 

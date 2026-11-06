@@ -25,7 +25,7 @@ psql -d postgres -v owner_password="$BILLING_OWNER_PASSWORD" -v app_password="$B
 
 La aplicación debe conectarse **siempre** como `billing_app`. `billing_owner` solo lo usa Flyway.
 
-## Objetivo: VPS único (planeado, sin verificar)
+## Objetivo: VPS en Hostinger (planeado, sin verificar; ADR-0016)
 
 ```
 Internet ─▶ Caddy/Nginx (TLS, HSTS) ─┬─▶ frontend estático
@@ -34,6 +34,7 @@ Internet ─▶ Caddy/Nginx (TLS, HSTS) ─┬─▶ frontend estático
 
 - Docker Compose con tres servicios: proxy, backend, PostgreSQL (volumen dedicado). El frontend se sirve como estáticos desde el proxy.
 - Tamaño inicial razonable: 2 vCPU / 4 GB RAM. Ajustar con métricas reales.
+- Preferible un VPS dedicado. Si comparte VPS con otro producto: PostgreSQL, red Docker, secretos y backups propios, y límites de CPU/RAM por contenedor (`deploy.resources.limits`). Ningún puerto de PostgreSQL publicado.
 - Secretos: archivo `.env` fuera del repositorio con permisos 600, o gestor de secretos del proveedor del VPS.
 - Backups: `pg_dump` diario cifrado a almacenamiento externo + retención 30 días; prueba de restauración mensual. Evaluar WAL archiving cuando haya clientes en producción.
 - Observabilidad: Actuator (health/metrics) no expuesto públicamente; logs JSON sin secretos ni datos tributarios completos.
