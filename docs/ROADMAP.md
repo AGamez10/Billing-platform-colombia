@@ -67,11 +67,12 @@
   - ajustes: modo simulación y resoluciones.
 - Pruebas: Vitest para lógica y componentes, y Playwright contra el stack completo (CI).
 - pnpm con controles de cadena de suministro (ADR-0017).
+- **Aceptación legal registrada** en el alta (V9 `legal_acceptances`): versión vigente de términos y de política, usuario y fecha. Solo se permite insertar. Una versión distinta a la vigente se rechaza con `LEGAL_ACCEPTANCE_REQUIRED`. Las versiones vienen de `BILLING_TERMS_VERSION` y `BILLING_PRIVACY_VERSION` (hoy `borrador-2026-11`).
 
 ## Para salir con clientes piloto (orden recomendado)
 
 1. Oferta de mejora de plan y aceptación de excedentes desde la interfaz (la API ya existe).
-2. **Registro de la aceptación** de términos y política (versión, fecha, usuario) en el alta. Lo exigen los propios borradores legales.
+2. **Segmento y planes** (decisión del propietario pendiente): foco inicial en fundaciones, profesionales, servicios y facturación entre empresas; comercio y restaurantes (POS de alto volumen) solo con costo por documento ≤ $30 o con otro proveedor (PRICING.md).
 3. **Datos fiscales completos** de emisor y adquiriente que exige el proveedor real: tipo de persona, régimen, responsabilidades, dirección con municipio DANE.
 4. **Adaptador Muisca** en `Test` y luego en `Habilitation`, cuando lleguen las credenciales (GitHub Secrets); secretos cifrados (AES-GCM) en `provider_secrets`.
 5. **Descarga de documentos** (PDF/XML del proveedor) y envío por correo al adquiriente.

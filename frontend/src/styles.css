@@ -175,3 +175,5 @@ td.num, th.num { text-align: right; }
 .amount-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
 .sidebar .btn-ghost { color: #c9d3e0; justify-content: flex-start; padding-left: 12px; }
 .sidebar .btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.consent input { width: 20px; height: 20px; min-height: 0; margin-top: 2px; flex: 0 0 auto; }

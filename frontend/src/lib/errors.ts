@@ -6,6 +6,7 @@ import { ApiError } from '../api/client';
  */
 const MESSAGES: Record<string, string> = {
   VALIDATION_FAILED: 'Revisa los campos marcados.',
+  LEGAL_ACCEPTANCE_REQUIRED: 'Los términos se actualizaron. Recarga la página y acéptalos de nuevo.',
   INVALID_CREDENTIALS: 'Correo o contraseña incorrectos. Tras varios intentos la cuenta se bloquea unos minutos.',
   EMAIL_ALREADY_REGISTERED: 'Ya existe una cuenta con ese correo. Inicia sesión.',
   ORGANIZATION_ALREADY_REGISTERED: 'Esa identificación ya está registrada. Si es tu empresa, pide acceso a su dueño.',

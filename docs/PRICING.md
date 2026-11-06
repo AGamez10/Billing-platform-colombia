@@ -55,6 +55,19 @@ Costos fijos conocidos: prepago del proveedor $399.900/año (~$33.300/mes). Cada
 
 **20 documentos reales en producción**, sin tarjeta y sin límite de tiempo. Simulación ilimitada; el set de pruebas de habilitación DIAN no cuenta. Costo máximo por prueba: ~$1.800.
 
-## Riesgo a vigilar: clientes POS de alto volumen
+## Comercio y restaurantes (POS de alto volumen) — análisis del 2026-11-06
 
-Una tienda o restaurante puede emitir 1.000–2.000 tiquetes POS al mes. A $80/documento eso cuesta más que cualquier plan. Plan POS por volumen solo cuando el costo por documento sea ≤ $40, o con un proveedor de software propio para ese cliente (ver PROVIDERS.md).
+**La cuota es mensual, no diaria.** Los planes actuales sirven para quien emite pocas decenas o cientos de documentos al mes. Una tienda obligada a facturar emite un documento por venta: con 100 ventas al día son unos 3.000 al mes.
+
+**Costo con el proveedor recomendado (Muisca):**
+- Paquetes por adelantado, con 12 meses de vigencia: $80, $45, $40 y $30 por documento. El de $30 es Enterprise: 120.000 documentos por $3.590.000 ([precios](https://muisca.io/precios/), consultado el 2026-11-06).
+- 3.000 documentos al mes cuestan entre $90.000 y $240.000 solo en proveedor.
+
+**Competencia:** Siigo vende POS con facturas desde POS ilimitadas desde $43.943 al mes con pago anual ([Siigo POS](https://www.siigo.com/sistema-pos/), consultado el 2026-11-06). Siigo es su propio proveedor tecnológico, así que su costo marginal por documento es casi nulo.
+
+**Obligación:** según fuentes secundarias, la persona natural no responsable de IVA no está obligada a facturar electrónicamente; las personas jurídicas sí lo están siempre ([La República](https://www.larepublica.co/especiales/facturacion-electronica-2024/todas-las-tiendas-de-barrio-estan-obligadas-a-cumplir-con-la-facturacion-electronica-3941175)). Muchas tiendas de barrio no necesitan el producto. **Debe confirmarlo un contador con la norma vigente.**
+
+**Recomendación (pendiente de decisión del propietario):**
+1. Lanzar con el segmento donde los planes son competitivos: fundaciones, profesionales, servicios y facturación entre empresas.
+2. Plan de comercio por volumen solo con costo ≤ $30 por documento. Ejemplos: Comercio 1.000 a $59.900 (~50 % de margen bruto) y Comercio 3.000 a $129.900 (~31 %). Aun así no compite en precio con un POS ilimitado; compite en facilidad e integración.
+3. Documentos ilimitados reales solo con un proveedor de tarifa fija por empresa o siendo proveedor tecnológico autorizado. Los requisitos de la DIAN para lo segundo están por investigar.

@@ -61,7 +61,9 @@ class AuthController {
             @Size(max = 254) String organizationEmail,
             @NotBlank @Size(max = 200) String fullName,
             @NotBlank @Size(max = 254) String email,
-            @NotBlank @Size(max = 128) String password) {
+            @NotBlank @Size(max = 128) String password,
+            @NotBlank @Size(max = 40) String acceptedTermsVersion,
+            @NotBlank @Size(max = 40) String acceptedPrivacyVersion) {
         @Override
         public String toString() {
             return "RegisterRequest[organizationName=%s, email=%s]".formatted(organizationName, email);
@@ -106,11 +108,13 @@ class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Registrar una organización y su usuario dueño (inicia la prueba gratis de 20 documentos)")
+    @Operation(summary = "Registrar una organización y su usuario dueño (inicia la prueba gratis de 20 documentos). "
+            + "Exige aceptar las versiones vigentes de términos y política (GET /api/v1/public/legal).")
     SessionResponse register(@Valid @RequestBody RegisterRequest r, HttpServletResponse response) {
         RegistrationService.Registered registered = tx.withoutTenant(() -> registration.register(new RegistrationService.Command(
                 r.organizationName(), r.identificationType(), r.identificationNumber(), r.checkDigit(),
-                r.organizationEmail(), r.fullName(), r.email(), r.password())));
+                r.organizationEmail(), r.fullName(), r.email(), r.password(),
+                r.acceptedTermsVersion(), r.acceptedPrivacyVersion())));
         Membership owner = new Membership(registered.tenantId(), co.billingplatform.identity.domain.Role.OWNER,
                 r.organizationName().strip());
         return startSession(registered.ownerUserId(), owner, response);

@@ -11,6 +11,8 @@ export interface RegisterInput {
   fullName: string;
   email: string;
   password: string;
+  acceptedTermsVersion: string;
+  acceptedPrivacyVersion: string;
 }
 
 type SessionState =

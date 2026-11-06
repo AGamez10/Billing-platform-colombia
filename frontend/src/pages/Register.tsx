@@ -7,6 +7,7 @@ import { Alert, Field, Icon, SelectField } from '../components/ui';
 import { fieldErrors, messageFor } from '../lib/errors';
 import { ID_TYPE_LABEL } from '../lib/format';
 import { cleanIdNumber, nitCheckDigit } from '../lib/nit';
+import { useApi } from '../lib/useApi';
 
 const ISSUER_TYPES: IdentificationType[] = ['NIT', 'CEDULA_CIUDADANIA', 'CEDULA_EXTRANJERIA'];
 
@@ -25,6 +26,8 @@ export function Register() {
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const legal = useApi<{ termsVersion: string; privacyVersion: string }>('/api/v1/public/legal');
 
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
   const expectedDv = useMemo(
@@ -47,6 +50,8 @@ export function Register() {
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         password: form.password,
+        acceptedTermsVersion: legal.data?.termsVersion ?? '',
+        acceptedPrivacyVersion: legal.data?.privacyVersion ?? '',
       });
       navigate('/', { replace: true });
     } catch (err) {
@@ -119,11 +124,14 @@ export function Register() {
             onChange={(e) => set('password')(e.target.value)}
             error={fields.password}
           />
-          <p className="small muted">
-            Al crear la cuenta aceptas los <a href="/terminos" target="_blank" rel="noreferrer">términos</a> y la{' '}
-            <a href="/privacidad" target="_blank" rel="noreferrer">política de tratamiento de datos</a>.
-          </p>
-          <button type="submit" className="btn btn-primary btn-block" disabled={busy || dvMismatch}>
+          <label className="consent">
+            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} required />
+            <span>
+              Acepto los <a href="/terminos" target="_blank" rel="noreferrer">términos y condiciones</a> y autorizo el tratamiento de mis datos según la{' '}
+              <a href="/privacidad" target="_blank" rel="noreferrer">política de datos personales</a>.
+            </span>
+          </label>
+          <button type="submit" className="btn btn-primary btn-block" disabled={busy || dvMismatch || !accepted || !legal.data}>
             {busy ? 'Creando tu cuenta…' : 'Crear cuenta gratis'}
           </button>
         </form>

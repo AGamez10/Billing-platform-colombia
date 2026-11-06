@@ -80,6 +80,14 @@ public final class IdentityPorts {
         void startTrial(TenantId tenantId);
     }
 
+    /** Versiones vigentes de los documentos legales que se aceptan al registrarse. */
+    public record LegalVersions(String terms, String privacy) {}
+
+    /** Registro inmutable de aceptaciones (documento, versión, usuario, fecha). */
+    public interface LegalAcceptances {
+        void record(TenantId tenantId, UUID userId, String document, String version);
+    }
+
     public interface ApiKeys {
         /** Solo claves no revocadas de organizaciones activas ({@code auth_find_api_key}). */
         Optional<ApiKeyRecord> findByPrefix(String prefix);

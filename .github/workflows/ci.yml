@@ -222,7 +222,7 @@ jobs:
           user=$(docker compose exec -T backend id -un)
           [ "$user" = "app" ] || { echo "::error title=Docker::el contenedor corre como $user"; exit 1; }
           # Registro + sesión de punta a punta dentro del stack de Docker
-          body='{"organizationName":"Fundación CI","identificationType":"NIT","identificationNumber":"800197268","checkDigit":4,"fullName":"CI","email":"ci@example.com","password":"caballo bateria grapa"}'
+          body='{"organizationName":"Fundación CI","identificationType":"NIT","identificationNumber":"800197268","checkDigit":4,"fullName":"CI","email":"ci@example.com","password":"caballo bateria grapa","acceptedTermsVersion":"borrador-2026-11","acceptedPrivacyVersion":"borrador-2026-11"}'
           token=$(curl -fsS -X POST -H 'Content-Type: application/json' -d "$body" http://127.0.0.1:8080/api/v1/auth/register | python3 -c "import json,sys;print(json.load(sys.stdin)['accessToken'])")
           curl -fsS -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/v1/auth/me | grep -q '"role":"OWNER"'
           echo "::notice title=Docker::Stack completo arriba: página de estado, planes, tarifas, OpenAPI, registro y sesión; contenedor sin root"

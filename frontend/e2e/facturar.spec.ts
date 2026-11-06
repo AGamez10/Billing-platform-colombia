@@ -14,10 +14,11 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await page.goto('/registro');
   await page.getByLabel('Nombre o razón social del negocio').fill(`Fundación E2E ${suffix}`);
   await page.getByLabel('NIT (sin dígito de verificación)').fill(nit);
-  await page.getByLabel('Dígito de verificación').fill(String(nitCheckDigit(nit)));
+  await page.getByLabel('Dígito de verificación', { exact: true }).fill(String(nitCheckDigit(nit)));
   await page.getByLabel('Tu nombre').fill('Prueba E2E');
   await page.getByLabel('Tu correo').fill(`e2e-${suffix}@example.com`);
-  await page.getByLabel('Contraseña').fill('caballo bateria grapa correcta');
+  await page.getByLabel('Contraseña', { exact: true }).fill('caballo bateria grapa correcta');
+  await page.getByLabel(/Acepto los términos/).check();
   await page.getByRole('button', { name: 'Crear cuenta gratis' }).click();
   await expect(page.getByRole('heading', { name: /Hola/ })).toBeVisible();
 
@@ -39,7 +40,7 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await page.getByLabel('NIT', { exact: true }).fill(customerNit);
   await page.getByLabel('DV').fill(String(nitCheckDigit(customerNit)));
   await page.getByLabel('Nombre o razón social').fill('Cliente E2E S.A.S.');
-  await page.getByLabel('Correo').fill('cliente@example.com');
+  await page.getByLabel('Correo', { exact: true }).fill('cliente@example.com');
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Cliente E2E S.A.S.')).toBeVisible();
 

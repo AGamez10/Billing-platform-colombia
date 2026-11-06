@@ -10,6 +10,7 @@ import co.billingplatform.products.application.ProductRepository;
 import co.billingplatform.products.application.ProductService;
 import co.billingplatform.shared.application.AuditTrail;
 import co.billingplatform.tax.domain.TaxCatalog;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -48,7 +49,15 @@ class CoreConfiguration {
 
     @Bean
     RegistrationService registrationService(IdentityPorts.OrganizationOnboarding onboarding,
-                                            IdentityPorts.TrialProvisioning trials, IdentityPorts.PasswordHasher hasher) {
-        return new RegistrationService(onboarding, trials, hasher);
+                                            IdentityPorts.TrialProvisioning trials, IdentityPorts.PasswordHasher hasher,
+                                            IdentityPorts.LegalAcceptances acceptances, IdentityPorts.LegalVersions legal) {
+        return new RegistrationService(onboarding, trials, hasher, acceptances, legal);
+    }
+
+    /** Versiones vigentes de términos y política; cambiarlas obliga a aceptar de nuevo al registrarse. */
+    @Bean
+    IdentityPorts.LegalVersions legalVersions(@Value("${billing.legal.terms-version}") String terms,
+                                              @Value("${billing.legal.privacy-version}") String privacy) {
+        return new IdentityPorts.LegalVersions(terms, privacy);
     }
 }

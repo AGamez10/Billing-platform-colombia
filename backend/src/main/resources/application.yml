@@ -29,6 +29,10 @@ billing:
     # Generar: openssl rand -base64 48
     jwt-secret: ${BILLING_JWT_SECRET}
     auth-requests-per-minute: ${BILLING_AUTH_REQUESTS_PER_MINUTE:10}
+  legal:
+    # Versión de los textos legales vigentes. Mientras estén en revisión del abogado, son borradores.
+    terms-version: ${BILLING_TERMS_VERSION:borrador-2026-11}
+    privacy-version: ${BILLING_PRIVACY_VERSION:borrador-2026-11}
 
 server:
   # Detrás de nginx/Caddy: la IP del cliente sale de X-Forwarded-For, que Tomcat solo acepta

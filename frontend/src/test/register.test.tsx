@@ -7,7 +7,14 @@ import { Register } from '../pages/Register';
 describe('registro', () => {
   beforeEach(() => {
     // Sin sesión previa: la renovación inicial responde 401.
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"code":"INVALID_REFRESH_TOKEN"}', { status: 401 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).endsWith('/api/v1/public/legal')
+          ? new Response('{"termsVersion":"t1","privacyVersion":"p1"}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+          : new Response('{"code":"INVALID_REFRESH_TOKEN"}', { status: 401 }),
+      ),
+    );
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -24,5 +31,19 @@ describe('registro', () => {
     await userEvent.type(screen.getByLabelText('Dígito de verificación'), '9');
     expect(screen.getByText(/No coincide con el NIT/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Crear cuenta gratis/ })).toBeDisabled();
+  });
+
+  it('no deja crear la cuenta sin aceptar términos y política', async () => {
+    render(
+      <MemoryRouter>
+        <SessionProvider>
+          <Register />
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+    const button = screen.getByRole('button', { name: /Crear cuenta gratis/ });
+    expect(button).toBeDisabled();
+    await userEvent.click(screen.getByLabelText(/Acepto los términos/));
+    await vi.waitFor(() => expect(button).toBeEnabled());
   });
 });

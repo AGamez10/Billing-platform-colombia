@@ -74,7 +74,8 @@ class AuthFlowTest extends PostgresIntegrationTest {
     private static String registerJson(Org o, String password) {
         return """
                 {"organizationName":"Fundación Prueba","identificationType":"NIT","identificationNumber":"%s",
-                 "checkDigit":%d,"fullName":"Ana Prueba","email":"%s","password":"%s"}
+                 "checkDigit":%d,"fullName":"Ana Prueba","email":"%s","password":"%s",
+                 "acceptedTermsVersion":"borrador-2026-11","acceptedPrivacyVersion":"borrador-2026-11"}
                 """.formatted(o.nit(), o.dv(), o.email(), password);
     }
 
@@ -108,6 +109,9 @@ class AuthFlowTest extends PostgresIntegrationTest {
         long trials = tx.inTenant(tenant, () -> jdbc.sql(
                 "SELECT count(*) FROM subscriptions WHERE plan_code = 'TRIAL' AND status = 'TRIAL'").query(Long.class).single());
         assertEquals(1, trials, "la organización nueva arranca con la prueba gratis");
+        long acceptances = tx.inTenant(tenant, () -> jdbc.sql(
+                "SELECT count(*) FROM legal_acceptances WHERE version = 'borrador-2026-11'").query(Long.class).single());
+        assertEquals(2, acceptances, "quedan registradas la aceptación de términos y la de la política de datos");
     }
 
     @Test
@@ -199,6 +203,10 @@ class AuthFlowTest extends PostgresIntegrationTest {
         assertEquals("WEAK_PASSWORD", field(weak.body(), "code"));
 
         assertEquals(400, post("/api/v1/auth/register", "{\"organizationName\":\"x\"}").statusCode());
+        HttpResponse<String> oldTerms = post("/api/v1/auth/register",
+                registerJson(newOrg(), PASSWORD).replace("\"acceptedTermsVersion\":\"borrador-2026-11\"", "\"acceptedTermsVersion\":\"v0\""));
+        assertEquals(422, oldTerms.statusCode(), "aceptar una versión que no es la vigente no registra la cuenta");
+        assertEquals("LEGAL_ACCEPTANCE_REQUIRED", field(oldTerms.body(), "code"));
         assertEquals(400, post("/api/v1/auth/register", "{no es json").statusCode());
     }
 
