@@ -42,7 +42,7 @@ final class ElectronicDocumentMapper {
         return new ElectronicDocument(
                 invoice.id(),
                 invoice.tenantId(),
-                DocumentKind.INVOICE,
+                invoice.kind(),
                 number.prefix(),
                 number.number(),
                 invoice.issueDate(),

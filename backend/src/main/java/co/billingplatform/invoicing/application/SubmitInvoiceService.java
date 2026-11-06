@@ -68,7 +68,7 @@ public final class SubmitInvoiceService {
         }
 
         ProviderAccount account = resolveAccount(invoice);
-        ElectronicInvoicingProvider provider = registry.providerFor(account, DocumentKind.INVOICE);
+        ElectronicInvoicingProvider provider = registry.providerFor(account, invoice.kind());
 
         SubmissionResult result = callProvider(invoice, account, provider);
         invoice.recordProviderResult(result, clock.instant());
@@ -95,7 +95,7 @@ public final class SubmitInvoiceService {
 
     private SubmissionResult callProvider(Invoice invoice, ProviderAccount account, ElectronicInvoicingProvider provider) {
         ProviderCapabilities caps = provider.capabilities();
-        IdempotencyKey key = IdempotencyKey.forDocument(DocumentKind.INVOICE, invoice.id());
+        IdempotencyKey key = IdempotencyKey.forDocument(invoice.kind(), invoice.id());
         try {
             if (invoice.status() == InvoiceStatus.SUBMITTED && invoice.externalReference().isPresent()) {
                 if (!caps.statusQuery()) {

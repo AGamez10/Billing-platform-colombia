@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.adapter.web;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.identity.domain.Permission;
 import co.billingplatform.invoicing.application.NumberingRangeService;
@@ -34,7 +35,9 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearer")
 class NumberingRangeController {
 
+    /** @param kind INVOICE (por defecto) o POS_EQUIVALENT: cada tipo tiene su propia resolución. */
     record RangeRequest(
+            DocumentKind kind,
             @NotNull ProviderEnvironment environment,
             @NotBlank @Size(max = 50) String resolutionNumber,
             @Size(max = 10) String prefix,
@@ -43,10 +46,10 @@ class NumberingRangeController {
             @NotNull LocalDate validFrom,
             @NotNull LocalDate validTo) {}
 
-    record RangeView(UUID id, String environment, String resolutionNumber, String prefix, long rangeFrom,
+    record RangeView(UUID id, String kind, String environment, String resolutionNumber, String prefix, long rangeFrom,
                      long rangeTo, LocalDate validFrom, LocalDate validTo, long nextNumber, long remaining) {
         static RangeView of(NumberingRange r) {
-            return new RangeView(r.id(), r.environment().name(), r.resolutionNumber(), r.prefix(), r.rangeFrom(),
+            return new RangeView(r.id(), r.documentKind().name(), r.environment().name(), r.resolutionNumber(), r.prefix(), r.rangeFrom(),
                     r.rangeTo(), r.validFrom(), r.validTo(), r.nextNumber(), r.remaining());
         }
     }
@@ -66,7 +69,7 @@ class NumberingRangeController {
     RangeView register(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RangeRequest r) {
         CurrentUser u = CurrentUser.from(jwt).require(Permission.NUMBERING_MANAGE);
         return tx.inTenant(u.tenantId(), () -> RangeView.of(ranges.register(u.tenantId(), u.actor(),
-                new NumberingRangeService.NewRange(r.environment(), r.resolutionNumber(), r.prefix(), r.rangeFrom(),
+                new NumberingRangeService.NewRange(r.kind(), r.environment(), r.resolutionNumber(), r.prefix(), r.rangeFrom(),
                         r.rangeTo(), r.validFrom(), r.validTo()))));
     }
 

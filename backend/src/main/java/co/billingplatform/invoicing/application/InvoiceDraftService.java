@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.application;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.invoicing.domain.Invoice;
 import co.billingplatform.invoicing.domain.InvoiceLine;
 import co.billingplatform.invoicing.domain.InvoiceStatus;
@@ -24,10 +25,21 @@ import java.util.UUID;
  */
 public final class InvoiceDraftService {
 
-    public record DraftCommand(UUID customerId, List<InvoiceLine> lines) {
+    /**
+     * @param kind       factura (por defecto) o documento equivalente POS
+     * @param customerId obligatorio en factura; en POS, {@code null} = consumidor final
+     */
+    public record DraftCommand(DocumentKind kind, UUID customerId, List<InvoiceLine> lines) {
         public DraftCommand {
-            Objects.requireNonNull(customerId, "customerId is required");
+            kind = kind == null ? DocumentKind.INVOICE : kind;
+            if (customerId == null && kind != DocumentKind.POS_EQUIVALENT) {
+                throw new DomainException("CUSTOMER_REQUIRED", "An invoice needs an identified customer");
+            }
             lines = List.copyOf(Objects.requireNonNull(lines, "lines are required"));
+        }
+
+        public DraftCommand(UUID customerId, List<InvoiceLine> lines) {
+            this(DocumentKind.INVOICE, customerId, lines);
         }
     }
 
@@ -49,16 +61,21 @@ public final class InvoiceDraftService {
     }
 
     public Invoice create(TenantId tenantId, Actor actor, DraftCommand command) {
-        Invoice invoice = Invoice.draft(UUID.randomUUID(), tenantId, customer(tenantId, command.customerId()),
-                command.lines(), ColombianTime.today(clock), taxes, calculator, clock.instant());
+        Invoice invoice = Invoice.draft(UUID.randomUUID(), tenantId, command.kind(),
+                customer(tenantId, command.customerId()), command.lines(), ColombianTime.today(clock), taxes,
+                calculator, clock.instant());
         invoices.save(invoice);
         audit.record(new AuditTrail.Event(tenantId, actor, "INVOICE_DRAFT_CREATED", "invoice",
-                invoice.id().toString(), Map.of("customerId", command.customerId().toString())));
+                invoice.id().toString(), Map.of("kind", command.kind().name(),
+                        "customerId", command.customerId() == null ? "final-consumer" : command.customerId().toString())));
         return invoice;
     }
 
     public Invoice update(TenantId tenantId, Actor actor, UUID invoiceId, DraftCommand command) {
         Invoice invoice = load(tenantId, invoiceId);
+        if (command.customerId() == null && invoice.kind() != DocumentKind.POS_EQUIVALENT) {
+            throw new DomainException("CUSTOMER_REQUIRED", "An invoice needs an identified customer");
+        }
         invoice.replaceContent(customer(tenantId, command.customerId()), command.lines(),
                 ColombianTime.today(clock), taxes, calculator);
         invoices.save(invoice);
@@ -84,6 +101,9 @@ public final class InvoiceDraftService {
     }
 
     private Party customer(TenantId tenantId, UUID customerId) {
+        if (customerId == null) {
+            return Party.finalConsumer();
+        }
         return customers.findActive(tenantId, customerId)
                 .orElseThrow(() -> new DomainException("CUSTOMER_NOT_FOUND", "Customer not found"));
     }

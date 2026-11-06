@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.domain;
 
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ExternalReference;
 import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
@@ -41,6 +42,7 @@ public final class Invoice {
 
     private final UUID id;
     private final TenantId tenantId;
+    private final DocumentKind kind;
     private final String currency;
     private Party customer;
     private List<InvoiceLine> lines;
@@ -60,15 +62,25 @@ public final class Invoice {
     private String lastError;
     private final List<StatusChange> history = new ArrayList<>();
 
-    private Invoice(UUID id, TenantId tenantId, String currency) {
+    private Invoice(UUID id, TenantId tenantId, DocumentKind kind, String currency) {
         this.id = Objects.requireNonNull(id);
         this.tenantId = Objects.requireNonNull(tenantId);
+        this.kind = Objects.requireNonNull(kind);
+        if (kind != DocumentKind.INVOICE && kind != DocumentKind.POS_EQUIVALENT) {
+            throw new DomainException("INVALID_DOCUMENT_KIND", "Sales documents are invoices or POS equivalents");
+        }
         this.currency = Objects.requireNonNull(currency);
     }
 
     public static Invoice draft(UUID id, TenantId tenantId, Party customer, List<InvoiceLine> lines,
                                 LocalDate today, TaxCatalog taxes, DocumentCalculator calculator, Instant now) {
-        Invoice invoice = new Invoice(id, tenantId, CURRENCY_COP);
+        return draft(id, tenantId, DocumentKind.INVOICE, customer, lines, today, taxes, calculator, now);
+    }
+
+    /** @param kind factura de venta o documento equivalente POS: mismo ciclo de vida, numeración propia. */
+    public static Invoice draft(UUID id, TenantId tenantId, DocumentKind kind, Party customer, List<InvoiceLine> lines,
+                                LocalDate today, TaxCatalog taxes, DocumentCalculator calculator, Instant now) {
+        Invoice invoice = new Invoice(id, tenantId, kind, CURRENCY_COP);
         invoice.status = InvoiceStatus.DRAFT;
         invoice.applyContent(customer, lines, today, taxes, calculator);
         invoice.history.add(new StatusChange(null, InvoiceStatus.DRAFT, now, "created"));
@@ -81,7 +93,7 @@ public final class Invoice {
                            UUID numberingRangeId, UUID providerAccountId, ProviderEnvironment environment, ExternalReference externalReference,
                            ValidationEvidence evidence, List<String> rejectionReasons, boolean outcomeUncertain,
                            int providerInteractions, String lastError, List<StatusChange> history,
-                           java.math.BigDecimal storedPayableAmount) {}
+                           java.math.BigDecimal storedPayableAmount, DocumentKind kind) {}
 
     /**
      * Reconstruye una factura persistida. Los totales se recalculan con el motor y se comparan
@@ -89,7 +101,7 @@ public final class Invoice {
      * factura no se carga (falla segura en vez de transmitir montos distintos a los guardados).
      */
     public static Invoice restore(Snapshot s, TaxCatalog taxes, DocumentCalculator calculator) {
-        Invoice invoice = new Invoice(s.id(), s.tenantId(), CURRENCY_COP);
+        Invoice invoice = new Invoice(s.id(), s.tenantId(), s.kind() == null ? DocumentKind.INVOICE : s.kind(), CURRENCY_COP);
         invoice.applyContent(s.customer(), s.lines(), s.issueDate(), taxes, calculator);
         if (s.storedPayableAmount() != null
                 && invoice.calculation.payableAmount().compareTo(s.storedPayableAmount()) != 0) {
@@ -130,6 +142,10 @@ public final class Invoice {
         }
         if (!account.tenantId().equals(tenantId)) {
             throw new DomainException("PROVIDER_ACCOUNT_NOT_FOUND", "Provider account does not belong to this organization");
+        }
+        if (range.documentKind() != kind) {
+            throw new DomainException("NUMBERING_RANGE_NOT_FOUND",
+                    "Numbering resolution is for %s, not for %s".formatted(range.documentKind(), kind));
         }
         if (range.environment() != account.environment()) {
             throw new DomainException("NUMBERING_ENVIRONMENT_MISMATCH",
@@ -261,6 +277,7 @@ public final class Invoice {
 
     public UUID id() { return id; }
     public TenantId tenantId() { return tenantId; }
+    public DocumentKind kind() { return kind; }
     public String currency() { return currency; }
     public Party customer() { return customer; }
     public List<InvoiceLine> lines() { return lines; }

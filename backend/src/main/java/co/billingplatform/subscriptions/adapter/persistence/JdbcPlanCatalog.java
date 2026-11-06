@@ -20,15 +20,17 @@ class JdbcPlanCatalog implements PlanCatalog {
     @Override
     public List<PublicPlan> publicPlans() {
         return jdbc.sql("""
-                        SELECT code, name, quota_documents, quota_scope, max_users, monthly_price_cop,
+                        SELECT code, name, family, quota_documents, quota_scope, max_users, monthly_price_cop,
                                monthly_billing_allowed, annual_price_cop, overage_unit_price_cop
                         FROM plans
                         WHERE public AND active
-                        ORDER BY coalesce(monthly_price_cop, 0), code
+                        ORDER BY CASE family WHEN 'TRIAL' THEN 0 WHEN 'GENERAL' THEN 1 ELSE 2 END,
+                                 coalesce(monthly_price_cop, 0), code
                         """)
                 .query((rs, i) -> new PublicPlan(
                         rs.getString("code"),
                         rs.getString("name"),
+                        rs.getString("family"),
                         (Integer) rs.getObject("quota_documents"),
                         rs.getString("quota_scope"),
                         (Integer) rs.getObject("max_users"),

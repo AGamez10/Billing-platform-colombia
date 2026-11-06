@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.adapter.persistence;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
 import co.billingplatform.electronicinvoicing.domain.ExternalReference;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
@@ -144,7 +145,8 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 (Integer) r.get("provider_interactions"),
                 (String) r.get("last_error"),
                 history,
-                (BigDecimal) r.get("payable_amount")), taxes, calculator);
+                (BigDecimal) r.get("payable_amount"),
+                DocumentKind.valueOf((String) r.get("document_kind"))), taxes, calculator);
     }
 
     private static Discount discount(String kind, BigDecimal value) {
@@ -202,10 +204,10 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
 
     private void insertHeader(Invoice inv) {
         jdbc.sql("""
-                        INSERT INTO invoices (tenant_id, id, status, customer_snapshot, currency, issue_date,
+                        INSERT INTO invoices (tenant_id, id, document_kind, status, customer_snapshot, currency, issue_date,
                                               numbering_range_id, prefix, number, line_extension_amount, tax_total,
                                               payable_amount, provider_account_id, environment)
-                        VALUES (:t, :id, :status, CAST(:customer AS jsonb), :currency, :issueDate,
+                        VALUES (:t, :id, :kind, :status, CAST(:customer AS jsonb), :currency, :issueDate,
                                 NULL, :prefix, :number, :lineExt, :taxTotal, :payable, :account, :env)
                         """)
                 .params(headerParams(inv))
@@ -241,6 +243,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         Map<String, Object> p = new HashMap<>();
         p.put("t", inv.tenantId().value());
         p.put("id", inv.id());
+        p.put("kind", inv.kind().name());
         p.put("status", inv.status().name());
         p.put("customer", JsonText.object(customer));
         p.put("currency", inv.currency());

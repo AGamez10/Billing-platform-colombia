@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.application;
 
 import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.domain.ProviderId;
 import co.billingplatform.invoicing.application.InMemoryAdapters.Accounts;
@@ -65,7 +66,7 @@ class InvoiceLifecycleServiceTest {
 
         @Override
         public void add(NumberingRange range) {
-            active.put(range.tenantId() + ":" + range.environment(), range);
+            active.put(range.tenantId() + ":" + range.documentKind() + ":" + range.environment(), range);
         }
 
         @Override
@@ -74,8 +75,9 @@ class InvoiceLifecycleServiceTest {
         }
 
         @Override
-        public Optional<NumberingRange> lockActiveInvoiceRange(TenantId tenantId, ProviderEnvironment environment, LocalDate onDate) {
-            return Optional.ofNullable(active.get(tenantId + ":" + environment));
+        public Optional<NumberingRange> lockActiveRange(TenantId tenantId, DocumentKind kind, ProviderEnvironment environment,
+                                                        LocalDate onDate) {
+            return Optional.ofNullable(active.get(tenantId + ":" + kind + ":" + environment));
         }
 
         @Override
@@ -210,5 +212,80 @@ class InvoiceLifecycleServiceTest {
         assertEquals("INVOICE_NOT_FOUND", assertThrows(DomainException.class,
                 () -> finalizer.finalizeInvoice(tenantB, actor, draftOfA.id())).code());
         assertEquals(InvoiceStatus.DRAFT, draftOfA.status());
+    }
+
+    // ------------------------------------------------------------------ POS (comercio)
+
+    private NumberingRange posRange(TenantId tenant) {
+        return NumberingRange.create(tenant, DocumentKind.POS_EQUIVALENT, ProviderEnvironment.HABILITATION, "18760000002",
+                "POS", 1, 100000, LocalDate.of(2026, 1, 1), LocalDate.of(2027, 12, 31));
+    }
+
+    @Test
+    @DisplayName("POS sin cliente: se emite a consumidor final con la numeración POS, no con la de facturas")
+    void posToFinalConsumerUsesPosNumbering() {
+        configureHabilitation(tenantA);
+        ranges.add(posRange(tenantA));
+        Invoice pos = drafts.create(tenantA, actor,
+                new InvoiceDraftService.DraftCommand(DocumentKind.POS_EQUIVALENT, null, InvoiceFixtures.lines()));
+        assertTrue(pos.customer().isFinalConsumer());
+        assertEquals(DocumentKind.POS_EQUIVALENT, pos.kind());
+
+        finalizer.finalizeInvoice(tenantA, actor, pos.id());
+
+        assertEquals("POS1", pos.number().orElseThrow().formatted());
+        Invoice invoice = drafts.create(tenantA, actor, command());
+        finalizer.finalizeInvoice(tenantA, actor, invoice.id());
+        assertEquals("SETP990000000", invoice.number().orElseThrow().formatted(), "la factura no consume la numeración POS");
+    }
+
+    @Test
+    @DisplayName("POS sin resolución POS no se emite aunque exista resolución de facturas; factura exige cliente")
+    void posNeedsItsOwnResolution() {
+        configureHabilitation(tenantA);
+        Invoice pos = drafts.create(tenantA, actor,
+                new InvoiceDraftService.DraftCommand(DocumentKind.POS_EQUIVALENT, null, InvoiceFixtures.lines()));
+        assertEquals("NUMBERING_RANGE_NOT_FOUND",
+                assertThrows(DomainException.class, () -> finalizer.finalizeInvoice(tenantA, actor, pos.id())).code());
+        assertEquals("CUSTOMER_REQUIRED", assertThrows(DomainException.class,
+                () -> new InvoiceDraftService.DraftCommand(DocumentKind.INVOICE, null, InvoiceFixtures.lines())).code());
+    }
+
+    @Test
+    @DisplayName("venta rápida: la misma clave de idempotencia devuelve la misma venta; con otro contenido se rechaza")
+    void posSaleIsIdempotent() {
+        configureHabilitation(tenantA);
+        ranges.add(posRange(tenantA));
+        java.util.Map<String, PosSaleService.IdempotencyKeys.Stored> stored = new java.util.HashMap<>();
+        PosSaleService.IdempotencyKeys keys = new PosSaleService.IdempotencyKeys() {
+            @Override
+            public Optional<Stored> reserve(TenantId tenantId, String key, byte[] hash) {
+                Stored prev = stored.get(tenantId + key);
+                if (prev == null) {
+                    stored.put(tenantId + key, new Stored(hash, null));
+                    return Optional.empty();
+                }
+                return Optional.of(prev);
+            }
+
+            @Override
+            public void complete(TenantId tenantId, String key, UUID resourceId) {
+                stored.put(tenantId + key, new Stored(stored.get(tenantId + key).requestHash(), resourceId));
+            }
+        };
+        PosSaleService sales = new PosSaleService(drafts, finalizer, invoices, keys);
+        PosSaleService.SaleCommand sale = new PosSaleService.SaleCommand(null, InvoiceFixtures.lines());
+
+        Invoice first = sales.sell(tenantA, actor, "venta-0001-abcd", sale, "request-A");
+        Invoice retry = sales.sell(tenantA, actor, "venta-0001-abcd", sale, "request-A");
+
+        assertEquals(first.id(), retry.id(), "un reintento de la caja no crea una segunda venta");
+        assertEquals(1, queued.size(), "se envía una sola vez");
+        assertEquals("IDEMPOTENCY_KEY_REUSED", assertThrows(DomainException.class,
+                () -> sales.sell(tenantA, actor, "venta-0001-abcd", sale, "request-B")).code());
+        assertEquals("IDEMPOTENCY_KEY_REQUIRED", assertThrows(DomainException.class,
+                () -> sales.sell(tenantA, actor, null, sale, "request-A")).code());
+        Invoice other = sales.sell(tenantA, actor, "venta-0002-abcd", sale, "request-A");
+        assertEquals("POS2", other.number().orElseThrow().formatted());
     }
 }

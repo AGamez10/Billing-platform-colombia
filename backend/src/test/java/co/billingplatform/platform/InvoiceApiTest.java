@@ -164,4 +164,50 @@ class InvoiceApiTest extends ApiTest {
 
         assertEquals("DRAFT", field(send("GET", "/api/v1/invoices/" + id, a, null).body(), "status"), "la factura de A sigue intacta");
     }
+
+    @Test
+    @DisplayName("venta rápida POS: consumidor final, numeración propia, reintento seguro con Idempotency-Key")
+    void posSale() throws Exception {
+        String token = registerOrganization();
+        setUpIssuer(token);
+        LocalDate today = LocalDate.now();
+        HttpResponse<String> posRange = send("POST", "/api/v1/numbering-ranges", token,
+                ("{\"kind\":\"POS_EQUIVALENT\",\"environment\":\"SIMULATION\",\"resolutionNumber\":\"18760000002\",\"prefix\":\"POS\","
+                        + "\"rangeFrom\":1,\"rangeTo\":100000,\"validFrom\":\"%s\",\"validTo\":\"%s\"}")
+                        .formatted(today.minusDays(1), today.plusYears(1)));
+        assertEquals(201, posRange.statusCode(), posRange.body());
+        assertEquals("POS_EQUIVALENT", field(posRange.body(), "kind"));
+
+        String sale = """
+                {"lines":[{"description":"Gaseosa","unitCode":"94","quantity":"2","unitPrice":"2500","taxRateCodes":["IVA_19"]}]}""";
+        HttpResponse<String> noKey = send("POST", "/api/v1/pos-sales", token, sale);
+        assertEquals(400, noKey.statusCode());
+        assertEquals("IDEMPOTENCY_KEY_REQUIRED", field(noKey.body(), "code"));
+
+        java.util.Map<String, String> key = java.util.Map.of("Idempotency-Key", "venta-" + java.util.UUID.randomUUID());
+        HttpResponse<String> sold = send("POST", "/api/v1/pos-sales", token, sale, key);
+        assertEquals(201, sold.statusCode(), sold.body());
+        assertEquals("POS_EQUIVALENT", field(sold.body(), "kind"));
+        assertEquals("POS1", field(sold.body(), "number"));
+        assertEquals("true", field(sold.body(), "finalConsumer"));
+        assertEquals("5950.00", field(sold.body(), "payableAmount"), "2 × 2.500 + IVA 19 %");
+
+        HttpResponse<String> retry = send("POST", "/api/v1/pos-sales", token, sale, key);
+        assertEquals(field(sold.body(), "id"), field(retry.body(), "id"), "el reintento devuelve la misma venta");
+        HttpResponse<String> changed = send("POST", "/api/v1/pos-sales", token, sale.replace("\"2\"", "\"3\""), key);
+        assertEquals(422, changed.statusCode());
+        assertEquals("IDEMPOTENCY_KEY_REUSED", field(changed.body(), "code"));
+
+        HttpResponse<String> done = awaitFinalStatus(token, field(sold.body(), "id"));
+        assertEquals("ACCEPTED", field(done.body(), "status"), done.body());
+        assertTrue(field(done.body(), "documentKey").startsWith("SIMULATED-"));
+
+        HttpResponse<String> posOnly = send("GET", "/api/v1/invoices?kind=POS_EQUIVALENT", token, null);
+        assertTrue(posOnly.body().contains(field(sold.body(), "id")));
+        assertFalse(send("GET", "/api/v1/invoices?kind=INVOICE", token, null).body().contains(field(sold.body(), "id")));
+
+        HttpResponse<String> another = send("POST", "/api/v1/pos-sales", token, sale,
+                java.util.Map.of("Idempotency-Key", "venta-" + java.util.UUID.randomUUID()));
+        assertEquals("POS2", field(another.body(), "number"), "numeración POS consecutiva e independiente de las facturas");
+    }
 }

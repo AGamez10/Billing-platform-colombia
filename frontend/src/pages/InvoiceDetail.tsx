@@ -5,7 +5,7 @@ import type { Invoice } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, EnvironmentBadge, Loading, PageHead, Spinner, StatusBadge } from '../components/ui';
 import { messageFor } from '../lib/errors';
-import { formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
+import { documentTitle, formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
 const POLL_MS = 2500;
@@ -60,7 +60,7 @@ export function InvoiceDetail() {
   return (
     <>
       <PageHead
-        title={inv.number ? `Factura ${inv.number}` : 'Borrador de factura'}
+        title={documentTitle(inv.kind, inv.number)}
         subtitle={`${inv.customer.legalName} · ${formatDate(inv.issueDate)}`}
         action={
           <div className="row">
@@ -143,7 +143,7 @@ export function InvoiceDetail() {
       {inv.documentKey && (
         <section className="card stack" aria-labelledby="evidencia-h">
           <h2 id="evidencia-h">Evidencia del proveedor</h2>
-          <p className="small muted">{inv.simulated ? 'Clave simulada: no es un CUFE real.' : 'CUFE'}</p>
+          <p className="small muted">{inv.simulated ? 'Clave simulada: no es un código DIAN real.' : inv.kind === 'POS_EQUIVALENT' ? 'CUDE' : 'CUFE'}</p>
           <p className="mono">{inv.documentKey}</p>
           <p className="small muted">Validada: {formatDateTime(inv.validatedAt)}</p>
         </section>

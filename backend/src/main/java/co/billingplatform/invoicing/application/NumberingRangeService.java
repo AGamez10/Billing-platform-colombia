@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.application;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.invoicing.domain.NumberingRange;
 import co.billingplatform.shared.application.AuditTrail;
@@ -18,7 +19,8 @@ import java.util.Objects;
  */
 public final class NumberingRangeService {
 
-    public record NewRange(ProviderEnvironment environment, String resolutionNumber, String prefix,
+    /** @param kind factura o POS ({@code null} = factura): cada tipo tiene su propia resolución. */
+    public record NewRange(DocumentKind kind, ProviderEnvironment environment, String resolutionNumber, String prefix,
                            long rangeFrom, long rangeTo, LocalDate validFrom, LocalDate validTo) {}
 
     private final NumberingRangeRepository ranges;
@@ -31,12 +33,13 @@ public final class NumberingRangeService {
 
     public NumberingRange register(TenantId tenantId, Actor actor, NewRange r) {
         Objects.requireNonNull(r.environment(), "environment is required");
-        NumberingRange range = NumberingRange.create(tenantId, r.environment(), r.resolutionNumber(),
+        NumberingRange range = NumberingRange.create(tenantId, r.kind() == null ? DocumentKind.INVOICE : r.kind(),
+                r.environment(), r.resolutionNumber(),
                 r.prefix() == null ? "" : r.prefix().strip().toUpperCase(java.util.Locale.ROOT),
                 r.rangeFrom(), r.rangeTo(), r.validFrom(), r.validTo());
         ranges.add(range);
         audit.record(new AuditTrail.Event(tenantId, actor, "NUMBERING_RANGE_REGISTERED", "numbering_range",
-                range.id().toString(), Map.of("environment", range.environment().name(),
+                range.id().toString(), Map.of("kind", range.documentKind().name(), "environment", range.environment().name(),
                         "resolution", range.resolutionNumber(), "prefix", range.prefix(),
                         "from", Long.toString(range.rangeFrom()), "to", Long.toString(range.rangeTo()))));
         return range;

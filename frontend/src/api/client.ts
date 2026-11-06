@@ -95,8 +95,8 @@ export function refreshSession(): Promise<boolean> {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-async function send(method: Method, path: string, body: unknown, withAuth: boolean): Promise<Response> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+async function send(method: Method, path: string, body: unknown, withAuth: boolean, extra: Record<string, string> = {}): Promise<Response> {
+  const headers: Record<string, string> = { Accept: 'application/json', ...extra };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (path.startsWith('/api/v1/auth/')) headers[CLIENT_HEADER] = CLIENT_NAME;
   if (withAuth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -108,12 +108,12 @@ async function send(method: Method, path: string, body: unknown, withAuth: boole
   });
 }
 
-export async function api<T>(method: Method, path: string, body?: unknown): Promise<T> {
+export async function api<T>(method: Method, path: string, body?: unknown, extra: Record<string, string> = {}): Promise<T> {
   const isAuthEndpoint = path.startsWith('/api/v1/auth/') && !path.endsWith('/me');
-  let res = await send(method, path, body, true);
+  let res = await send(method, path, body, true, extra);
   if (res.status === 401 && !isAuthEndpoint) {
     if (await refreshSession()) {
-      res = await send(method, path, body, true);
+      res = await send(method, path, body, true, extra);
     } else {
       onExpired();
     }
@@ -126,6 +126,8 @@ export async function api<T>(method: Method, path: string, body?: unknown): Prom
 export const http = {
   get: <T>(path: string) => api<T>('GET', path),
   post: <T>(path: string, body?: unknown) => api<T>('POST', path, body),
+  /** POST con cabeceras extra, p. ej. Idempotency-Key en la venta rápida. */
+  postWithHeaders: <T>(path: string, body: unknown, headers: Record<string, string>) => api<T>('POST', path, body, headers),
   put: <T>(path: string, body: unknown) => api<T>('PUT', path, body),
   del: (path: string) => api<void>('DELETE', path),
 };

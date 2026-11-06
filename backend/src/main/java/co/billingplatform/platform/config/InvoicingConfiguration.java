@@ -12,6 +12,7 @@ import co.billingplatform.invoicing.application.InvoiceRepository;
 import co.billingplatform.invoicing.application.IssuerDirectory;
 import co.billingplatform.invoicing.application.NumberingRangeRepository;
 import co.billingplatform.invoicing.application.NumberingRangeService;
+import co.billingplatform.invoicing.application.PosSaleService;
 import co.billingplatform.invoicing.application.SubmissionQueue;
 import co.billingplatform.invoicing.application.SubmitInvoiceService;
 import co.billingplatform.invoicing.application.UsageMeter;
@@ -93,6 +94,12 @@ class InvoicingConfiguration {
                                                   UsageMeter usage, TaxCatalog taxes, DocumentCalculator calculator,
                                                   AuditTrail audit, Clock clock) {
         return new FinalizeInvoiceService(invoices, ranges, accounts, queue, usage, taxes, calculator, audit, clock);
+    }
+
+    @Bean
+    PosSaleService posSaleService(InvoiceDraftService drafts, FinalizeInvoiceService finalizer, InvoiceRepository invoices,
+                                  PosSaleService.IdempotencyKeys keys) {
+        return new PosSaleService(drafts, finalizer, invoices, keys);
     }
 
     @Bean

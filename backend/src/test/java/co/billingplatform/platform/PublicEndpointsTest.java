@@ -34,10 +34,15 @@ class PublicEndpointsTest extends PostgresIntegrationTest {
         HttpResponse<String> res = get("/api/v1/public/plans");
         assertEquals(200, res.statusCode());
         String body = res.body();
-        for (String code : new String[] {"TRIAL", "MICRO", "EMPRENDEDOR", "NEGOCIO", "PRO"}) {
+        for (String code : new String[] {"TRIAL", "MICRO", "EMPRENDEDOR", "NEGOCIO", "PRO",
+                "COMERCIO_500", "COMERCIO_1200", "COMERCIO_3000"}) {
             assertTrue(body.contains("\"code\":\"" + code + "\""), "falta el plan " + code + ": " + body);
         }
         assertTrue(body.contains("\"annualPrice\":\"69000.00\""), body);
+        // Comercio: pago anual de 11 meses y excedente propio de $60
+        assertTrue(body.contains("\"code\":\"COMERCIO_500\",\"name\":\"Comercio 500\",\"family\":\"COMMERCE\""), body);
+        assertTrue(body.contains("\"annualPrice\":\"383900.00\",\"overageUnitPrice\":\"60.00\""), body);
+        assertTrue(body.indexOf("\"PRO\"") < body.indexOf("\"COMERCIO_500\""), "los planes generales van antes que los de comercio");
     }
 
     @Test

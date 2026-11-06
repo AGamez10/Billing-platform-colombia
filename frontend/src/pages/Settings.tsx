@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { http } from '../api/client';
-import type { Environment, NumberingRange, ProviderAccount } from '../api/types';
+import type { DocumentKind, Environment, NumberingRange, ProviderAccount } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, EnvironmentBadge, Field, PageHead, SelectField, Spinner } from '../components/ui';
 import { messageFor } from '../lib/errors';
-import { ENVIRONMENT_LABEL, formatDate } from '../lib/format';
+import { ENVIRONMENT_LABEL, formatDate, KIND_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
 export function Settings() {
@@ -90,6 +90,7 @@ function RangesSection(props: {
   const today = localToday();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
+    kind: 'INVOICE' as DocumentKind,
     environment: (props.activeEnvironment ?? 'SIMULATION') as Environment,
     resolutionNumber: '',
     prefix: '',
@@ -107,6 +108,7 @@ function RangesSection(props: {
     setError(null);
     try {
       await http.post('/api/v1/numbering-ranges', {
+        kind: form.kind,
         environment: form.environment,
         resolutionNumber: form.resolutionNumber.trim(),
         prefix: form.prefix.trim(),
@@ -141,6 +143,7 @@ function RangesSection(props: {
           <table>
             <thead>
               <tr>
+                <th>Tipo</th>
                 <th>Ambiente</th>
                 <th>Resolución</th>
                 <th>Prefijo</th>
@@ -152,6 +155,7 @@ function RangesSection(props: {
             <tbody>
               {props.ranges.map((r) => (
                 <tr key={r.id}>
+                  <td>{KIND_LABEL[r.kind]}</td>
                   <td>{ENVIRONMENT_LABEL[r.environment]}</td>
                   <td>{r.resolutionNumber}</td>
                   <td>{r.prefix || '—'}</td>
@@ -173,6 +177,15 @@ function RangesSection(props: {
         <form className="stack" onSubmit={(e) => void submit(e)} noValidate>
           <Alert tone="info">Copia los datos tal como aparecen en la resolución que te dio la DIAN. Para practicar en simulación puedes inventar un número.</Alert>
           {error && <Alert tone="error">{error}</Alert>}
+          <SelectField
+            label="Tipo de documento"
+            value={form.kind}
+            onChange={(e) => setForm({ ...form, kind: e.target.value as DocumentKind })}
+            hint="La DIAN da una resolución para facturas y otra para el POS de tu caja."
+          >
+            <option value="INVOICE">Factura de venta</option>
+            <option value="POS_EQUIVALENT">POS (tiquete de venta electrónico)</option>
+          </SelectField>
           <div className="grid-2">
             <SelectField label="Ambiente" value={form.environment} onChange={(e) => setForm({ ...form, environment: e.target.value as Environment })}>
               <option value="SIMULATION">Simulación</option>

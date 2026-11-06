@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import type { InvoiceStatus, InvoiceSummary, Page } from '../api/types';
+import type { DocumentKind, InvoiceStatus, InvoiceSummary, Page } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, Empty, EnvironmentBadge, Icon, PageHead, Spinner, StatusBadge } from '../components/ui';
 import { messageFor } from '../lib/errors';
-import { formatCop, formatDate, STATUS_LABEL } from '../lib/format';
+import { formatCop, formatDate, KIND_LABEL, STATUS_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
 const FILTERS: (InvoiceStatus | '')[] = ['', 'DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'];
@@ -13,13 +13,16 @@ const PAGE_SIZE = 25;
 export function InvoiceList() {
   const { can } = useSession();
   const [status, setStatus] = useState<InvoiceStatus | ''>('');
+  const [kind, setKind] = useState<DocumentKind | ''>('');
   const [offset, setOffset] = useState(0);
-  const list = useApi<Page<InvoiceSummary>>(`/api/v1/invoices?limit=${PAGE_SIZE}&offset=${offset}${status ? `&status=${status}` : ''}`);
+  const list = useApi<Page<InvoiceSummary>>(
+    `/api/v1/invoices?limit=${PAGE_SIZE}&offset=${offset}${status ? `&status=${status}` : ''}${kind ? `&kind=${kind}` : ''}`,
+  );
 
   return (
     <>
       <PageHead
-        title="Facturas"
+        title="Documentos"
         action={
           can('write') && (
             <Link to="/facturas/nueva" className="btn btn-primary">
@@ -28,6 +31,22 @@ export function InvoiceList() {
           )
         }
       />
+      <div className="checks" role="group" aria-label="Filtrar por tipo">
+        {(['', 'INVOICE', 'POS_EQUIVALENT'] as const).map((k) => (
+          <label key={k || 'all-kinds'} className="check">
+            <input
+              type="radio"
+              name="kind"
+              checked={kind === k}
+              onChange={() => {
+                setKind(k);
+                setOffset(0);
+              }}
+            />
+            {k ? (k === 'INVOICE' ? 'Facturas' : 'POS') : 'Todos'}
+          </label>
+        ))}
+      </div>
       <div className="checks" role="group" aria-label="Filtrar por estado">
         {FILTERS.map((f) => (
           <label key={f || 'all'} className="check">
@@ -61,7 +80,7 @@ export function InvoiceList() {
                   <div className="grow">
                     <div className="title">{inv.customerName}</div>
                     <div className="sub">
-                      {inv.number ?? 'Borrador'} · {formatDate(inv.issueDate)}
+                      {KIND_LABEL[inv.kind]} {inv.number ?? '(borrador)'} · {formatDate(inv.issueDate)}
                     </div>
                   </div>
                   <div className="amount-col">

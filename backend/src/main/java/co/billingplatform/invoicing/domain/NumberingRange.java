@@ -1,6 +1,7 @@
 package co.billingplatform.invoicing.domain;
 
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.TenantId;
@@ -21,6 +22,7 @@ public final class NumberingRange {
 
     private final UUID id;
     private final TenantId tenantId;
+    private final DocumentKind documentKind;
     private final ProviderEnvironment environment;
     private final String resolutionNumber;
     private final String prefix;
@@ -33,8 +35,20 @@ public final class NumberingRange {
     public NumberingRange(UUID id, TenantId tenantId, ProviderEnvironment environment, String resolutionNumber,
                           String prefix, long rangeFrom, long rangeTo, LocalDate validFrom, LocalDate validTo,
                           long nextNumber) {
+        this(id, tenantId, DocumentKind.INVOICE, environment, resolutionNumber, prefix, rangeFrom, rangeTo,
+                validFrom, validTo, nextNumber);
+    }
+
+    /** @param documentKind tipo de documento que autoriza la resolución (factura o POS: cada uno tiene la suya). */
+    public NumberingRange(UUID id, TenantId tenantId, DocumentKind documentKind, ProviderEnvironment environment,
+                          String resolutionNumber, String prefix, long rangeFrom, long rangeTo, LocalDate validFrom,
+                          LocalDate validTo, long nextNumber) {
         this.id = Objects.requireNonNull(id);
         this.tenantId = Objects.requireNonNull(tenantId);
+        this.documentKind = Objects.requireNonNull(documentKind);
+        if (documentKind != DocumentKind.INVOICE && documentKind != DocumentKind.POS_EQUIVALENT) {
+            throw new DomainException("INVALID_NUMBERING_RANGE", "Unsupported document kind for numbering: " + documentKind);
+        }
         this.environment = Objects.requireNonNull(environment);
         if (resolutionNumber == null || resolutionNumber.isBlank()) {
             throw new DomainException("INVALID_NUMBERING_RANGE", "Resolution number is required");
@@ -70,7 +84,14 @@ public final class NumberingRange {
     public static NumberingRange create(TenantId tenantId, ProviderEnvironment environment, String resolutionNumber,
                                         String prefix, long rangeFrom, long rangeTo,
                                         LocalDate validFrom, LocalDate validTo) {
-        return new NumberingRange(UUID.randomUUID(), tenantId, environment, resolutionNumber, prefix,
+        return create(tenantId, DocumentKind.INVOICE, environment, resolutionNumber, prefix, rangeFrom, rangeTo,
+                validFrom, validTo);
+    }
+
+    public static NumberingRange create(TenantId tenantId, DocumentKind documentKind, ProviderEnvironment environment,
+                                        String resolutionNumber, String prefix, long rangeFrom, long rangeTo,
+                                        LocalDate validFrom, LocalDate validTo) {
+        return new NumberingRange(UUID.randomUUID(), tenantId, documentKind, environment, resolutionNumber, prefix,
                 rangeFrom, rangeTo, validFrom, validTo, rangeFrom);
     }
 
@@ -99,6 +120,7 @@ public final class NumberingRange {
     public TenantId tenantId() { return tenantId; }
     public ProviderEnvironment environment() { return environment; }
     public String prefix() { return prefix; }
+    public DocumentKind documentKind() { return documentKind; }
     public String resolutionNumber() { return resolutionNumber; }
     public long rangeFrom() { return rangeFrom; }
     public long rangeTo() { return rangeTo; }

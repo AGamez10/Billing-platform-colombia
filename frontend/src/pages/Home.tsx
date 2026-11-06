@@ -33,9 +33,14 @@ export function Home() {
           <p>Este es el resumen de tu facturación.</p>
         </div>
         {can('write') && (
-          <Link to="/facturas/nueva" className="btn btn-primary">
-            {Icon.plus} Nueva factura
-          </Link>
+          <div className="row">
+            <Link to="/vender" className="btn btn-primary">
+              {Icon.cart} Vender
+            </Link>
+            <Link to="/facturas/nueva" className="btn btn-secondary">
+              {Icon.plus} Factura
+            </Link>
+          </div>
         )}
       </div>
 
@@ -74,7 +79,7 @@ export function Home() {
 
       <section className="card tight" aria-labelledby="recent-title">
         <div className="row card-head">
-          <h2 id="recent-title">Últimas facturas</h2>
+          <h2 id="recent-title">Últimos documentos</h2>
           <Link to="/facturas" className="right small">
             Ver todas
           </Link>

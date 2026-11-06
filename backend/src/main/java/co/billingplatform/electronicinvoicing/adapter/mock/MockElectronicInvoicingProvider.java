@@ -84,7 +84,7 @@ public final class MockElectronicInvoicingProvider implements ElectronicInvoicin
     @Override
     public ProviderCapabilities capabilities() {
         return new ProviderCapabilities(
-                Set.of(DocumentKind.INVOICE, DocumentKind.CREDIT_NOTE),
+                Set.of(DocumentKind.INVOICE, DocumentKind.POS_EQUIVALENT, DocumentKind.CREDIT_NOTE),
                 Set.of(ProviderEnvironment.SIMULATION),
                 true, true, true, true);
     }

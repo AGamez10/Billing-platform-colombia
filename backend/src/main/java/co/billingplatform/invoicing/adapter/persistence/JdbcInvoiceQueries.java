@@ -14,7 +14,7 @@ import java.util.UUID;
 @Component
 public class JdbcInvoiceQueries {
 
-    public record InvoiceSummary(UUID id, String status, String number, LocalDate issueDate, String environment,
+    public record InvoiceSummary(UUID id, String kind, String status, String number, LocalDate issueDate, String environment,
                                  String customerName, String customerIdNumber, BigDecimal payableAmount,
                                  boolean legallyValid) {}
 
@@ -25,11 +25,16 @@ public class JdbcInvoiceQueries {
     }
 
     public Page<InvoiceSummary> list(TenantId tenantId, InvoiceStatus status, Integer limit, Integer offset) {
+        return list(tenantId, null, status, limit, offset);
+    }
+
+    /** @param kind {@code null} = todos los tipos */
+    public Page<InvoiceSummary> list(TenantId tenantId, String kind, InvoiceStatus status, Integer limit, Integer offset) {
         int l = Page.clampLimit(limit);
         int o = Page.clampOffset(offset);
-        String statusFilter = status == null ? "" : " AND status = :status";
+        String statusFilter = (status == null ? "" : " AND status = :status") + (kind == null ? "" : " AND document_kind = :kind");
         var spec = jdbc.sql("""
-                        SELECT id, status, prefix, number, issue_date, environment, payable_amount, validation_environment,
+                        SELECT id, document_kind, status, prefix, number, issue_date, environment, payable_amount, validation_environment,
                                customer_snapshot->>'name' AS customer_name, customer_snapshot->>'idNumber' AS customer_id_number
                         FROM invoices
                         WHERE tenant_id = :t""" + statusFilter + """
@@ -43,12 +48,15 @@ public class JdbcInvoiceQueries {
         if (status != null) {
             spec = spec.param("status", status.name());
         }
+        if (kind != null) {
+            spec = spec.param("kind", kind);
+        }
         var rows = spec.query((rs, n) -> {
             long number = rs.getLong("number");
             boolean numbered = !rs.wasNull();
             String st = rs.getString("status");
             return new InvoiceSummary(
-                    rs.getObject("id", UUID.class), st,
+                    rs.getObject("id", UUID.class), rs.getString("document_kind"), st,
                     numbered ? rs.getString("prefix") + number : null,
                     rs.getDate("issue_date").toLocalDate(),
                     rs.getString("environment"),

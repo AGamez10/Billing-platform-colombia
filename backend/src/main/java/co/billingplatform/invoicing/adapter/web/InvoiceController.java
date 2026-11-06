@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.adapter.web;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.identity.domain.Permission;
 import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceQueries;
 import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceQueries.InvoiceSummary;
@@ -137,12 +138,14 @@ class InvoiceController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar facturas (más recientes primero, paginado, máx. 100)")
+    @Operation(summary = "Listar documentos de venta (más recientes primero, paginado, máx. 100). "
+            + "kind=INVOICE o POS_EQUIVALENT filtra por tipo.")
     Page<InvoiceSummary> list(@AuthenticationPrincipal Jwt jwt,
+                              @RequestParam(required = false) DocumentKind kind,
                               @RequestParam(required = false) InvoiceStatus status,
                               @RequestParam(required = false) Integer limit,
                               @RequestParam(required = false) Integer offset) {
         CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_READ);
-        return tx.inTenant(u.tenantId(), () -> queries.list(u.tenantId(), status, limit, offset));
+        return tx.inTenant(u.tenantId(), () -> queries.list(u.tenantId(), kind == null ? null : kind.name(), status, limit, offset));
     }
 }

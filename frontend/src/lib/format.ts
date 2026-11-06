@@ -1,4 +1,4 @@
-import type { Environment, IdentificationType, InvoiceStatus } from '../api/types';
+import type { DocumentKind, Environment, IdentificationType, InvoiceStatus } from '../api/types';
 
 const cop = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -96,4 +96,15 @@ export function parseDecimalInput(raw: string): string | null {
     normalized = s.replace(/\./g, '');
   }
   return /^\d+(\.\d+)?$/.test(normalized) ? normalized : null;
+}
+
+export const KIND_LABEL: Record<DocumentKind, string> = {
+  INVOICE: 'Factura',
+  POS_EQUIVALENT: 'POS',
+};
+
+/** "Factura FEV12" / "POS POS7" / "Borrador de factura". */
+export function documentTitle(kind: DocumentKind, number?: string): string {
+  if (!number) return kind === 'POS_EQUIVALENT' ? 'Borrador POS' : 'Borrador de factura';
+  return kind === 'POS_EQUIVALENT' ? `POS ${number}` : `Factura ${number}`;
 }

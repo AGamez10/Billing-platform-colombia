@@ -60,7 +60,9 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("CUSTOMER_ALREADY_EXISTS", HttpStatus.CONFLICT),
             Map.entry("PRODUCT_SKU_ALREADY_EXISTS", HttpStatus.CONFLICT),
             Map.entry("PRODUCT_NOT_FOUND", HttpStatus.NOT_FOUND),
-            Map.entry("OVERAGE_NOT_AVAILABLE", HttpStatus.CONFLICT));
+            Map.entry("OVERAGE_NOT_AVAILABLE", HttpStatus.CONFLICT),
+            Map.entry("IDEMPOTENCY_KEY_REQUIRED", HttpStatus.BAD_REQUEST),
+            Map.entry("IDEMPOTENCY_KEY_IN_PROGRESS", HttpStatus.CONFLICT));
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException e) {

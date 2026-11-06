@@ -68,9 +68,9 @@ public final class FinalizeInvoiceService {
         usage.ensureCanIssue(tenantId, account.environment());
 
         LocalDate issueDate = ColombianTime.today(clock);
-        NumberingRange range = ranges.lockActiveInvoiceRange(tenantId, account.environment(), issueDate)
+        NumberingRange range = ranges.lockActiveRange(tenantId, invoice.kind(), account.environment(), issueDate)
                 .orElseThrow(() -> new DomainException("NUMBERING_RANGE_NOT_FOUND",
-                        "No active numbering resolution for " + account.environment()));
+                        "No active %s numbering resolution for %s".formatted(invoice.kind(), account.environment())));
 
         invoice.finalizeWith(range, account, issueDate, taxes, calculator, clock.instant());
 

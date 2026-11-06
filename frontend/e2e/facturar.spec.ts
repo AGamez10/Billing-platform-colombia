@@ -62,6 +62,52 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await expect(page.getByText(/^SIMULATED-/)).toBeVisible();
 });
 
+test('comercio: venta rápida a consumidor final emite el POS en simulación', async ({ page }) => {
+  page.on('dialog', (d) => void d.accept());
+  const nit = randomNit();
+  const suffix = Math.random().toString(36).slice(2, 8);
+  await page.goto('/registro');
+  await page.getByLabel('Nombre o razón social del negocio').fill(`Tienda E2E ${suffix}`);
+  await page.getByLabel('NIT (sin dígito de verificación)').fill(nit);
+  await page.getByLabel('Dígito de verificación', { exact: true }).fill(String(nitCheckDigit(nit)));
+  await page.getByLabel('Tu nombre').fill('Tendero E2E');
+  await page.getByLabel('Tu correo').fill(`pos-${suffix}@example.com`);
+  await page.getByLabel('Contraseña', { exact: true }).fill('caballo bateria grapa correcta');
+  await page.getByLabel(/Acepto los términos/).check();
+  await page.getByRole('button', { name: 'Crear cuenta gratis' }).click();
+  await expect(page.getByRole('heading', { name: /Hola/ })).toBeVisible();
+
+  await page.goto('/configuracion');
+  await page.getByRole('button', { name: 'Usar modo simulación' }).click();
+  await expect(page.getByText(/Activo:/)).toBeVisible();
+  await page.getByRole('button', { name: 'Registrar resolución' }).click();
+  await page.getByLabel('Tipo de documento').selectOption('POS_EQUIVALENT');
+  await page.getByLabel('Número de resolución').fill('18760000002');
+  await page.getByLabel('Prefijo').fill('POS');
+  await page.getByLabel('Hasta', { exact: true }).fill('100000');
+  await page.getByLabel('Vigente hasta').fill(`${new Date().getFullYear() + 1}-12-31`);
+  await page.getByRole('button', { name: 'Guardar resolución' }).click();
+  await expect(page.getByRole('cell', { name: '18760000002' })).toBeVisible();
+
+  await page.goto('/productos/nuevo');
+  await page.getByLabel('Nombre').fill('Gaseosa');
+  await page.getByLabel('Tipo', { exact: true }).selectOption('PRODUCT');
+  await page.getByLabel('Precio unitario antes de impuestos').fill('2.500');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('Gaseosa')).toBeVisible();
+
+  await page.goto('/vender');
+  await page.getByRole('button', { name: /Gaseosa/ }).click();
+  await page.getByRole('button', { name: /Gaseosa/ }).click();
+  const charge = page.getByRole('button', { name: /Cobrar/ });
+  await expect(charge).toContainText('5.950');
+  await charge.click();
+  await expect(page.getByRole('heading', { name: 'Venta POS1' })).toBeVisible();
+  await expect(page.getByText('Consumidor final')).toBeVisible();
+  await expect(page.locator('.pos-total')).toContainText('5.950');
+  await expect(page.getByText('Aceptada', { exact: true })).toBeVisible({ timeout: 30_000 });
+});
+
 test('sin sesión, la app lleva al inicio de sesión', async ({ page }) => {
   await page.goto('/facturas');
   await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();

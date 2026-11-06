@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.application;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.invoicing.domain.NumberingRange;
 import co.billingplatform.shared.domain.TenantId;
@@ -15,7 +16,7 @@ public interface NumberingRangeRepository {
      * fecha, BLOQUEADA hasta el fin de la transacción ({@code SELECT ... FOR UPDATE}): dos
      * finalizaciones concurrentes se serializan y nunca reciben el mismo número.
      */
-    Optional<NumberingRange> lockActiveInvoiceRange(TenantId tenantId, ProviderEnvironment environment, LocalDate onDate);
+    Optional<NumberingRange> lockActiveRange(TenantId tenantId, DocumentKind kind, ProviderEnvironment environment, LocalDate onDate);
 
     void save(NumberingRange range);
 

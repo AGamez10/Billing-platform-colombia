@@ -5,7 +5,8 @@ import { Icon } from './ui';
 
 const NAV = [
   { to: '/', label: 'Inicio', icon: Icon.home, end: true },
-  { to: '/facturas', label: 'Facturas', icon: Icon.invoice, end: false },
+  { to: '/vender', label: 'Vender', icon: Icon.cart, end: false },
+  { to: '/facturas', label: 'Documentos', icon: Icon.invoice, end: false },
   { to: '/clientes', label: 'Clientes', icon: Icon.people, end: false },
   { to: '/productos', label: 'Productos', icon: Icon.box, end: false },
   { to: '/configuracion', label: 'Ajustes', icon: Icon.gear, end: false },

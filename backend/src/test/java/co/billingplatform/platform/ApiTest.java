@@ -26,11 +26,17 @@ public abstract class ApiTest extends PostgresIntegrationTest {
     private final HttpClient http = HttpClient.newHttpClient();
 
     protected HttpResponse<String> send(String method, String path, String token, String json) throws Exception {
+        return send(method, path, token, json, java.util.Map.of());
+    }
+
+    protected HttpResponse<String> send(String method, String path, String token, String json,
+                                        java.util.Map<String, String> headers) throws Exception {
         URI uri = URI.create("http://localhost:" + environment.getRequiredProperty("local.server.port") + path);
         HttpRequest.Builder b = HttpRequest.newBuilder(uri)
                 .method(method, json == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json));
         if (json != null) b.header("Content-Type", "application/json");
         if (token != null) b.header("Authorization", "Bearer " + token);
+        headers.forEach(b::header);
         return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 

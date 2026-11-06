@@ -50,7 +50,7 @@ p { margin: 0; }
 .brand:hover { color: #fff; }
 .org-name { color: #c9d3e0; font-size: 13px; max-width: 50vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.bottomnav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 10; }
+.bottomnav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, 1fr); padding: 6px 2px calc(6px + env(safe-area-inset-bottom)); z-index: 10; }
 .bottomnav a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); text-decoration: none; padding: 6px 2px; min-height: 48px; border-radius: 10px; }
 .bottomnav a.active { color: var(--green); font-weight: 600; }
 .bottomnav svg, .sidenav svg { width: 22px; height: 22px; }
@@ -177,3 +177,19 @@ td.num, th.num { text-align: right; }
 .sidebar .btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.06); }
 .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
 .consent input { width: 20px; height: 20px; min-height: 0; margin-top: 2px; flex: 0 0 auto; }
+
+/* ---------- Venta rápida ---------- */
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.pos-tile { min-height: 84px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; text-align: left; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; color: var(--ink); cursor: pointer; }
+.pos-tile:hover { border-color: var(--green); }
+.pos-tile:active { background: var(--green-soft); }
+.pos-tile-name { font-weight: 600; line-height: 1.25; }
+.pos-manual { flex-wrap: nowrap; }
+.pos-manual input:first-of-type { flex: 2 1 0; min-width: 0; }
+.pos-manual input:last-of-type { flex: 1 1 0; min-width: 0; }
+.qty { display: inline-flex; align-items: center; gap: 4px; }
+.qty .icon-btn { font-size: 22px; font-weight: 700; color: var(--ink); border: 1px solid var(--line); }
+.qty .num { min-width: 28px; text-align: center; font-weight: 700; }
+.pos-charge { min-height: 56px; font-size: 18px; }
+.pos-receipt { align-items: flex-start; }
+.pos-total { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }

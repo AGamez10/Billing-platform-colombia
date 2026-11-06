@@ -12,6 +12,7 @@ import { Legal } from './pages/Legal';
 import { Login } from './pages/Login';
 import { ProductEditor, ProductList } from './pages/Products';
 import { Register } from './pages/Register';
+import { Sell } from './pages/Sell';
 import { Settings } from './pages/Settings';
 
 function RequireSession({ children }: { children: ReactNode }) {
@@ -38,6 +39,7 @@ export function App() {
       <Route path="/privacidad" element={<Legal title="Política de tratamiento de datos personales" />} />
       <Route element={<RequireSession><Layout /></RequireSession>}>
         <Route index element={<Home />} />
+        <Route path="vender" element={<Sell />} />
         <Route path="facturas" element={<InvoiceList />} />
         <Route path="facturas/nueva" element={<InvoiceEditor />} />
         <Route path="facturas/:id" element={<InvoiceDetail />} />

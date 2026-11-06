@@ -12,6 +12,22 @@ import java.util.Objects;
  */
 public record Party(PartyIdentification identification, String legalName, String email) {
 
+    /** Identificación genérica que usa la DIAN para el comprador no identificado (consumidor final). */
+    public static final String FINAL_CONSUMER_ID = "222222222222";
+
+    /**
+     * Comprador no identificado: venta al público sin datos del comprador. Un documento a nombre
+     * del consumidor final no sirve al comprador para deducciones; para eso debe identificarse.
+     */
+    public static Party finalConsumer() {
+        return new Party(new PartyIdentification(IdentificationType.CEDULA_CIUDADANIA, FINAL_CONSUMER_ID, null),
+                "Consumidor final", null);
+    }
+
+    public boolean isFinalConsumer() {
+        return FINAL_CONSUMER_ID.equals(identification.number());
+    }
+
     public Party {
         Objects.requireNonNull(identification, "identification is required");
         if (legalName == null || legalName.isBlank()) {

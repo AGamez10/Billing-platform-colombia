@@ -62,6 +62,8 @@ export interface TaxRate {
   legalReference: string;
 }
 
+export type DocumentKind = 'INVOICE' | 'POS_EQUIVALENT';
+
 export type InvoiceStatus = 'DRAFT' | 'PENDING_SUBMISSION' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'FAILED';
 export type Environment = 'SIMULATION' | 'HABILITATION' | 'PRODUCTION';
 
@@ -83,6 +85,7 @@ export interface InvoiceLine {
 
 export interface Invoice {
   id: string;
+  kind: DocumentKind;
   status: InvoiceStatus;
   number?: string;
   issueDate: string;
@@ -95,6 +98,7 @@ export interface Invoice {
     checkDigit?: number;
     legalName: string;
     email?: string;
+    finalConsumer: boolean;
   };
   lines: InvoiceLine[];
   taxSubtotals: { code: string; type: string; percentage: number; taxableAmount: number; taxAmount: number }[];
@@ -110,6 +114,7 @@ export interface Invoice {
 
 export interface InvoiceSummary {
   id: string;
+  kind: DocumentKind;
   status: InvoiceStatus;
   number?: string;
   issueDate: string;
@@ -139,6 +144,7 @@ export interface ProviderAccount {
 
 export interface NumberingRange {
   id: string;
+  kind: DocumentKind;
   environment: Environment;
   resolutionNumber: string;
   prefix: string;

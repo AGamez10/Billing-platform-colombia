@@ -22,6 +22,7 @@ import java.util.UUID;
  */
 record InvoiceView(
         UUID id,
+        String kind,
         String status,
         String number,
         LocalDate issueDate,
@@ -41,7 +42,7 @@ record InvoiceView(
         List<HistoryEntry> history) {
 
     record Customer(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
-                    String email) {}
+                    String email, boolean finalConsumer) {}
 
     record Line(int lineNumber, String description, String unitCode, BigDecimal quantity, BigDecimal unitPrice,
                 String discountKind, BigDecimal discountValue, List<String> taxRateCodes, BigDecimal grossAmount,
@@ -71,13 +72,15 @@ record InvoiceView(
         var id = i.customer().identification();
         return new InvoiceView(
                 i.id(),
+                i.kind().name(),
                 i.status().name(),
                 i.number().map(DocumentNumber::formatted).orElse(null),
                 i.issueDate(),
                 i.environment().map(Enum::name).orElse(null),
                 i.environment().map(e -> e == ProviderEnvironment.SIMULATION).orElse(false),
                 i.isLegallyValid(),
-                new Customer(id.type().name(), id.number(), id.checkDigit(), i.customer().legalName(), i.customer().email()),
+                new Customer(id.type().name(), id.number(), id.checkDigit(), i.customer().legalName(), i.customer().email(),
+                        i.customer().isFinalConsumer()),
                 lines,
                 calc.taxSubtotals().stream().map(t -> new TaxSubtotal(t.rate().code(), t.rate().type().name(),
                         t.rate().percentage(), t.taxableAmount(), t.taxAmount())).toList(),
