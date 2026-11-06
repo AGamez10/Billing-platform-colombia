@@ -4,6 +4,7 @@ import { useSession } from '../auth/session';
 import { Alert, Icon, Spinner, StatusBadge } from '../components/ui';
 import { formatCop, formatDate } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { UpgradeOffer } from '../components/UpgradeOffer';
 
 export function Home() {
   const { state, can } = useSession();
@@ -76,6 +77,9 @@ export function Home() {
       )}
 
       {quota.data && <QuotaCard quota={quota.data} />}
+      {quota.data && quota.data.limit != null && quota.data.used >= quota.data.limit * 0.8 && (
+        <UpgradeOffer onResolved={() => void quota.reload()} />
+      )}
 
       <section className="card tight" aria-labelledby="recent-title">
         <div className="row card-head">

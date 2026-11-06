@@ -200,3 +200,12 @@ td.num, th.num { text-align: right; }
 .charge-qr .pos-total { margin: 0; }
 .pos-actions { display: grid; gap: 10px; }
 .secret-once { word-break: break-all; }
+
+/* Oferta de mejora de plan */
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.plan-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.plan-card h3 { margin: 0; font-size: 17px; }
+.plan-card.chosen { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-soft); }
+.overage { border-top: 1px solid var(--line); padding-top: 12px; }
+.check { display: flex; gap: 10px; align-items: flex-start; }
+.check input { margin-top: 3px; width: 18px; height: 18px; flex: none; }

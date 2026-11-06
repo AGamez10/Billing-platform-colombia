@@ -28,6 +28,8 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
 | `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |
 | `POST /subscription/overage-consent` | BILLING_MANAGE (dueño/admin) | Aceptación expresa de documentos adicionales a $150 en el ciclo actual (ADR-0014) |
+| `POST /subscription/plan-change-requests` | BILLING_MANAGE | Elige plan y ciclo (`MONTHLY`/`ANNUAL`) desde la oferta de mejora; guarda el precio cotizado. El plan cambia al confirmarse el pago (ADR-0021) |
+| `GET /subscription/plan-change-requests/pending` | USAGE_READ | Solicitud pendiente de pago, si la hay |
 | `POST /pos-sales` | INVOICE_WRITE + INVOICE_FINALIZE | Venta rápida: crea y emite el POS en un paso. Exige `Idempotency-Key` (ADR-0018) |
 | `GET/POST /payment-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Conecta la cuenta Bold del comercio (`mode` TEST/LIVE, `identityKey`, `secretKey`). Verifica las llaves; devuelve los medios activos y, **una sola vez**, `webhookPath` (ADR-0020) |
 | `POST /pos-charges` | INVOICE_WRITE + INVOICE_FINALIZE | Cobro con QR: verifica que el POS podrá emitirse, crea el borrador y un link de pago por el total (pesos enteros). Exige `Idempotency-Key`. Devuelve `checkoutUrl` para el QR |

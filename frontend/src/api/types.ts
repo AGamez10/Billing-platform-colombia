@@ -168,10 +168,30 @@ export interface Quota {
   overageAccepted: boolean;
 }
 
+/** Plan público. Los precios llegan como texto decimal (nunca punto flotante). */
 export interface Plan {
   code: string;
   name: string;
-  [key: string]: unknown;
+  family: 'TRIAL' | 'GENERAL' | 'COMMERCE';
+  quotaDocuments?: number;
+  quotaScope: 'MONTHLY' | 'TOTAL';
+  maxUsers?: number;
+  monthlyPrice?: string;
+  monthlyBillingAllowed: boolean;
+  annualPrice?: string;
+  overageUnitPrice?: string;
+}
+
+export type BillingCycle = 'MONTHLY' | 'ANNUAL';
+
+export interface PlanChange {
+  pending: boolean;
+  id?: string;
+  fromPlan?: string;
+  toPlan?: string;
+  cycle?: BillingCycle;
+  quotedPrice?: number;
+  requestedAt?: string;
 }
 
 /** Cuenta de pasarela del comercio (Bold). Las llaves nunca vuelven del servidor. */

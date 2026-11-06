@@ -277,6 +277,22 @@ SELECT t.expect_eq((SELECT count(*) FROM payment_webhook_find_account('\xaa99'))
 SELECT t.expect_eq((SELECT count(*) FROM claim_pending_charges(10)), 1, 'la conciliación reclama cobros pendientes de cualquier tenant');
 SELECT t.expect_eq((SELECT count(*) FROM claim_pending_charges(10)), 0, 'un cobro recién reclamado no se reclama otra vez (lease)');
 
+-- 12. Solicitudes de cambio de plan (V13).
+SELECT set_config('app.tenant_id', :tenant_a, false);
+INSERT INTO plan_change_requests (tenant_id, id, from_plan, to_plan, cycle, quoted_price_cop, requested_by)
+VALUES (:tenant_a, gen_random_uuid(), 'TRIAL', 'EMPRENDEDOR', 'MONTHLY', 12900, '00000000-0000-0000-0000-0000000000a1');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO plan_change_requests (tenant_id, id, from_plan, to_plan, cycle, quoted_price_cop, requested_by)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'TRIAL', 'PRO', 'MONTHLY', 69900, '00000000-0000-0000-0000-0000000000a1')$$,
+    '23505', 'una sola solicitud de cambio de plan pendiente por organización');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO plan_change_requests (tenant_id, id, from_plan, to_plan, cycle, quoted_price_cop, requested_by, status)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'TRIAL', 'NO_EXISTE', 'MONTHLY', 1, '00000000-0000-0000-0000-0000000000a1', 'CANCELLED')$$,
+    '23503', 'la solicitud apunta a un plan del catálogo');
+SELECT set_config('app.tenant_id', :tenant_b, false);
+SELECT t.expect_eq((SELECT count(*) FROM plan_change_requests), 0, 'B no ve las solicitudes de plan de A');
+SELECT set_config('app.tenant_id', '', false);
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

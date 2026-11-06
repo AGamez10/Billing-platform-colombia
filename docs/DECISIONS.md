@@ -237,6 +237,19 @@ Así la plataforma puede moverse a otro servidor sin cambios de código.
 
 Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integración Bold con QR Bre-B (código abierto)](https://github.com/hansellramos/cabania-app/pull/48), [ePayco + Bre-B](https://www.valoraanalitik.com/epayco-integra-bre-b-a-su-plataforma-y-habilita-pagos-inmediatos-para-mas-de-15-millones-de-comercios/).
 
+## ADR-0021 — Oferta de mejora de plan antes de los excedentes
+*2026-11-06 — aceptada*
+
+**Contexto:** el propietario decidió que el excedente ($150 general, $60 comercio) solo aplica después de ofrecer subir de plan y con aceptación expresa (ADR-0014). El cobro automático de suscripciones con Mercado Pago todavía no está.
+
+**Decisión:**
+- Cuando la cuota llega al 80 % (inicio) o se agota al emitir o vender, la interfaz muestra primero los planes: desde la prueba, todos los pagos; desde un plan pago, los de su misma familia con más documentos. Cada plan muestra precio mensual y anual con los meses gratis.
+- Elegir un plan crea una **solicitud** (`plan_change_requests`, V13) con el precio cotizado y el ciclo; una nueva reemplaza la pendiente. **El plan no cambia sin pago confirmado.** Para el piloto, el equipo envía el link de pago de Mercado Pago y activa el plan; después se automatiza con el webhook de Mercado Pago.
+- El excedente aparece debajo, solo si el plan lo admite, con casilla de aceptación y botón separado. Solo dueño o administrador deciden; los demás roles ven a quién pedírselo.
+- Lo que se estaba haciendo no se pierde: el borrador o el carrito siguen ahí y se emiten al resolverlo.
+
+**Pendiente:** aviso al equipo de cada solicitud nueva (hoy se consulta en la base) y activación automática con Mercado Pago.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

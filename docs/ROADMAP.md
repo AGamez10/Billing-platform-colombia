@@ -79,6 +79,7 @@
 - **"Cobra y la factura sale sola"** con la cuenta Bold de cada comercio (ADR-0020): V12 (`payment_accounts`, `charges`), almacén de secretos AES-256-GCM, API de conexión y de cobro, webhook firmado, conciliación periódica y pantallas en Ajustes y Vender (QR en SVG).
 - Pruebas: Bold simulado localmente (adaptador y API de punta a punta), 22 pruebas SQL nuevas de aislamiento e invariantes, prueba del componente QR.
 - Falta: probar con llaves de prueba reales de Bold.
+- **Oferta de mejora de plan** (ADR-0021): al 80 % de la cuota o al agotarla, se ofrecen los planes y luego, si aplica, los excedentes con aceptación expresa. La elección queda registrada con su precio (V13); el plan se activa al pagar.
 
 ## Producto: lo que el mercado ya tiene + lo nuestro
 
@@ -94,7 +95,7 @@
 
 ## Para salir con clientes piloto (orden recomendado)
 
-1. Oferta de mejora de plan y aceptación de excedentes desde la interfaz (la API ya existe).
+1. ~~Oferta de mejora de plan y aceptación de excedentes desde la interfaz~~ (hecho, ADR-0021). Falta el cobro automático con Mercado Pago.
 2. **Segmento y planes** (decisión del propietario pendiente): foco inicial en fundaciones, profesionales, servicios y facturación entre empresas; comercio y restaurantes (POS de alto volumen) solo con costo por documento ≤ $30 o con otro proveedor (PRICING.md).
 3. **Datos fiscales completos** de emisor y adquiriente que exige el proveedor real: tipo de persona, régimen, responsabilidades, dirección con municipio DANE.
 4. **Adaptador Muisca** en `Test` y luego en `Habilitation`, cuando lleguen las credenciales (GitHub Secrets); secretos cifrados (AES-GCM) en `provider_secrets`.

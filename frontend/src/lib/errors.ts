@@ -58,6 +58,10 @@ const MESSAGES: Record<string, string> = {
   RESOURCE_IN_USE: 'No se puede: ese registro está en uso (por ejemplo, la venta tiene un cobro).',
   IDEMPOTENCY_KEY_IN_PROGRESS: 'Esta venta todavía se está procesando. Espera un momento.',
   IDEMPOTENCY_KEY_REUSED: 'La venta cambió; vuelve a tocar Cobrar.',
+  PLAN_NOT_FOUND: 'Ese plan ya no está disponible.',
+  PLAN_NOT_AVAILABLE: 'Ese plan no se puede elegir.',
+  PLAN_ALREADY_ACTIVE: 'Ya tienes ese plan activo.',
+  PLAN_CYCLE_NOT_AVAILABLE: 'Ese plan no se vende con ese tipo de pago.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 
@@ -68,6 +72,13 @@ export function messageFor(error: unknown): string {
     return 'No se pudo completar la operación. Revisa los datos e intenta de nuevo.';
   }
   return 'No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.';
+}
+
+/** Errores de cuota: en vez de solo avisar, se ofrece mejorar el plan (y, si aplica, excedentes). */
+export const QUOTA_CODES = new Set(['TRIAL_QUOTA_EXHAUSTED', 'DOCUMENT_QUOTA_REACHED', 'DOCUMENT_QUOTA_EXCEEDED']);
+
+export function isQuotaError(error: unknown): boolean {
+  return error instanceof ApiError && QUOTA_CODES.has(error.code);
 }
 
 /** Mensaje para un código que no vino como error HTTP (p. ej. el motivo de un cobro bloqueado). */

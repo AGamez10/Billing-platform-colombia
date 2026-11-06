@@ -67,6 +67,8 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("PAYMENT_ENVIRONMENT_MISMATCH", HttpStatus.CONFLICT),
             Map.entry("PAYMENT_GATEWAY_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
             Map.entry("CHARGE_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("PLAN_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("PLAN_ALREADY_ACTIVE", HttpStatus.CONFLICT),
             Map.entry("WEBHOOK_SIGNATURE_INVALID", HttpStatus.UNAUTHORIZED));
 
     @ExceptionHandler(DomainException.class)

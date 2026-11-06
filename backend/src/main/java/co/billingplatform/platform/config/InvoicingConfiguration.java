@@ -19,6 +19,8 @@ import co.billingplatform.shared.application.AuditTrail;
 import co.billingplatform.shared.domain.RoundingPolicy;
 import co.billingplatform.subscriptions.application.OverageConsentRepository;
 import co.billingplatform.subscriptions.application.OverageConsentService;
+import co.billingplatform.subscriptions.application.PlanCatalog;
+import co.billingplatform.subscriptions.application.PlanChangeService;
 import co.billingplatform.subscriptions.application.SubscriptionRepository;
 import co.billingplatform.subscriptions.application.SubscriptionUsageMeter;
 import co.billingplatform.subscriptions.application.UsageRepository;
@@ -68,6 +70,12 @@ class InvoicingConfiguration {
     OverageConsentService overageConsentService(SubscriptionRepository subscriptions, UsageRepository usage,
                                                 OverageConsentRepository consents, AuditTrail audit, Clock clock) {
         return new OverageConsentService(subscriptions, usage, consents, audit, clock);
+    }
+
+    @Bean
+    PlanChangeService planChangeService(SubscriptionRepository subscriptions, PlanCatalog catalog,
+                                        PlanChangeService.Requests requests, AuditTrail audit, Clock clock) {
+        return new PlanChangeService(subscriptions, catalog, requests, audit, clock);
     }
 
     @Bean

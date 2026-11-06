@@ -4,7 +4,8 @@ import { http } from '../api/client';
 import type { Invoice } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, EnvironmentBadge, Loading, PageHead, Spinner, StatusBadge } from '../components/ui';
-import { messageFor } from '../lib/errors';
+import { isQuotaError, messageFor } from '../lib/errors';
+import { QuotaBlocked } from '../components/UpgradeOffer';
 import { documentTitle, formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
@@ -17,6 +18,7 @@ export function InvoiceDetail() {
   const invoice = useApi<Invoice>(`/api/v1/invoices/${id}`);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const inv = invoice.data;
 
   // Mientras está en camino a la DIAN, se consulta sola hasta tener respuesta final.
@@ -39,7 +41,8 @@ export function InvoiceDetail() {
       await http.post<Invoice>(`/api/v1/invoices/${id}/finalize`);
       await invoice.reload();
     } catch (err) {
-      setError(messageFor(err));
+      if (isQuotaError(err)) setQuotaBlocked(true);
+      else setError(messageFor(err));
     } finally {
       setBusy(false);
     }
@@ -71,6 +74,7 @@ export function InvoiceDetail() {
       />
 
       {error && <Alert tone="error">{error}</Alert>}
+      {quotaBlocked && <QuotaBlocked canSeePlans={can('usage')} onResolved={() => setQuotaBlocked(false)} />}
       <StatusExplanation invoice={inv} />
 
       {isDraft && can('write') && (

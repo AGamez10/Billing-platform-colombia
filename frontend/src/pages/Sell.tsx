@@ -6,7 +6,8 @@ import { useSession } from '../auth/session';
 import { QrCode } from '../components/QrCode';
 import { Alert, EnvironmentBadge, Icon, Loading, PageHead, SelectField, Spinner, StatusBadge } from '../components/ui';
 import { centsToNumber, estimateTotalCents } from '../lib/estimate';
-import { messageFor, messageForCode } from '../lib/errors';
+import { isQuotaError, messageFor, messageForCode } from '../lib/errors';
+import { QuotaBlocked } from '../components/UpgradeOffer';
 import { formatCop, formatIdentification, isTerminal, parseDecimalInput } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
@@ -45,6 +46,7 @@ export function Sell() {
   const [error, setError] = useState<string | null>(null);
   const [sold, setSold] = useState<Invoice | null>(null);
   const [charging, setCharging] = useState<Charge | null>(null);
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const active = accounts.data?.find((a) => a.active);
   const hasPosRange = !!ranges.data?.some((r) => r.kind === 'POS_EQUIVALENT' && r.environment === active?.environment && r.remaining > 0);
@@ -124,7 +126,8 @@ export function Sell() {
         setSold(await http.postWithHeaders<Invoice>('/api/v1/pos-sales', body, { 'Idempotency-Key': saleKey }));
       }
     } catch (err) {
-      setError(messageFor(err));
+      if (isQuotaError(err)) setQuotaBlocked(true);
+      else setError(messageFor(err));
     } finally {
       setBusy(false);
     }
@@ -143,6 +146,7 @@ export function Sell() {
         </Alert>
       ) : null}
       {error && <Alert tone="error">{error}</Alert>}
+      {quotaBlocked && <QuotaBlocked canSeePlans={can('usage')} onResolved={() => setQuotaBlocked(false)} />}
 
       <section className="card stack" aria-labelledby="cat-h">
         <h2 id="cat-h">Productos</h2>
@@ -355,3 +359,4 @@ function ChargeScreen({ initial, onIssued, onRetry, onNext }: {
     </>
   );
 }
+
