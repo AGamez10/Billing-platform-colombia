@@ -69,6 +69,23 @@
 - pnpm con controles de cadena de suministro (ADR-0017).
 - **Aceptación legal registrada** en el alta (V9 `legal_acceptances`): versión vigente de términos y de política, usuario y fecha. Solo se permite insertar. Una versión distinta a la vigente se rechaza con `LEGAL_ACCEPTANCE_REQUIRED`. Las versiones vienen de `BILLING_TERMS_VERSION` y `BILLING_PRIVACY_VERSION` (hoy `borrador-2026-11`).
 
+## Hecho (2026-11-06, comercio)
+
+- Planes de comercio en el catálogo (V10), POS electrónico con numeración propia (V11), venta rápida idempotente (`/api/v1/pos-sales`) y pantalla **Vender** para celular (ADR-0018).
+- Corregido: el número del documento ahora es único por tipo y ambiente.
+
+## Producto: lo que el mercado ya tiene + lo nuestro
+
+| Función | Estado | Por qué |
+|---|---|---|
+| Facturar por WhatsApp (texto y nota de voz con IA) | Pendiente | Lo ofrece Siigo; hay que tenerlo |
+| Asistente con IA dentro de la app | Pendiente | Lo ofrece Alegra; hay que tenerlo |
+| "Cobra y la factura sale sola" (Bre-B + POS automático) | Diseño (ADR-0020) | Diferenciador |
+| Billetera del comprador: compras deducibles (1 %) | Por validar con contador | Diferenciador y efecto red |
+| Habilitación DIAN asistida (set de pruebas automático) | Por confirmar con Muisca | Diferenciador |
+| Fondo solidario con panel de impacto | Diseño (ADR-0019) | Bandera de la marca |
+| Nunca dejar de vender (contingencia, segundo proveedor) | Contingencia hecha; segundo proveedor pendiente | Diferenciador |
+
 ## Para salir con clientes piloto (orden recomendado)
 
 1. Oferta de mejora de plan y aceptación de excedentes desde la interfaz (la API ya existe).

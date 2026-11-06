@@ -175,6 +175,56 @@ Así la plataforma puede moverse a otro servidor sin cambios de código.
 
 **Consecuencia:** la app móvil (ADR-0015) empaqueta este mismo build.
 
+## ADR-0018 — Comercio desde el lanzamiento: POS electrónico con venta rápida
+*2026-11-06 — decisión del propietario; diseño técnico propio*
+
+**Decisión:** entrar al mercado con comercio desde el día uno, no en una segunda etapa.
+
+- **Planes** (V10): Comercio 500, 1.200 y 3.000, con pago anual de 11 meses y excedente de $60 por documento, solo con aceptación expresa.
+- **Documento:** el documento equivalente POS comparte agregado y ciclo de vida con la factura y se distingue por `kind`. Tiene su propia resolución de numeración (V11).
+- **Unicidad del número:** es única por tipo de documento y ambiente. Practicar en simulación con el prefijo real ya no bloquea ese número en producción; antes era un error latente.
+- **Comprador:** un POS puede ir a consumidor final, con la identificación genérica `222222222222`. Una factura exige siempre un comprador identificado.
+- **Venta rápida:** `POST /api/v1/pos-sales` crea y emite en un solo paso, con `Idempotency-Key` obligatoria. Si la caja reintenta tras un corte de red, recibe la misma venta y nunca una segunda. La misma clave con otro contenido devuelve 422.
+
+**Alternativas descartadas:**
+- Un agregado separado para el POS: duplicaba el ciclo de vida, la cola de envío y la conciliación.
+- La emisión en dos llamadas desde la caja: dejaba borradores huérfanos y abría la puerta a cobrar dos veces.
+
+## ADR-0019 — Fondo solidario de facturación (diseño; se implementa después de los pagos)
+*2026-11-06 — por pedido del propietario*
+
+**Propósito:** la razón social es la bandera. Una capa gratuita y completa para refugios y fundaciones, financiada por las suscripciones, con cifras abiertas.
+
+**Diseño:**
+- **Fondo:** se alimenta con un porcentaje fijo y publicado de cada mensualidad, a definir.
+- **Uso:** paga los documentos de las organizaciones beneficiarias al costo real del paquete vigente (no a precio de lista).
+- **Tope** por organización beneficiaria, para evitar abusos. Se verifica que sea ESAL en el RUT.
+- **Panel de impacto** público, mes a mes: dinero que entró al fondo, documentos subsidiados, costo y organizaciones beneficiarias. Una organización solo aparece con su nombre si lo autorizó; si no, se cuenta sin nombre.
+- **Para cada cliente:** ve cuánto aportó y cuántos documentos financió.
+- **Consentimiento explícito** al suscribirse, con versión y fecha, igual que los términos (V9).
+
+**Pendiente:** el porcentaje (decisión del propietario) y el tratamiento contable del aporte (contador).
+
+## ADR-0020 — Cobro en tienda: cada comercio conecta su propia cuenta de pasarela
+*2026-11-06 — evaluación en curso*
+
+**Decisión de arquitectura:**
+- La plataforma no recibe el dinero de las ventas del comercio. Cada comercio conecta su propia cuenta de pasarela; sus credenciales se guardan cifradas, como las de proveedor.
+- La plataforma solo escucha el aviso de pago confirmado y emite el POS. Así no actuamos como agregador de pagos y no asumimos obligaciones reguladas sobre dinero de terceros.
+- Mercado Pago sigue siendo la pasarela de **nuestras** suscripciones.
+
+**Requisitos de la pasarela:** alta sin equipo comercial, cobro Bre-B por QR, webhooks firmados y consulta de estado por referencia.
+
+**Candidata principal: Bold.**
+- Alta autogestionada desde su panel de comercios.
+- Webhooks firmados con HMAC-SHA256 y reintentos.
+- Bre-B por QR en su link de pagos.
+- **Riesgos:** el QR directo por API exige certificación previa del comercio, y el webhook puede tardar hasta 10 minutos. Por eso la confirmación también se consulta por referencia mientras la caja espera.
+
+**Otras opciones:** ePayco anunció Bre-B para sus comercios; Kushki y EBANX lo tienen con documentación cerrada o enfocada en empresas grandes. Falta confirmar las tarifas del QR de cada una.
+
+Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integración Bold con QR Bre-B (código abierto)](https://github.com/hansellramos/cabania-app/pull/48), [ePayco + Bre-B](https://www.valoraanalitik.com/epayco-integra-bre-b-a-su-plataforma-y-habilita-pagos-inmediatos-para-mas-de-15-millones-de-comercios/).
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
