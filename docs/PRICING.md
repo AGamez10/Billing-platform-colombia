@@ -71,3 +71,19 @@ Costos fijos conocidos: prepago del proveedor $399.900/año (~$33.300/mes). Cada
 1. Lanzar con el segmento donde los planes son competitivos: fundaciones, profesionales, servicios y facturación entre empresas.
 2. Plan de comercio por volumen solo con costo ≤ $30 por documento. Ejemplos: Comercio 1.000 a $59.900 (~50 % de margen bruto) y Comercio 3.000 a $129.900 (~31 %). Aun así no compite en precio con un POS ilimitado; compite en facilidad e integración.
 3. Documentos ilimitados reales solo con un proveedor de tarifa fija por empresa o siendo proveedor tecnológico autorizado. Los requisitos de la DIAN para lo segundo están por investigar.
+
+## Comercio desde el lanzamiento: escenarios (2026-11-06, pendiente de aprobación)
+
+Propuesta: **Comercio 500** a $34.900, **Comercio 1.200** a $64.900 y **Comercio 3.000** a $139.900 al mes, con excedente propio de unos $60 por documento y pago anual de 11 meses.
+
+Compra de documentos por escalera, sin adelantar el paquete grande:
+- Business Plus ($674.900) al lanzar.
+- Executive cuando el consumo pase de 3.000 documentos al mes.
+- Enterprise cuando pase de 8.000.
+
+El pago por demanda de Muisca (mínimo $90.000/mes, de $90 a $30 por documento por tramos) cuesta entre 2 y 3 veces más que los paquetes en cualquier volumen.
+
+Cálculos reproducibles en `docs/models/escenarios_volumen.py`. Antes de vender a comercios hay que confirmar con Muisca:
+- que los paquetes sirven para todas las empresas clientes;
+- que son acumulables;
+- que el POS consume un documento.
