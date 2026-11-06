@@ -161,6 +161,9 @@ SELECT t.expect_sqlstate(
 
 -- 7. Invariantes documentales.
 SELECT t.expect_sqlstate(
+    $$UPDATE invoices SET document_kind = 'CREDIT_NOTE' WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
+    '23514', 'una venta es factura o POS, nada más');
+SELECT t.expect_sqlstate(
     $$UPDATE invoices SET environment = NULL WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
     '23514', 'una factura numerada siempre conserva el ambiente en que se emitió');
 SELECT t.expect_sqlstate(
@@ -220,7 +223,9 @@ SELECT t.expect_eq((SELECT count(*) FROM memberships WHERE role = 'OWNER'), 1, '
 SELECT t.expect_eq((SELECT count(*) FROM invoices), 0, 'una organización nueva no ve facturas de otras');
 
 -- 10. Planes: visibles para la app, inmodificables por ella.
-SELECT t.expect_eq((SELECT count(*) FROM plans WHERE active), 5, 'planes aprobados sembrados (prueba + 4 pagos)');
+SELECT t.expect_eq((SELECT count(*) FROM plans WHERE active), 8, 'planes aprobados sembrados (prueba + 4 generales + 3 de comercio)');
+SELECT t.expect_eq((SELECT count(*) FROM plans WHERE family = 'COMMERCE' AND overage_unit_price_cop = 60
+                    AND annual_price_cop = monthly_price_cop * 11), 3, 'comercio: excedente de $60 y pago anual de 11 meses');
 SELECT t.expect_eq((SELECT count(*) FROM plans WHERE code = 'MICRO' AND NOT monthly_billing_allowed AND annual_price_cop = 69000), 1,
                    'Micro solo con pago anual de $69.000');
 SELECT t.expect_eq((SELECT count(*) FROM plans WHERE code = 'TRIAL' AND quota_scope = 'TOTAL' AND quota_documents = 20 AND overage_unit_price_cop IS NULL), 1,
