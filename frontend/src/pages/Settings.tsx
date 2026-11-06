@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { http } from '../api/client';
-import type { DocumentKind, Environment, NumberingRange, ProviderAccount } from '../api/types';
+import type { DocumentKind, Environment, NumberingRange, PaymentAccount, ProviderAccount } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, EnvironmentBadge, Field, PageHead, SelectField, Spinner } from '../components/ui';
 import { messageFor } from '../lib/errors';
@@ -18,6 +18,7 @@ export function Settings() {
       <PageHead title="Ajustes" subtitle="Cómo se envían tus facturas y con qué numeración." />
       <ProviderSection accounts={accounts.data} loading={accounts.loading} canManage={can('provider')} onChange={accounts.reload} />
       <RangesSection ranges={ranges.data} loading={ranges.loading} canManage={can('manage')} activeEnvironment={active?.environment} onChange={ranges.reload} />
+      <PaymentSection canManage={can('provider')} />
       <section className="card stack">
         <h2>Tu sesión</h2>
         <div>
@@ -215,6 +216,107 @@ function RangesSection(props: {
           </div>
         </form>
       )}
+    </section>
+  );
+}
+
+/**
+ * Cobros con la cuenta Bold DEL COMERCIO: el dinero llega directo a su cuenta; la plataforma
+ * solo crea el cobro y emite el documento cuando Bold confirma el pago.
+ */
+function PaymentSection({ canManage }: { canManage: boolean }) {
+  const account = useApi<PaymentAccount>('/api/v1/payment-accounts');
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ mode: 'TEST' as 'TEST' | 'LIVE', identityKey: '', secretKey: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState<PaymentAccount | null>(null);
+  const current = account.data;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await http.post<PaymentAccount>('/api/v1/payment-accounts', {
+        mode: form.mode,
+        identityKey: form.identityKey.trim(),
+        secretKey: form.secretKey.trim() || undefined,
+      });
+      setConnected(result);
+      setForm({ mode: form.mode, identityKey: '', secretKey: '' }); // las llaves no se quedan en pantalla
+      setOpen(false);
+      await account.reload();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const webhookUrl = connected?.webhookPath ? `${window.location.origin}${connected.webhookPath}` : null;
+
+  return (
+    <section className="card stack" aria-labelledby="pay-h">
+      <div className="row">
+        <h2 id="pay-h">Cobros con QR (Bold)</h2>
+        {canManage && !open && (
+          <button type="button" className="btn btn-secondary right" onClick={() => setOpen(true)}>
+            {current?.connected ? 'Cambiar llaves' : 'Conectar Bold'}
+          </button>
+        )}
+      </div>
+      {account.loading ? (
+        <Spinner />
+      ) : current?.connected ? (
+        <p>
+          Conectado: <strong>Bold</strong> · {current.mode === 'LIVE' ? 'cobros reales' : 'modo de prueba (no mueve dinero)'}
+        </p>
+      ) : (
+        <p className="muted">
+          Conecta tu cuenta Bold y cobra con QR (Bre-B, Nequi, tarjetas, PSE según lo que tengas activo). El dinero llega a tu cuenta Bold; cuando el
+          pago se confirma, el POS electrónico sale solo.
+        </p>
+      )}
+
+      {webhookUrl && (
+        <Alert tone="ok">
+          <strong>Listo.</strong> Medios activos en tu Bold: {connected?.paymentMethods?.join(', ') || 'sin datos'}.
+          <br />
+          Último paso: agrega esta URL en la sección de webhooks de tu panel de Bold. <strong>Solo se muestra ahora</strong>; si la pierdes,
+          vuelve a conectar.
+          <span className="mono secret-once">{webhookUrl}</span>
+        </Alert>
+      )}
+
+      {open && (
+        <form className="stack" onSubmit={(e) => void submit(e)} noValidate>
+          <Alert tone="info">
+            En tu panel de Bold ve a <strong>Integraciones → Llaves de integración → Botón de pagos</strong> y copia las llaves. Empieza con las de
+            prueba. Se guardan cifradas y nunca se vuelven a mostrar.
+          </Alert>
+          {error && <Alert tone="error">{error}</Alert>}
+          <SelectField label="Tipo de llaves" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value as 'TEST' | 'LIVE' })}
+            hint="Las de prueba funcionan con documentos en simulación o habilitación; las reales, solo con documentos en producción.">
+            <option value="TEST">Prueba (no mueve dinero)</option>
+            <option value="LIVE">Producción (cobros reales)</option>
+          </SelectField>
+          <Field label="Llave de identidad" required autoComplete="off" spellCheck={false} value={form.identityKey}
+            onChange={(e) => setForm({ ...form, identityKey: e.target.value })} />
+          <Field label="Llave secreta" type="password" autoComplete="new-password" spellCheck={false} value={form.secretKey}
+            hint={form.mode === 'LIVE' ? 'Obligatoria para cobros reales: con ella verificamos que cada aviso viene de Bold.' : 'En prueba puede ir vacía.'}
+            onChange={(e) => setForm({ ...form, secretKey: e.target.value })} />
+          <div className="row">
+            <button type="submit" className="btn btn-primary" disabled={busy || !form.identityKey.trim() || (form.mode === 'LIVE' && !form.secretKey.trim())}>
+              {busy ? 'Verificando con Bold…' : 'Conectar'}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+      {!canManage && <p className="small muted">Solo el dueño de la cuenta puede conectar la pasarela.</p>}
     </section>
   );
 }

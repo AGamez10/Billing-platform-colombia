@@ -173,3 +173,32 @@ export interface Plan {
   name: string;
   [key: string]: unknown;
 }
+
+/** Cuenta de pasarela del comercio (Bold). Las llaves nunca vuelven del servidor. */
+export interface PaymentAccount {
+  connected: boolean;
+  id?: string;
+  gateway?: 'BOLD';
+  mode?: 'TEST' | 'LIVE';
+  /** Solo al conectar. */
+  paymentMethods?: string[];
+  /** Solo al conectar: se pega en el panel de Bold como URL de webhook. */
+  webhookPath?: string;
+}
+
+export type ChargeStatus = 'PENDING' | 'PAID' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
+
+export interface Charge {
+  id: string;
+  status: ChargeStatus;
+  amount: number;
+  currency: 'COP';
+  /** Mientras está pendiente: el link que abre el cliente (se muestra como QR). */
+  checkoutUrl?: string;
+  test: boolean;
+  paymentMethod?: string;
+  paidAt?: string;
+  /** Pago recibido pero el documento aún no pudo salir; el código dice por qué. */
+  issueBlockedCode?: string;
+  sale: Invoice;
+}

@@ -193,3 +193,10 @@ td.num, th.num { text-align: right; }
 .pos-charge { min-height: 56px; font-size: 18px; }
 .pos-receipt { align-items: flex-start; }
 .pos-total { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+
+/* Cobro con QR */
+.qr { display: block; max-width: 100%; height: auto; border-radius: 12px; }
+.charge-qr { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.charge-qr .pos-total { margin: 0; }
+.pos-actions { display: grid; gap: 10px; }
+.secret-once { word-break: break-all; }

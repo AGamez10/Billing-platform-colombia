@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { http } from '../api/client';
-import type { Customer, Invoice, NumberingRange, Page, Product, ProviderAccount, TaxRate } from '../api/types';
+import type { Charge, Customer, Invoice, NumberingRange, Page, PaymentAccount, Product, ProviderAccount, TaxRate } from '../api/types';
 import { useSession } from '../auth/session';
+import { QrCode } from '../components/QrCode';
 import { Alert, EnvironmentBadge, Icon, Loading, PageHead, SelectField, Spinner, StatusBadge } from '../components/ui';
 import { centsToNumber, estimateTotalCents } from '../lib/estimate';
-import { messageFor } from '../lib/errors';
+import { messageFor, messageForCode } from '../lib/errors';
 import { formatCop, formatIdentification, isTerminal, parseDecimalInput } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
@@ -34,6 +35,7 @@ export function Sell() {
   const taxes = useApi<TaxRate[]>('/api/v1/public/tax-rates');
   const ranges = useApi<NumberingRange[]>('/api/v1/numbering-ranges');
   const accounts = useApi<ProviderAccount[]>('/api/v1/provider-accounts');
+  const payments = useApi<PaymentAccount>('/api/v1/payment-accounts');
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerId, setCustomerId] = useState('');
@@ -42,6 +44,7 @@ export function Sell() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sold, setSold] = useState<Invoice | null>(null);
+  const [charging, setCharging] = useState<Charge | null>(null);
 
   const active = accounts.data?.find((a) => a.active);
   const hasPosRange = !!ranges.data?.some((r) => r.kind === 'POS_EQUIVALENT' && r.environment === active?.environment && r.remaining > 0);
@@ -58,8 +61,20 @@ export function Sell() {
     [cart, percentByCode],
   );
 
-  if (products.loading || ranges.loading || accounts.loading) return <Loading />;
-  if (sold) return <Receipt sale={sold} onNext={() => { setSold(null); setCart([]); setCustomerId(''); setSaleKey(newKey()); }} />;
+  if (products.loading || ranges.loading || accounts.loading || payments.loading) return <Loading />;
+  const reset = () => { setSold(null); setCharging(null); setCart([]); setCustomerId(''); setSaleKey(newKey()); };
+  if (sold) return <Receipt sale={sold} onNext={reset} />;
+  if (charging) {
+    return (
+      <ChargeScreen
+        initial={charging}
+        onIssued={(sale) => { setCharging(null); setSold(sale); }}
+        onRetry={() => { setCharging(null); setSaleKey(newKey()); }}
+        onNext={reset}
+      />
+    );
+  }
+  const qrEnabled = !!payments.data?.connected;
 
   const changeCart = (next: CartLine[]) => {
     setCart(next);
@@ -89,7 +104,7 @@ export function Sell() {
   const setQty = (key: string, quantity: number) =>
     changeCart(quantity <= 0 ? cart.filter((l) => l.key !== key) : cart.map((l) => (l.key === key ? { ...l, quantity } : l)));
 
-  async function charge() {
+  async function charge(withQr: boolean) {
     setBusy(true);
     setError(null);
     try {
@@ -103,8 +118,11 @@ export function Sell() {
           taxRateCodes: l.taxRateCodes,
         })),
       };
-      const sale = await http.postWithHeaders<Invoice>('/api/v1/pos-sales', body, { 'Idempotency-Key': saleKey });
-      setSold(sale);
+      if (withQr) {
+        setCharging(await http.postWithHeaders<Charge>('/api/v1/pos-charges', body, { 'Idempotency-Key': saleKey }));
+      } else {
+        setSold(await http.postWithHeaders<Invoice>('/api/v1/pos-sales', body, { 'Idempotency-Key': saleKey }));
+      }
     } catch (err) {
       setError(messageFor(err));
     } finally {
@@ -187,14 +205,27 @@ export function Sell() {
             </option>
           ))}
         </SelectField>
-        <button
-          type="button"
-          className="btn btn-primary btn-block pos-charge"
-          disabled={busy || cart.length === 0 || !hasPosRange || !can('finalize')}
-          onClick={() => void charge()}
-        >
-          {busy ? 'Emitiendo…' : `Cobrar ${formatCop(centsToNumber(totalCents))}`}
-        </button>
+        {qrEnabled ? (
+          <div className="pos-actions">
+            <button type="button" className="btn btn-primary btn-block pos-charge" disabled={busy || cart.length === 0 || !hasPosRange || !can('finalize')}
+              onClick={() => void charge(true)}>
+              {busy ? 'Creando cobro…' : `Cobrar con QR ${formatCop(centsToNumber(totalCents))}`}
+            </button>
+            <button type="button" className="btn btn-secondary btn-block" disabled={busy || cart.length === 0 || !hasPosRange || !can('finalize')}
+              onClick={() => void charge(false)}>
+              Recibí efectivo u otro medio
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-block pos-charge"
+            disabled={busy || cart.length === 0 || !hasPosRange || !can('finalize')}
+            onClick={() => void charge(false)}
+          >
+            {busy ? 'Emitiendo…' : `Cobrar ${formatCop(centsToNumber(totalCents))}`}
+          </button>
+        )}
         <p className="small muted">Incluye impuestos. El total final lo confirma el sistema al emitir.</p>
       </section>
     </>
@@ -230,6 +261,96 @@ function Receipt({ sale: initial, onNext }: { sale: Invoice; onNext: () => void 
             Ver detalle
           </Link>
         </div>
+      </section>
+    </>
+  );
+}
+
+const CHARGE_POLL_MS = 2500;
+
+/**
+ * El cliente escanea el QR y paga en Bold. La pantalla consulta el cobro; cuando Bold lo
+ * confirma, el servidor ya emitió el POS y se muestra el recibo. Si se cierra esta pantalla,
+ * no se pierde nada: el webhook y la conciliación terminan el trabajo.
+ */
+function ChargeScreen({ initial, onIssued, onRetry, onNext }: {
+  initial: Charge;
+  onIssued: (sale: Invoice) => void;
+  onRetry: () => void;
+  onNext: () => void;
+}) {
+  const [charge, setCharge] = useState(initial);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (charge.status !== 'PENDING') return;
+    const t = setInterval(() => {
+      http.get<Charge>(`/api/v1/pos-charges/${charge.id}`).then(setCharge).catch(() => undefined);
+    }, CHARGE_POLL_MS);
+    return () => clearInterval(t);
+  }, [charge.id, charge.status]);
+
+  useEffect(() => {
+    if (charge.status === 'PAID' && !charge.issueBlockedCode && charge.sale.status !== 'DRAFT') onIssued(charge.sale);
+  }, [charge, onIssued]);
+
+  async function copy() {
+    if (!charge.checkoutUrl) return;
+    try {
+      await navigator.clipboard.writeText(charge.checkoutUrl);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  const total = formatCop(charge.amount);
+  return (
+    <>
+      <PageHead title="Cobro con QR" subtitle={charge.sale.customer.legalName} />
+      {charge.test && <Alert tone="warn">Cobro de prueba: no mueve dinero real.</Alert>}
+      <section className="card charge-qr" aria-live="polite">
+        <p className="pos-total num">{total}</p>
+        {charge.status === 'PENDING' && charge.checkoutUrl && (
+          <>
+            <QrCode value={charge.checkoutUrl} label={`Código QR para pagar ${total}`} />
+            <p className="muted">Pide al cliente que lo escanee con la cámara y pague en su app.</p>
+            <div className="row">
+              <Spinner label="Esperando el pago" />
+              <span>Esperando el pago…</span>
+            </div>
+            <div className="row">
+              <button type="button" className="btn btn-secondary" onClick={() => void copy()}>
+                {copied ? 'Link copiado' : 'Copiar link de pago'}
+              </button>
+              <a className="btn btn-secondary" href={charge.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                Abrir aquí
+              </a>
+            </div>
+            <p className="small muted">Si ya lo escanearon, no cierres esta venta: si pagan después, el documento sale igual.</p>
+          </>
+        )}
+        {charge.status === 'PAID' && charge.issueBlockedCode && (
+          <Alert tone="warn">
+            <strong>Pago recibido.</strong> {messageForCode(charge.issueBlockedCode)} La venta quedó en borrador: resuélvelo y emítela desde{' '}
+            <Link to={`/facturas/${charge.sale.id}`}>el detalle</Link>.
+          </Alert>
+        )}
+        {charge.status === 'PAID' && !charge.issueBlockedCode && charge.sale.status === 'DRAFT' && <Spinner label="Emitiendo el documento" />}
+        {(charge.status === 'REJECTED' || charge.status === 'EXPIRED' || charge.status === 'CANCELLED') && (
+          <>
+            <Alert tone="error">
+              {charge.status === 'REJECTED' ? 'El pago fue rechazado.' : charge.status === 'EXPIRED' ? 'El link de pago venció.' : 'El cobro fue cancelado.'} No
+              se emitió ningún documento.
+            </Alert>
+            <button type="button" className="btn btn-primary" onClick={onRetry}>
+              Intentar de nuevo
+            </button>
+          </>
+        )}
+        <button type="button" className="btn btn-secondary" onClick={onNext}>
+          Nueva venta
+        </button>
       </section>
     </>
   );

@@ -48,6 +48,16 @@ const MESSAGES: Record<string, string> = {
   UNAUTHENTICATED: 'Tu sesión terminó. Vuelve a iniciar sesión.',
   INVOICE_NOT_FOUND: 'La factura no existe.',
   PRODUCT_NOT_FOUND: 'El producto no existe.',
+  PAYMENT_ACCOUNT_REQUIRED: 'Conecta tu cuenta Bold en Ajustes para cobrar con QR.',
+  PAYMENT_CREDENTIALS_REJECTED: 'Bold rechazó esas llaves. Cópialas de nuevo desde tu panel de Bold (Integraciones → Llaves).',
+  PAYMENT_CREDENTIALS_INVALID: 'Para cobros reales, pega también la llave secreta.',
+  PAYMENT_GATEWAY_UNAVAILABLE: 'Bold no responde en este momento. Intenta de nuevo o cobra en efectivo.',
+  PAYMENT_ENVIRONMENT_MISMATCH: 'El modo de Bold no coincide con el de tus documentos: llaves de prueba van con simulación o habilitación, y llaves reales con producción.',
+  CHARGE_NOT_FOUND: 'Ese cobro no existe.',
+  CHARGE_AMOUNT_MISMATCH: 'La venta se modificó después de cobrar: revisa el borrador antes de emitirlo.',
+  RESOURCE_IN_USE: 'No se puede: ese registro está en uso (por ejemplo, la venta tiene un cobro).',
+  IDEMPOTENCY_KEY_IN_PROGRESS: 'Esta venta todavía se está procesando. Espera un momento.',
+  IDEMPOTENCY_KEY_REUSED: 'La venta cambió; vuelve a tocar Cobrar.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 
@@ -58,6 +68,11 @@ export function messageFor(error: unknown): string {
     return 'No se pudo completar la operación. Revisa los datos e intenta de nuevo.';
   }
   return 'No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.';
+}
+
+/** Mensaje para un código que no vino como error HTTP (p. ej. el motivo de un cobro bloqueado). */
+export function messageForCode(code: string): string {
+  return MESSAGES[code] ?? 'Hay algo pendiente por resolver en esta venta.';
 }
 
 /** Errores de validación por campo, para mostrarlos junto a cada input. */
