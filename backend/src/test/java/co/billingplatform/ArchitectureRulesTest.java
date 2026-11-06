@@ -91,6 +91,14 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    @DisplayName("cobros depende de facturación, nunca al revés; y su núcleo no conoce la pasarela concreta")
+    void paymentsIsOneDirectional() {
+        List<String> v = violations("invoicing/.*", List.of("co.billingplatform.payments"));
+        v.addAll(violations("payments/(domain|application|port)/.*", List.of("co.billingplatform.payments.adapter")));
+        assertTrue(v.isEmpty(), "Violaciones: " + v);
+    }
+
+    @Test
     @DisplayName("el núcleo no usa float/double para dinero")
     void noFloatingPointInCore() {
         List<String> found = new ArrayList<>();

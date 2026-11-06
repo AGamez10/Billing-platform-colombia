@@ -5,7 +5,6 @@ import co.billingplatform.electronicinvoicing.application.ProviderAccountService
 import co.billingplatform.electronicinvoicing.application.ProviderRegistry;
 import co.billingplatform.electronicinvoicing.port.ElectronicInvoicingProvider;
 import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
-import co.billingplatform.electronicinvoicing.port.SecretResolver;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
 import co.billingplatform.invoicing.application.InvoiceRepository;
@@ -41,17 +40,6 @@ class InvoicingConfiguration {
     @Bean
     DocumentCalculator documentCalculator() {
         return new DocumentCalculator(RoundingPolicy.COP_DEFAULT);
-    }
-
-    /**
-     * Sin almacén de secretos todavía: ningún adaptador desplegado necesita credenciales.
-     * Falla de forma explícita si alguien intenta resolver uno (nunca devuelve un valor vacío).
-     */
-    @Bean
-    SecretResolver secretResolver() {
-        return ref -> {
-            throw new IllegalStateException("No secret store configured");
-        };
     }
 
     @Bean

@@ -48,6 +48,8 @@ services:
       BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD:-local-app-change-me}
       # Secreto de desarrollo; en cualquier otro entorno usar uno propio (openssl rand -base64 48).
       BILLING_JWT_SECRET: ${BILLING_JWT_SECRET:-bG9jYWwtZGV2LW9ubHktand0LXNlY3JldC1jaGFuZ2UtbWUtMDEyMzQ1Njc4OQ==}
+      # Solo desarrollo local: en producción, 32 bytes aleatorios en Base64 (openssl rand -base64 32).
+      BILLING_SECRETS_KEY: ${BILLING_SECRETS_KEY:-bG9jYWwtZGV2LW9ubHktc2VjcmV0cy1rZXktMzJieXQ=}
       BILLING_AUTH_REQUESTS_PER_MINUTE: ${BILLING_AUTH_REQUESTS_PER_MINUTE:-10}
     ports:
       - "127.0.0.1:${BILLING_HTTP_PORT:-8080}:8080"

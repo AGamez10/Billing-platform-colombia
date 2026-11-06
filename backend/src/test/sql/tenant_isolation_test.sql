@@ -232,6 +232,51 @@ SELECT t.expect_eq((SELECT count(*) FROM plans WHERE code = 'TRIAL' AND quota_sc
                    'prueba gratis: 20 documentos en total, sin excedentes');
 SELECT t.expect_sqlstate($$UPDATE plans SET monthly_price_cop = 0$$, '42501', 'la aplicación no modifica precios de planes');
 
+
+-- 11. Cobros en tienda (V12): cuenta de pasarela del comercio y cobros, aislados por tenant.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+INSERT INTO provider_secrets (tenant_id, ref, ciphertext, nonce, key_version) VALUES
+    (:tenant_a, 'pay:bold:1:identity', '\x01', '\x000000000000000000000001', 1),
+    (:tenant_a, 'pay:bold:1:secret',   '\x02', '\x000000000000000000000002', 1);
+INSERT INTO payment_accounts (tenant_id, id, gateway, mode, identity_key_ref, secret_key_ref, webhook_token_hash)
+VALUES (:tenant_a, 'ac000000-0000-0000-0000-0000000000a1', 'BOLD', 'TEST', 'pay:bold:1:identity', 'pay:bold:1:secret', '\xaa01');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO payment_accounts (tenant_id, id, gateway, mode, identity_key_ref, secret_key_ref, webhook_token_hash)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'BOLD', 'LIVE', 'pay:bold:1:identity', 'pay:bold:1:secret', '\xaa02')$$,
+    '23505', 'una sola cuenta de pasarela activa por organización');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO payment_accounts (tenant_id, id, gateway, mode, identity_key_ref, secret_key_ref, webhook_token_hash, active)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'BOLD', 'TEST', 'no-existe', 'pay:bold:1:secret', '\xaa03', false)$$,
+    '23503', 'las llaves de la cuenta deben existir en el almacén cifrado');
+INSERT INTO charges (tenant_id, id, invoice_id, payment_account_id, created_by, amount, status, created_at, updated_at)
+VALUES (:tenant_a, 'c4000000-0000-0000-0000-0000000000a1', 'f0000000-0000-0000-0000-0000000000a2',
+        'ac000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a1', 5950, 'PENDING',
+        now() - interval '5 minutes', now() - interval '5 minutes');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO charges (tenant_id, id, invoice_id, payment_account_id, created_by, amount, status)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'f0000000-0000-0000-0000-0000000000a2',
+              'ac000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a1', 5950, 'PENDING')$$,
+    '23505', 'una venta no puede tener dos cobros vivos (nunca se cobra dos veces)');
+SELECT t.expect_sqlstate(
+    $$UPDATE charges SET status = 'PAID' WHERE id = 'c4000000-0000-0000-0000-0000000000a1'$$,
+    '23514', 'un cobro pagado exige la fecha de pago');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO charges (tenant_id, id, invoice_id, payment_account_id, created_by, amount, status)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'f0000000-0000-0000-0000-0000000000a2',
+              'ac000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a1', 0, 'REJECTED')$$,
+    '23514', 'un cobro debe ser por un valor positivo');
+SELECT t.expect_sqlstate($$DELETE FROM charges$$, '42501', 'los cobros no se borran');
+SELECT t.expect_sqlstate($$DELETE FROM payment_accounts$$, '42501', 'las cuentas de pasarela no se borran (se desactivan)');
+SELECT set_config('app.tenant_id', :tenant_b, false);
+SELECT t.expect_eq((SELECT count(*) FROM payment_accounts), 0, 'B no ve la cuenta de pasarela de A');
+SELECT t.expect_eq((SELECT count(*) FROM charges), 0, 'B no ve los cobros de A');
+SELECT t.expect_eq(t.rows_affected($$UPDATE charges SET status = 'CANCELLED'$$), 0, 'B no puede alterar cobros de A');
+SELECT set_config('app.tenant_id', '', false);
+SELECT t.expect_eq((SELECT count(*) FROM payment_webhook_find_account('\xaa01')), 1, 'el webhook ubica la cuenta por el hash del token, sin tenant');
+SELECT t.expect_eq((SELECT count(*) FROM payment_webhook_find_account('\xaa99')), 0, 'un token desconocido no ubica nada');
+SELECT t.expect_eq((SELECT count(*) FROM claim_pending_charges(10)), 1, 'la conciliación reclama cobros pendientes de cualquier tenant');
+SELECT t.expect_eq((SELECT count(*) FROM claim_pending_charges(10)), 0, 'un cobro recién reclamado no se reclama otra vez (lease)');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

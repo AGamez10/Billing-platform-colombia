@@ -1,5 +1,6 @@
 package co.billingplatform.invoicing.application;
 
+import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
 import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
 import co.billingplatform.invoicing.domain.Invoice;
@@ -53,6 +54,21 @@ public final class FinalizeInvoiceService {
         this.calculator = Objects.requireNonNull(calculator);
         this.audit = Objects.requireNonNull(audit);
         this.clock = Objects.requireNonNull(clock);
+    }
+
+    /**
+     * Comprueba, sin emitir nada, que un documento de este tipo podría emitirse ahora: proveedor,
+     * suscripción, cupo y resolución vigente. Se usa antes de cobrarle a un cliente, para no recibir
+     * un pago cuyo documento luego no pueda salir.
+     */
+    public void ensureCanFinalize(TenantId tenantId, DocumentKind kind) {
+        ProviderAccount account = accounts.findActive(tenantId)
+                .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
+                        "The organization has no electronic invoicing provider configured"));
+        usage.ensureCanIssue(tenantId, account.environment());
+        ranges.lockActiveRange(tenantId, kind, account.environment(), ColombianTime.today(clock))
+                .orElseThrow(() -> new DomainException("NUMBERING_RANGE_NOT_FOUND",
+                        "No active %s numbering resolution for %s".formatted(kind, account.environment())));
     }
 
     public Invoice finalizeInvoice(TenantId tenantId, Actor actor, UUID invoiceId) {

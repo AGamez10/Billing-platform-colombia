@@ -62,7 +62,12 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("PRODUCT_NOT_FOUND", HttpStatus.NOT_FOUND),
             Map.entry("OVERAGE_NOT_AVAILABLE", HttpStatus.CONFLICT),
             Map.entry("IDEMPOTENCY_KEY_REQUIRED", HttpStatus.BAD_REQUEST),
-            Map.entry("IDEMPOTENCY_KEY_IN_PROGRESS", HttpStatus.CONFLICT));
+            Map.entry("IDEMPOTENCY_KEY_IN_PROGRESS", HttpStatus.CONFLICT),
+            Map.entry("PAYMENT_ACCOUNT_REQUIRED", HttpStatus.CONFLICT),
+            Map.entry("PAYMENT_ENVIRONMENT_MISMATCH", HttpStatus.CONFLICT),
+            Map.entry("PAYMENT_GATEWAY_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE),
+            Map.entry("CHARGE_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("WEBHOOK_SIGNATURE_INVALID", HttpStatus.UNAUTHORIZED));
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail domain(DomainException e) {
@@ -95,6 +100,17 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
         log.warn("Rejected webhook: {}", e.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
         problem.setProperty("code", "WEBHOOK_REJECTED");
+        return problem;
+    }
+
+    /** Un registro que otro usa (p. ej. borrar el borrador de una venta con cobro): conflicto, sin detalles SQL. */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    ProblemDetail integrity(org.springframework.dao.DataIntegrityViolationException e) {
+        log.info("Integrity conflict: {}", e.getMostSpecificCause().getClass().getSimpleName());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "The resource is in use or conflicts with another one.");
+        problem.setTitle(HttpStatus.CONFLICT.getReasonPhrase());
+        problem.setProperty("code", "RESOURCE_IN_USE");
         return problem;
     }
 

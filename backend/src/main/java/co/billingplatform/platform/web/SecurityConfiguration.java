@@ -43,6 +43,9 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout")
                         .permitAll()
+                        // Webhooks de pasarelas: sin sesión; se autentican con el token de la URL y la firma.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/bold/*")
+                        .permitAll()
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))

@@ -7,19 +7,15 @@ import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceQueries.Invoi
 import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceRepository;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
-import co.billingplatform.invoicing.domain.InvoiceLine;
 import co.billingplatform.invoicing.domain.InvoiceStatus;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.web.CurrentUser;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.Page;
-import co.billingplatform.tax.domain.Discount;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -37,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,33 +41,6 @@ import java.util.UUID;
 @Tag(name = "Facturas")
 @SecurityRequirement(name = "bearer")
 class InvoiceController {
-
-    enum DiscountKind { PERCENT, AMOUNT }
-
-    record DiscountRequest(@NotNull DiscountKind kind, @NotNull @DecimalMin("0") BigDecimal value) {
-        Discount toDomain() {
-            if (kind == DiscountKind.PERCENT) {
-                if (value.compareTo(new BigDecimal("100")) > 0) {
-                    throw new DomainException("INVALID_DISCOUNT", "Discount percent must be between 0 and 100");
-                }
-                return new Discount.Percentage(value);
-            }
-            return new Discount.Amount(value);
-        }
-    }
-
-    record LineRequest(
-            @NotBlank @Size(max = 300) String description,
-            @NotBlank @Size(max = 10) String unitCode,
-            @NotNull BigDecimal quantity,
-            @NotNull BigDecimal unitPrice,
-            @Valid DiscountRequest discount,
-            @Size(max = 5) List<@NotBlank @Size(max = 30) String> taxRateCodes) {
-        InvoiceLine toDomain() {
-            return new InvoiceLine(null, description, unitCode, quantity, unitPrice,
-                    discount == null ? Discount.NONE : discount.toDomain(), taxRateCodes);
-        }
-    }
 
     record DraftRequest(@NotNull UUID customerId, @NotEmpty @Size(max = 500) List<@NotNull @Valid LineRequest> lines) {
         InvoiceDraftService.DraftCommand command() {

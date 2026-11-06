@@ -28,6 +28,8 @@ billing:
     # Secreto HS256 de los access tokens: base64 de al menos 32 bytes aleatorios.
     # Generar: openssl rand -base64 48
     jwt-secret: ${BILLING_JWT_SECRET}
+    # Llave maestra de los secretos de cada organización (AES-256-GCM): Base64 de 32 bytes.
+    secrets-key: ${BILLING_SECRETS_KEY}
     auth-requests-per-minute: ${BILLING_AUTH_REQUESTS_PER_MINUTE:10}
   legal:
     # Versión de los textos legales vigentes. Mientras estén en revisión del abogado, son borradores.

@@ -20,7 +20,7 @@ import java.util.UUID;
  * <p>{@code legallyValid} solo es verdadero con validación en PRODUCTION; {@code simulated}
  * marca todo lo emitido con el proveedor simulado, que no tiene efecto tributario.
  */
-record InvoiceView(
+public record InvoiceView(
         UUID id,
         String kind,
         String status,
@@ -41,20 +41,20 @@ record InvoiceView(
         String lastError,
         List<HistoryEntry> history) {
 
-    record Customer(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
+    public record Customer(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
                     String email, boolean finalConsumer) {}
 
-    record Line(int lineNumber, String description, String unitCode, BigDecimal quantity, BigDecimal unitPrice,
+    public record Line(int lineNumber, String description, String unitCode, BigDecimal quantity, BigDecimal unitPrice,
                 String discountKind, BigDecimal discountValue, List<String> taxRateCodes, BigDecimal grossAmount,
                 BigDecimal discountAmount, BigDecimal taxableAmount, BigDecimal taxTotal, BigDecimal lineTotal) {}
 
-    record TaxSubtotal(String code, String type, BigDecimal percentage, BigDecimal taxableAmount, BigDecimal taxAmount) {}
+    public record TaxSubtotal(String code, String type, BigDecimal percentage, BigDecimal taxableAmount, BigDecimal taxAmount) {}
 
-    record Totals(String currency, BigDecimal lineExtensionAmount, BigDecimal taxTotal, BigDecimal payableAmount) {}
+    public record Totals(String currency, BigDecimal lineExtensionAmount, BigDecimal taxTotal, BigDecimal payableAmount) {}
 
-    record HistoryEntry(String from, String to, Instant at, String detail) {}
+    public record HistoryEntry(String from, String to, Instant at, String detail) {}
 
-    static InvoiceView of(Invoice i) {
+    public static InvoiceView of(Invoice i) {
         DocumentCalculator.Result calc = i.calculation();
         List<Line> lines = new ArrayList<>();
         for (int n = 0; n < i.lines().size(); n++) {

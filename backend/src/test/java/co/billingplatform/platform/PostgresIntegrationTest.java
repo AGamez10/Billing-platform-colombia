@@ -29,5 +29,8 @@ public abstract class PostgresIntegrationTest {
         registry.add("BILLING_AUTH_REQUESTS_PER_MINUTE", () -> "1000");
         registry.add("billing.submission.poll-interval", () -> "200ms");
         registry.add("billing.submission.initial-delay", () -> "0s");
+        // Llave maestra SOLO de pruebas (32 bytes en Base64); en producción viene de un secreto.
+        registry.add("BILLING_SECRETS_KEY", () -> "dGVzdC1vbmx5LXNlY3JldHMta2V5LTMyLWJ5dGVzISE=");
+        registry.add("billing.payments.bold.base-url", () -> BoldStub.get().baseUrl());
     }
 }

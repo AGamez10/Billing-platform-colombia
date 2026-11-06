@@ -1,7 +1,6 @@
 package co.billingplatform.invoicing.adapter.web;
 
 import co.billingplatform.identity.domain.Permission;
-import co.billingplatform.invoicing.adapter.web.InvoiceController.LineRequest;
 import co.billingplatform.invoicing.application.PosSaleService;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.web.CurrentUser;
