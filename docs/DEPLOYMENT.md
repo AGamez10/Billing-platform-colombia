@@ -2,12 +2,17 @@
 
 ## Entorno local con Docker (verificado en CI)
 
-`docker compose up --build` en la raíz levanta PostgreSQL 16 y el backend:
+`docker compose up --build` en la raíz levanta PostgreSQL 16, el backend y la interfaz web:
+
+- **http://localhost:3000**: la aplicación (nginx sin root sirve la interfaz y pasa `/api` al backend, mismo origen).
+- **http://localhost:8080**: backend directo (página de estado y `/swagger-ui.html`).
+- `frontend/Dockerfile`: construye con pnpm (`--frozen-lockfile`) y sirve con `nginxinc/nginx-unprivileged`. El nombre comercial se pasa con `BILLING_BRAND_NAME` en `.env`.
+- El lockfile `frontend/pnpm-lock.yaml` se genera en CI (workflow "Lockfile de la interfaz"), porque el entorno de desarrollo no alcanza el registro de paquetes.
 
 - `backend/Dockerfile`: compilación multi-etapa con Maven; la imagen final solo tiene el JRE 21 y corre con un usuario sin privilegios (`app`).
 - PostgreSQL se inicializa la primera vez con `infrastructure/postgres/docker-entrypoint-initdb.d/10-billing-roles.sh`, que reutiliza `01-roles.sql` (roles `billing_owner` y `billing_app`, base `billing`, `btree_gist`). Flyway migra al arrancar el backend.
 - Puertos publicados solo en `127.0.0.1`. Contraseñas por defecto de desarrollo, sobrescribibles con `.env` (ver `.env.example`).
-- El job `docker` del CI construye la imagen, levanta el stack y verifica: salud, página de estado, planes, tarifas, OpenAPI, que `/actuator/env` esté cerrado y que el contenedor no corra como root.
+- El job `docker` del CI construye las imágenes, levanta el stack y verifica: salud, página de estado, planes, tarifas, OpenAPI, que `/actuator/env` esté cerrado, que ningún contenedor corra como root, las cabeceras de seguridad de la interfaz y el proxy `/api`. Además corre **Playwright con un navegador real** (escritorio y celular): registro → modo simulación → resolución → cliente → factura → emisión → aceptada en simulación.
 
 ## Base de datos sin Docker (verificado)
 

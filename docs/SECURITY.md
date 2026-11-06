@@ -19,6 +19,10 @@
 | Robo de refresh token | Rotación en cada uso; reúso de un token gastado revoca la familia; rol releído en cada rotación | `IdentityServicesTest` |
 | Claves de API filtradas o sobredimensionadas | Formato con prefijo + secreto de 256 bits, guardado como SHA-256, comparación en tiempo constante, expiración, sin permisos administrativos | `IdentityServicesTest` |
 | Escalada de privilegios por asignación de roles | `Role.canGrant`: solo se asignan roles con permisos contenidos en los propios | `IdentityDomainTest` |
+| XSS / robo de sesión en la interfaz | Access token solo en memoria (nunca `localStorage`); refresh en cookie `HttpOnly; Secure; SameSite=Strict`; CSP `script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`; React escapa todo texto | `client.test.ts`, job Docker (cabeceras) |
+| Datos tributarios en caché del navegador | El service worker solo guarda la interfaz; nunca `/api` | `public/sw.js` (revisión) |
+| Cadena de suministro del frontend | pnpm con lockfile obligatorio (`--frozen-lockfile`), `minimumReleaseAge` 7 días, scripts de instalación bloqueados salvo lista revisada (`strictDepBuilds`), `pnpm audit --prod` en CI, Dependabot | `frontend/pnpm-workspace.yaml`, job `frontend` |
+| Límite por IP falseado o compartido detrás del proxy | `forward-headers-strategy: native`: `X-Forwarded-For` solo se acepta desde redes internas; el límite aplica solo a login y registro | `AuthRateLimitFilterTest` |
 | Uso de numeración real en pruebas | Resolución y cuenta de proveedor deben ser del mismo ambiente; evidencia de otro ambiente se rechaza | `InvoiceTest`, `InvoiceLifecycleServiceTest` |
 
 ## Diseñado, pendiente de implementar (capa Spring)
@@ -43,6 +47,9 @@
 **Dependencias**: OWASP Dependency-Check o equivalente en CI cuando exista acceso a los registros.
 
 ## Riesgos residuales conocidos
+
+- **Backend publicado directamente:** si el puerto del backend se expone sin el proxy, un cliente en una red interna podría falsear `X-Forwarded-For`. En producción solo el proxy publica puertos.
+- **CSP de estilos:** `style-src` permite `'unsafe-inline'` por la documentación interactiva (Swagger UI). La interfaz no usa estilos en línea en el HTML; se puede endurecer cuando Swagger se cierre en producción.
 
 1. El límite por IP es en memoria (una instancia). Si se escala a varias instancias hay que moverlo a la base de datos o a un almacén compartido.
 2. El registro informa si un correo ya existe (`EMAIL_ALREADY_REGISTERED`): facilita la enumeración de correos a cambio de usabilidad; lo mitiga el límite por IP. Revisar cuando haya verificación por correo.

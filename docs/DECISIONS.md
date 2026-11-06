@@ -156,6 +156,25 @@ Así la plataforma puede moverse a otro servidor sin cambios de código.
 
 **Pendiente.** Elegir plan (RAM mínima sugerida: 4 GB si comparte, 2 GB si es dedicado; a verificar con medición real del consumo), dominio y política de backups. Detalle en DEPLOYMENT.md.
 
+## ADR-0017 — Interfaz con React + Vite, servida por nginx en el mismo origen; pnpm
+*2026-11-06*
+
+**Decisión:**
+- Una SPA en React 19 + TypeScript + Vite.
+- Sin librería de componentes ni de estado: CSS propio con tokens y `fetch` envuelto. Menos dependencias significa menos superficie de ataque y menos peso en celulares de gama baja.
+- Se sirve con nginx sin root, que también pasa `/api` al backend. Al estar en el mismo origen, la cookie de refresh `SameSite=Strict` funciona sin CORS.
+- El gestor de paquetes es **pnpm**, por decisión del propietario y por seguridad:
+  - lockfile obligatorio;
+  - `minimumReleaseAge` de 7 días;
+  - scripts de instalación de dependencias bloqueados salvo una lista revisada.
+
+**Alternativas descartadas:**
+- Next.js: necesita servidor Node y no aporta SEO a una app privada.
+- Servir la interfaz desde Spring Boot: acopla los ciclos de despliegue.
+- Una librería de UI completa: peso y dependencias sin necesidad.
+
+**Consecuencia:** la app móvil (ADR-0015) empaqueta este mismo build.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

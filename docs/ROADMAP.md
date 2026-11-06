@@ -57,9 +57,20 @@
 - Borradores de Términos y Condiciones y de Política de Tratamiento de Datos (documentos para revisión del abogado).
 - ADR-0015 (web → PWA → Capacitor) y ADR-0016 (VPS Hostinger aislado).
 
+## Hecho (2026-11-06)
+
+- **Interfaz web** (React 19 + Vite, mobile-first, PWA instalable) en `frontend/`:
+  - registro con validación del DV del NIT;
+  - inicio con pasos de configuración y consumo;
+  - clientes y productos;
+  - facturas: borrador, totales calculados por el servidor, emisión y estado en vivo;
+  - ajustes: modo simulación y resoluciones.
+- Pruebas: Vitest para lógica y componentes, y Playwright contra el stack completo (CI).
+- pnpm con controles de cadena de suministro (ADR-0017).
+
 ## Para salir con clientes piloto (orden recomendado)
 
-1. **Interfaz web** (React, mobile-first, PWA): registro, clientes, productos, nueva factura, listado y detalle, resolución y proveedor, consumo con oferta de mejora de plan.
+1. Oferta de mejora de plan y aceptación de excedentes desde la interfaz (la API ya existe).
 2. **Registro de la aceptación** de términos y política (versión, fecha, usuario) en el alta. Lo exigen los propios borradores legales.
 3. **Datos fiscales completos** de emisor y adquiriente que exige el proveedor real: tipo de persona, régimen, responsabilidades, dirección con municipio DANE.
 4. **Adaptador Muisca** en `Test` y luego en `Habilitation`, cuando lleguen las credenciales (GitHub Secrets); secretos cifrados (AES-GCM) en `provider_secrets`.
