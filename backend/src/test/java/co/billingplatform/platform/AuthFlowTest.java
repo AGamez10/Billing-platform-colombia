@@ -102,6 +102,7 @@ class AuthFlowTest extends PostgresIntegrationTest {
         HttpResponse<String> me = get("/api/v1/auth/me", field(res.body(), "accessToken"));
         assertEquals(200, me.statusCode(), me.body());
         assertEquals("OWNER", field(me.body(), "role"));
+        assertFalse(field(me.body(), "organizationName").isBlank(), "la interfaz muestra el nombre de la organización");
 
         TenantId tenant = new TenantId(UUID.fromString(field(me.body(), "organizationId")));
         long trials = tx.inTenant(tenant, () -> jdbc.sql(

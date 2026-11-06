@@ -2,6 +2,7 @@ package co.billingplatform.identity.adapter.web;
 
 import co.billingplatform.identity.application.AuthenticationService;
 import co.billingplatform.identity.application.IdentityPorts.Membership;
+import co.billingplatform.identity.application.IdentityPorts.Memberships;
 import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.RegistrationService;
 import co.billingplatform.platform.persistence.TenantTransactions;
@@ -81,16 +82,21 @@ class AuthController {
     record SessionResponse(String status, String accessToken, String tokenType, Long expiresIn,
                            OrganizationView organization, List<OrganizationView> organizations) {}
 
-    record MeResponse(UUID userId, UUID organizationId, String role) {}
+    /** {@code organizations}: todas las del usuario, para cambiar de organización sin volver a escribir la clave. */
+    record MeResponse(UUID userId, UUID organizationId, String organizationName, String role,
+                      List<OrganizationView> organizations) {}
 
     private final RegistrationService registration;
     private final AuthenticationService authentication;
     private final RefreshTokenService refreshTokens;
     private final AccessTokens accessTokens;
     private final TenantTransactions tx;
+    private final Memberships memberships;
 
     AuthController(RegistrationService registration, AuthenticationService authentication,
-                   RefreshTokenService refreshTokens, AccessTokens accessTokens, TenantTransactions tx) {
+                   RefreshTokenService refreshTokens, AccessTokens accessTokens, TenantTransactions tx,
+                   Memberships memberships) {
+        this.memberships = memberships;
         this.registration = registration;
         this.authentication = authentication;
         this.refreshTokens = refreshTokens;
@@ -173,8 +179,13 @@ class AuthController {
     @GetMapping("/me")
     @Operation(summary = "Sesión actual", security = @SecurityRequirement(name = "bearer"))
     MeResponse me(@AuthenticationPrincipal Jwt jwt) {
-        return new MeResponse(UUID.fromString(jwt.getSubject()), UUID.fromString(jwt.getClaimAsString("tid")),
-                jwt.getClaimAsString("role"));
+        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID tenant = UUID.fromString(jwt.getClaimAsString("tid"));
+        List<Membership> all = tx.withoutTenant(() -> memberships.activeFor(userId));
+        String name = all.stream().filter(m -> m.tenantId().value().equals(tenant))
+                .map(Membership::organizationName).findFirst().orElse(null);
+        return new MeResponse(userId, tenant, name, jwt.getClaimAsString("role"),
+                all.stream().map(AuthController::view).toList());
     }
 
     private SessionResponse startSession(UUID userId, Membership membership, HttpServletResponse response) {

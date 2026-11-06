@@ -36,6 +36,8 @@ class AuthRateLimitFilterTest {
 
         assertEquals(200, call(filter, "POST", "/api/v1/auth/login", "10.0.0.2").getStatus(), "otra IP no se ve afectada");
         assertEquals(200, call(filter, "GET", "/api/v1/public/plans", "10.0.0.1").getStatus(), "rutas públicas no se limitan");
+        assertEquals(200, call(filter, "POST", "/api/v1/auth/refresh", "10.0.0.1").getStatus(),
+                "renovar la sesión no se limita: una oficina detrás de una IP abre la app muchas veces");
     }
 
     @Test

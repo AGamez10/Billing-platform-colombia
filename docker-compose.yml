@@ -1,8 +1,9 @@
-# Entorno LOCAL completo: PostgreSQL + backend (con página de estado y documentación de la API).
+# Entorno LOCAL completo: PostgreSQL + backend + interfaz web.
 #
 #   cp .env.example .env      # opcional: cambia las contraseñas
 #   docker compose up --build
-#   → http://localhost:8080   (otro puerto: BILLING_HTTP_PORT=8081 en .env)
+#   → http://localhost:3000   la aplicación (otro puerto: BILLING_WEB_PORT en .env)
+#   → http://localhost:8080   backend directo: página de estado y /swagger-ui.html (BILLING_HTTP_PORT)
 #
 # Los puertos se publican solo en 127.0.0.1. No usar esta configuración en un servidor público
 # sin cambiar contraseñas y poner HTTPS delante (ver docs/DEPLOYMENT.md).
@@ -47,8 +48,21 @@ services:
       BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD:-local-app-change-me}
       # Secreto de desarrollo; en cualquier otro entorno usar uno propio (openssl rand -base64 48).
       BILLING_JWT_SECRET: ${BILLING_JWT_SECRET:-bG9jYWwtZGV2LW9ubHktand0LXNlY3JldC1jaGFuZ2UtbWUtMDEyMzQ1Njc4OQ==}
+      BILLING_AUTH_REQUESTS_PER_MINUTE: ${BILLING_AUTH_REQUESTS_PER_MINUTE:-10}
     ports:
       - "127.0.0.1:${BILLING_HTTP_PORT:-8080}:8080"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_BRAND_NAME: ${BILLING_BRAND_NAME:-}
+    image: billing-platform-web:local
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:${BILLING_WEB_PORT:-3000}:8080"
 
 volumes:
   pgdata:

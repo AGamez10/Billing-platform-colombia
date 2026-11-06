@@ -1,5 +1,10 @@
 package co.billingplatform.platform.web;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.context.request.WebRequest;
 import co.billingplatform.electronicinvoicing.domain.WebhookVerificationException;
 import co.billingplatform.shared.domain.DomainException;
 import org.slf4j.Logger;
@@ -64,6 +69,23 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
         problem.setTitle(status.getReasonPhrase());
         problem.setProperty("code", e.code());
         return problem;
+    }
+
+    /**
+     * Validación de forma: además del detalle estándar, devuelve {@code code} y la lista de
+     * campos inválidos (sin eco de los valores enviados) para que la interfaz marque cada campo.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                                                  HttpHeaders headers, HttpStatusCode status,
+                                                                  WebRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request content.");
+        problem.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
+        problem.setProperty("code", "VALIDATION_FAILED");
+        problem.setProperty("fields", ex.getBindingResult().getFieldErrors().stream()
+                .map(f -> Map.of("field", f.getField(), "message", String.valueOf(f.getDefaultMessage())))
+                .toList());
+        return handleExceptionInternal(ex, problem, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     @ExceptionHandler(WebhookVerificationException.class)

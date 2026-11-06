@@ -31,6 +31,10 @@ billing:
     auth-requests-per-minute: ${BILLING_AUTH_REQUESTS_PER_MINUTE:10}
 
 server:
+  # Detrás de nginx/Caddy: la IP del cliente sale de X-Forwarded-For, que Tomcat solo acepta
+  # cuando la conexión viene de una red interna (proxies de confianza). Sin esto, el límite por
+  # IP trataría a todos los usuarios como una sola dirección: la del proxy.
+  forward-headers-strategy: native
   error:
     include-stacktrace: never
     include-message: never

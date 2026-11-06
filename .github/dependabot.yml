@@ -9,3 +9,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: npm   # cubre pnpm (lee pnpm-lock.yaml)
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directories: ["/backend", "/frontend"]
+    schedule:
+      interval: weekly

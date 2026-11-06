@@ -63,7 +63,10 @@ class CatalogApiTest extends ApiTest {
 
         HttpResponse<String> badCity = send("POST", "/api/v1/customers", token, customerJson(",\"cityCode\":\"BOG\""));
         assertEquals(422, badCity.statusCode());
-        assertEquals(400, send("POST", "/api/v1/customers", token, "{\"legalName\":\"Sin identificación\"}").statusCode());
+        HttpResponse<String> invalid = send("POST", "/api/v1/customers", token, "{\"legalName\":\"Sin identificación\"}");
+        assertEquals(400, invalid.statusCode());
+        assertEquals("VALIDATION_FAILED", field(invalid.body(), "code"));
+        assertTrue(invalid.body().contains("\"field\":\"identificationType\""), "la interfaz puede marcar el campo: " + invalid.body());
     }
 
     @Test

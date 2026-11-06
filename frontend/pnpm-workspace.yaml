@@ -1,0 +1,9 @@
+# Configuración de pnpm (seguridad de la cadena de suministro).
+# - minimumReleaseAge: no instala versiones publicadas hace menos de 7 días (10080 min).
+#   La mayoría de paquetes comprometidos se detectan y retiran en horas o pocos días.
+# - strictDepBuilds + onlyBuiltDependencies: ninguna dependencia ejecuta scripts de instalación
+#   salvo las revisadas y listadas aquí; una nueva con scripts hace fallar la instalación.
+minimumReleaseAge: 10080
+strictDepBuilds: true
+onlyBuiltDependencies:
+  - esbuild

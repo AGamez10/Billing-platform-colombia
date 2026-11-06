@@ -1,0 +1,38 @@
+# Genera o actualiza frontend/pnpm-lock.yaml (el entorno de desarrollo no alcanza el registro).
+# Se ejecuta a mano (Actions → "Lockfile de la interfaz" → Run workflow). Respeta
+# minimumReleaseAge de pnpm-workspace.yaml: no fija versiones publicadas hace menos de 7 días.
+name: Lockfile de la interfaz
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolver dependencias
+        working-directory: frontend
+        run: pnpm install --lockfile-only
+
+      - name: Confirmar el lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/pnpm-lock.yaml
+          if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
+          git commit -m "Lockfile de la interfaz (pnpm, generado en CI)"
+          git push
