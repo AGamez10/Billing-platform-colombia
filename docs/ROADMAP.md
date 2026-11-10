@@ -81,6 +81,13 @@
 - Falta: probar con llaves de prueba reales de Bold.
 - **Oferta de mejora de plan** (ADR-0021): al 80 % de la cuota o al agotarla, se ofrecen los planes y luego, si aplica, los excedentes con aceptación expresa. La elección queda registrada con su precio (V13); el plan se activa al pagar.
 
+## Hecho (2026-11-10, experiencia de cuenta)
+
+- Recuperar contraseña, invitar al equipo con roles, aceptar invitaciones con cuenta nueva o existente, retirar acceso y cambiar roles (V14, ADR-0022).
+- Configuración guiada (`/empezar`), página Mi plan (`/plan`), centro de Ajustes, página pública en `/` con precios del catálogo y la misión, y nueva identidad visual (ADR-0023).
+- Pruebas: servicios, API, SQL, e2e con Mailpit (escritorio y celular).
+- Falta: dominio y SMTP de producción; nombre comercial; contador del fondo solidario en Mi plan.
+
 ## Producto: lo que el mercado ya tiene + lo nuestro
 
 | Función | Estado | Por qué |

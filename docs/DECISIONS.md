@@ -250,6 +250,26 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 
 **Pendiente:** aviso al equipo de cada solicitud nueva (hoy se consulta en la base) y activación automática con Mercado Pago.
 
+## ADR-0022 — Correo transaccional independiente del proveedor
+*2026-11-10 — aceptada*
+
+**Contexto:** recuperar contraseña e invitar al equipo necesitan correo. No hay dominio ni proveedor elegido todavía.
+
+**Decisión:** puerto `Mailer` en `shared` y tres adaptadores por configuración (`billing.mail.mode`): `smtp` (producción; cualquier proveedor SMTP, Amazon SES como opción de menor costo), `log` (por omisión, no envía y no imprime enlaces) y `memory` (pruebas). Docker Compose trae Mailpit para desarrollo y las pruebas de navegador. El envío ocurre después de confirmar la transacción y en segundo plano (hilos virtuales): un correo nunca sale por una operación deshecha y el tiempo de respuesta no revela si una cuenta existe.
+
+**Alternativas descartadas:** SDK de un proveedor (acopla y no aporta para este volumen); cola de correos en la base (innecesaria hoy; se reconsidera si se pierden correos o crece el volumen).
+
+**Riesgo aceptado:** si el SMTP falla, el correo se pierde (queda registrado como advertencia). El usuario puede pedir otro enlace o reenviar la invitación.
+
+## ADR-0023 — Identidad visual y página pública
+*2026-11-10 — aceptada (pendiente el nombre comercial definitivo)*
+
+- Tipografías propias servidas desde el mismo dominio (sin Google Fonts: privacidad y CSP estricta): Bricolage Grotesque para títulos y Public Sans para el texto y las cifras (números tabulares).
+- Paleta: verde de aval `#0b7a5c` para acciones, noche `#12261f` para la estructura, sol `#f4c43b` solo para lo que nos mueve (fondo solidario), fondo `#f5f7f4`.
+- Un solo elemento con movimiento en la página pública: el tiquete que "se imprime" cuando se confirma el pago, que es la promesa del producto. Respeta `prefers-reduced-motion`.
+- La raíz `/` muestra la página pública sin sesión y el inicio de la app con sesión. Los precios se leen del catálogo (`/public/plans`), nunca se escriben a mano.
+- Las pantallas de acceso muestran la misión a la izquierda en pantallas anchas.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

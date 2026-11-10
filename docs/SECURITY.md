@@ -1,6 +1,6 @@
 # Seguridad
 
-> Estado al 2026-11-05. "Implementado" significa con código y pruebas ejecutadas; "diseñado" significa decidido y con esquema de datos, pendiente de código.
+> Estado al 2026-11-10. "Implementado" significa con código y pruebas ejecutadas; "diseñado" significa decidido y con esquema de datos, pendiente de código.
 
 ## Controles implementados y probados
 
@@ -22,7 +22,11 @@
 | XSS / robo de sesión en la interfaz | Access token solo en memoria (nunca `localStorage`); refresh en cookie `HttpOnly; Secure; SameSite=Strict`; CSP `script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`; React escapa todo texto | `client.test.ts`, job Docker (cabeceras) |
 | Datos tributarios en caché del navegador | El service worker solo guarda la interfaz; nunca `/api` | `public/sw.js` (revisión) |
 | Cadena de suministro del frontend | pnpm con lockfile obligatorio (`--frozen-lockfile`), `minimumReleaseAge` 7 días, scripts de instalación bloqueados salvo lista revisada (`strictDepBuilds`), `pnpm audit --prod` en CI, Dependabot | `frontend/pnpm-workspace.yaml`, job `frontend` |
-| Límite por IP falseado o compartido detrás del proxy | `forward-headers-strategy: native`: `X-Forwarded-For` solo se acepta desde redes internas; el límite aplica solo a login y registro | `AuthRateLimitFilterTest` |
+| Límite por IP falseado o compartido detrás del proxy | `forward-headers-strategy: native`: `X-Forwarded-For` solo se acepta desde redes internas; el límite aplica a login, registro, recuperar contraseña e invitaciones | `AuthRateLimitFilterTest` |
+| Toma de cuentas por "olvidé mi contraseña" | Enlace de un solo uso con 256 bits (solo se guarda su SHA-256) que vence en 30 min; solo vale el último; máximo 5 por hora por cuenta; misma respuesta exista o no la cuenta y envío en segundo plano (el tiempo no delata); al cambiarla se cierran todas las sesiones y se avisa al correo; token en el fragmento `#` de la URL (no llega a registros ni a `Referer`) y se borra de la barra | `AccountServicesTest`, `AccountApiTest`, e2e `cuenta.spec.ts` |
+| Invitaciones usadas por otra persona o para escalar | Enlace ligado al correo invitado, 7 días, un solo uso, nunca rol `OWNER`, `canGrant` al invitar y al cambiar roles; cuenta existente acepta solo con su contraseña y el mismo bloqueo por intentos del login; el dueño no se degrada ni se retira; nadie modifica su propio acceso; invitaciones con RLS y resueltas sin tenant solo por función acotada | `AccountServicesTest`, `AccountApiTest`, `tenant_isolation_test.sql` |
+| Inyección en correos | Nombres de organización y personas escapados en HTML; cabeceras sin saltos de línea; el cuerpo (con enlaces) nunca se imprime en registros | `AccountServicesTest` |
+| Correos por operaciones deshechas | El envío se registra para después de confirmar la transacción | `MailConfiguration` (revisión) |
 | Uso de numeración real en pruebas | Resolución y cuenta de proveedor deben ser del mismo ambiente; evidencia de otro ambiente se rechaza | `InvoiceTest`, `InvoiceLifecycleServiceTest` |
 
 ## Diseñado, pendiente de implementar (capa Spring)
@@ -54,7 +58,8 @@
 - **CSP de estilos:** `style-src` permite `'unsafe-inline'` por la documentación interactiva (Swagger UI). La interfaz no usa estilos en línea en el HTML; se puede endurecer cuando Swagger se cierre en producción.
 
 1. El límite por IP es en memoria (una instancia). Si se escala a varias instancias hay que moverlo a la base de datos o a un almacén compartido.
-2. El registro informa si un correo ya existe (`EMAIL_ALREADY_REGISTERED`): facilita la enumeración de correos a cambio de usabilidad; lo mitiga el límite por IP. Revisar cuando haya verificación por correo.
+2. Retirar a un miembro corta la renovación de su sesión, pero su access token vigente sigue sirviendo hasta 15 minutos; lo mismo con un cambio de rol.
+3. El registro informa si un correo ya existe (`EMAIL_ALREADY_REGISTERED`): facilita la enumeración de correos a cambio de usabilidad; lo mitiga el límite por IP. Revisar cuando haya verificación por correo.
 2. El código Java solo se ha ejecutado con un runner offline compatible con la API de JUnit 5, no con JUnit/Surefire reales.
 3. Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS (ver MULTITENANCY.md).
 4. Las funciones `SECURITY DEFINER` corren como dueño con `BYPASSRLS`; deben revisarse en cada cambio.

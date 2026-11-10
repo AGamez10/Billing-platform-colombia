@@ -28,6 +28,14 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
 | `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |
 | `POST /subscription/overage-consent` | BILLING_MANAGE (dueño/admin) | Aceptación expresa de documentos adicionales a $150 en el ciclo actual (ADR-0014) |
+| `POST /auth/password-reset/request` | público (límite por IP) | Envía el enlace para cambiar la contraseña. Responde 202 exista o no la cuenta |
+| `POST /auth/password-reset/confirm` | público | `{token, password}`: cambia la contraseña y cierra todas las sesiones. 410 si el enlace venció o ya se usó |
+| `POST /auth/invitations/preview` | público | `{token}`: organización, correo, rol y si el correo ya tiene cuenta |
+| `POST /auth/invitations/accept` | público | Cuenta nueva: `fullName`, `password`, versiones legales; cuenta existente: su `password`. Inicia sesión en la organización que invita |
+| `GET /team` | USERS_MANAGE | Miembros activos, invitaciones abiertas y máximo de usuarios del plan |
+| `POST /team/invitations` | USERS_MANAGE | `{email, role}` (ADMIN, BILLER, VIEWER; nunca más permisos que los propios). Reenviar reemplaza la anterior |
+| `DELETE /team/invitations/{id}` | USERS_MANAGE | Anula una invitación abierta |
+| `PATCH /team/members/{userId}` / `DELETE` | USERS_MANAGE | Cambia el rol / retira el acceso (nunca al dueño ni a uno mismo) |
 | `POST /subscription/plan-change-requests` | BILLING_MANAGE | Elige plan y ciclo (`MONTHLY`/`ANNUAL`) desde la oferta de mejora; guarda el precio cotizado. El plan cambia al confirmarse el pago (ADR-0021) |
 | `GET /subscription/plan-change-requests/pending` | USAGE_READ | Solicitud pendiente de pago, si la hay |
 | `POST /pos-sales` | INVOICE_WRITE + INVOICE_FINALIZE | Venta rápida: crea y emite el POS en un paso. Exige `Idempotency-Key` (ADR-0018) |
