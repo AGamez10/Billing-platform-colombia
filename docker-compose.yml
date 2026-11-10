@@ -4,6 +4,7 @@
 #   docker compose up --build
 #   → http://localhost:3000   la aplicación (otro puerto: BILLING_WEB_PORT en .env)
 #   → http://localhost:8080   backend directo: página de estado y /swagger-ui.html (BILLING_HTTP_PORT)
+#   → http://localhost:8025   correos de desarrollo (Mailpit): recuperar contraseña, invitaciones
 #
 # Los puertos se publican solo en 127.0.0.1. No usar esta configuración en un servidor público
 # sin cambiar contraseñas y poner HTTPS delante (ver docs/DEPLOYMENT.md).
@@ -51,6 +52,18 @@ services:
       # Solo desarrollo local: en producción, 32 bytes aleatorios en Base64 (openssl rand -base64 32).
       BILLING_SECRETS_KEY: ${BILLING_SECRETS_KEY:-bG9jYWwtZGV2LW9ubHktc2VjcmV0cy1rZXktMzJieXQ=}
       BILLING_AUTH_REQUESTS_PER_MINUTE: ${BILLING_AUTH_REQUESTS_PER_MINUTE:-10}
+      BILLING_BRAND_NAME: ${BILLING_BRAND_NAME:-Billing Platform}
+      BILLING_WEB_BASE_URL: ${BILLING_WEB_BASE_URL:-http://localhost:3000}
+      # En local los correos van a Mailpit (no salen a internet). En producción: SMTP real
+      # (Amazon SES u otro) con usuario, contraseña y STARTTLS (ver docs/DEPLOYMENT.md).
+      BILLING_MAIL_MODE: smtp
+      BILLING_MAIL_FROM: ${BILLING_MAIL_FROM:-no-responder@localhost}
+      BILLING_SMTP_HOST: ${BILLING_SMTP_HOST:-mailpit}
+      BILLING_SMTP_PORT: ${BILLING_SMTP_PORT:-1025}
+      BILLING_SMTP_USERNAME: ${BILLING_SMTP_USERNAME:-}
+      BILLING_SMTP_PASSWORD: ${BILLING_SMTP_PASSWORD:-}
+      BILLING_SMTP_AUTH: ${BILLING_SMTP_AUTH:-false}
+      BILLING_SMTP_STARTTLS: ${BILLING_SMTP_STARTTLS:-false}
     ports:
       - "127.0.0.1:${BILLING_HTTP_PORT:-8080}:8080"
 
@@ -65,6 +78,13 @@ services:
       - backend
     ports:
       - "127.0.0.1:${BILLING_WEB_PORT:-3000}:8080"
+
+  # Buzón de desarrollo: recibe todo el correo y lo muestra en http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.29.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${BILLING_MAILPIT_PORT:-8025}:8025"
 
 volumes:
   pgdata:

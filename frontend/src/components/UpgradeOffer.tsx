@@ -12,7 +12,7 @@ import { Alert, Spinner } from './ui';
  * los documentos adicionales solo aparecen si el plan los admite, con aceptación expresa
  * (ADR-0014). Elegir un plan registra la solicitud con su precio; el plan se activa al pagar.
  */
-export function UpgradeOffer({ onResolved }: { onResolved?: () => void }) {
+export function UpgradeOffer({ onResolved, showAll = false, title }: { onResolved?: () => void; showAll?: boolean; title?: string }) {
   const { can } = useSession();
   const plans = useApi<Plan[]>('/api/v1/public/plans');
   const quota = useApi<Quota>('/api/v1/subscription/quota');
@@ -26,7 +26,7 @@ export function UpgradeOffer({ onResolved }: { onResolved?: () => void }) {
   const all = plans.data ?? [];
   const q = quota.data;
   const current = all.find((p) => p.code === q?.planCode);
-  const options = upgradeOptions(all, current);
+  const options = showAll ? all.filter((p) => p.family !== 'TRIAL' && p.code !== current?.code) : upgradeOptions(all, current);
 
   async function choose(plan: Plan, cycle: BillingCycle) {
     setBusy(`${plan.code}:${cycle}`);
@@ -58,7 +58,7 @@ export function UpgradeOffer({ onResolved }: { onResolved?: () => void }) {
   const chosen = pending.data?.pending ? all.find((p) => p.code === pending.data!.toPlan) : undefined;
   return (
     <section className="card stack upgrade" aria-labelledby="upgrade-h">
-      <h2 id="upgrade-h">{q?.planCode === 'TRIAL' ? 'Elige tu plan para seguir emitiendo' : 'Sube de plan y sigue emitiendo'}</h2>
+      <h2 id="upgrade-h">{title ?? (q?.planCode === 'TRIAL' ? 'Elige tu plan para seguir emitiendo' : 'Sube de plan y sigue emitiendo')}</h2>
       {error && <Alert tone="error">{error}</Alert>}
       {chosen && pending.data && (
         <Alert tone="ok">
@@ -91,7 +91,7 @@ export function UpgradeOffer({ onResolved }: { onResolved?: () => void }) {
       {q?.limitReached && q.overageAvailable && !q.overageAccepted && (
         <div className="stack overage">
           <h3>¿Prefieres no cambiar de plan este mes?</h3>
-          <label className="check">
+          <label className="consent">
             <input type="checkbox" checked={accept} disabled={!canDecide} onChange={(e) => setAccept(e.target.checked)} />
             <span>
               Acepto pagar <strong>{formatCop(q.overageUnitPrice)}</strong> por cada documento adicional que emita en este ciclo.

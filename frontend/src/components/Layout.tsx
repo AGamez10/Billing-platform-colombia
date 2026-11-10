@@ -12,8 +12,14 @@ const NAV = [
   { to: '/configuracion', label: 'Ajustes', icon: Icon.gear, end: false },
 ];
 
+/** En pantallas anchas, debajo de lo diario: lo de la cuenta. En el celular se llega desde Ajustes. */
+const ACCOUNT_NAV = [
+  { to: '/equipo', label: 'Equipo', perm: 'manage' as const },
+  { to: '/plan', label: 'Mi plan', perm: 'usage' as const },
+];
+
 export function Layout() {
-  const { state, logout } = useSession();
+  const { state, logout, can } = useSession();
   const orgName = state.status === 'signed-in' ? state.me.organizationName : null;
 
   return (
@@ -27,6 +33,13 @@ export function Layout() {
           {NAV.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}>
               {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <nav className="sidenav sidenav-account" aria-label="Cuenta">
+          {ACCOUNT_NAV.filter((i) => can(i.perm)).map((item) => (
+            <NavLink key={item.to} to={item.to}>
               {item.label}
             </NavLink>
           ))}

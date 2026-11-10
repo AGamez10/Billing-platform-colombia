@@ -22,6 +22,18 @@ spring:
       app_role: ${BILLING_DB_APP_USER:billing_app}
   jackson:
     default-property-inclusion: non_null
+  mail:
+    host: ${BILLING_SMTP_HOST:}
+    port: ${BILLING_SMTP_PORT:587}
+    username: ${BILLING_SMTP_USERNAME:}
+    password: ${BILLING_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${BILLING_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${BILLING_SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${BILLING_SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 billing:
   security:
@@ -31,6 +43,15 @@ billing:
     # Llave maestra de los secretos de cada organización (AES-256-GCM): Base64 de 32 bytes.
     secrets-key: ${BILLING_SECRETS_KEY}
     auth-requests-per-minute: ${BILLING_AUTH_REQUESTS_PER_MINUTE:10}
+  web:
+    # Dirección pública de la interfaz: con ella se arman los enlaces de los correos.
+    base-url: ${BILLING_WEB_BASE_URL:http://localhost:3000}
+  brand:
+    name: ${BILLING_BRAND_NAME:Billing Platform}
+  mail:
+    # smtp (producción), log (por omisión: no envía) o memory (pruebas).
+    mode: ${BILLING_MAIL_MODE:log}
+    from: ${BILLING_MAIL_FROM:no-responder@localhost}
   legal:
     # Versión de los textos legales vigentes. Mientras estén en revisión del abogado, son borradores.
     terms-version: ${BILLING_TERMS_VERSION:borrador-2026-11}
@@ -46,6 +67,10 @@ server:
     include-message: never
 
 management:
+  health:
+    # El correo no define si la aplicación está viva: un SMTP caído no debe reiniciarla.
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

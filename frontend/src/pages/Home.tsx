@@ -18,8 +18,8 @@ export function Home() {
   const activeAccount = accounts.data?.find((a) => a.active);
   const hasRange = !!activeAccount && !!ranges.data?.some((r) => r.environment === activeAccount.environment && r.remaining > 0);
   const steps = [
-    { done: !!activeAccount, text: 'Elige cómo se envían tus facturas', to: '/configuracion' },
-    { done: hasRange, text: 'Registra tu resolución de numeración', to: '/configuracion' },
+    { done: !!activeAccount, text: 'Conecta la facturación electrónica', to: '/empezar' },
+    { done: hasRange, text: 'Activa la numeración de tus documentos', to: '/empezar' },
     { done: (customers.data?.items.length ?? 0) > 0, text: 'Agrega tu primer cliente', to: '/clientes/nuevo' },
     { done: (invoices.data?.items.length ?? 0) > 0, text: 'Crea tu primera factura', to: '/facturas/nueva' },
   ];
@@ -54,7 +54,12 @@ export function Home() {
 
       {!setupLoading && pending > 0 && (
         <section className="card stack" aria-labelledby="setup-title">
-          <h2 id="setup-title">Para empezar a facturar</h2>
+          <div className="row">
+            <h2 id="setup-title">Para empezar a facturar</h2>
+            <Link to="/empezar" className="btn btn-primary right">
+              Configuración guiada
+            </Link>
+          </div>
           <ol className="steps">
             {steps.map((s, i) => (
               <li key={s.text} className={`step${s.done ? ' done' : ''}`}>

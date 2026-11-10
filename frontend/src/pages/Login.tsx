@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useSession } from '../auth/session';
-import { BRAND_NAME } from '../brand';
-import { Alert, Field, Icon } from '../components/ui';
+import { AuthShell } from '../components/AuthShell';
+import { Alert, Field } from '../components/ui';
 import { messageFor } from '../lib/errors';
 
 export function Login() {
@@ -33,12 +33,7 @@ export function Login() {
   }
 
   return (
-    <div className="auth-shell">
-      <main className="auth-card">
-        <span className="brand">
-          {Icon.logo}
-          <span>{BRAND_NAME}</span>
-        </span>
+    <AuthShell>
         <div className="stack">
           <h1>Inicia sesión</h1>
           <p className="muted">Factura electrónica para tu negocio.</p>
@@ -65,6 +60,9 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <p className="small right-text">
+              <Link to="/olvide">¿Olvidaste tu contraseña?</Link>
+            </p>
             <button type="submit" className="btn btn-primary btn-block" disabled={busy || !email || !password}>
               {busy ? 'Entrando…' : 'Entrar'}
             </button>
@@ -73,7 +71,6 @@ export function Login() {
         <p className="muted small">
           ¿No tienes cuenta? <Link to="/registro">Empieza gratis con 20 documentos</Link>
         </p>
-      </main>
-    </div>
+    </AuthShell>
   );
 }

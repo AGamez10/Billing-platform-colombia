@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
 import { SessionProvider } from './auth/session';
+// Tipografías servidas desde el propio dominio (sin Google Fonts: privacidad y CSP estricta).
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/public-sans';
 import './styles.css';
 
 createRoot(document.getElementById('root')!).render(

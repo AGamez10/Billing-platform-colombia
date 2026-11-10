@@ -4,7 +4,14 @@ import { useSession } from './auth/session';
 import { Layout } from './components/Layout';
 import { Loading } from './components/ui';
 import { CustomerEditor, CustomerList } from './pages/Customers';
+import { AcceptInvitation } from './pages/AcceptInvitation';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Home } from './pages/Home';
+import { Landing } from './pages/Landing';
+import { Plan } from './pages/Plan';
+import { ResetPassword } from './pages/ResetPassword';
+import { Setup } from './pages/Setup';
+import { Team } from './pages/Team';
 import { InvoiceDetail } from './pages/InvoiceDetail';
 import { InvoiceEditor } from './pages/InvoiceEditor';
 import { InvoiceList } from './pages/Invoices';
@@ -19,7 +26,11 @@ function RequireSession({ children }: { children: ReactNode }) {
   const { state } = useSession();
   const location = useLocation();
   if (state.status === 'loading') return <Loading />;
-  if (state.status === 'signed-out') return <Navigate to="/entrar" replace state={{ from: location.pathname }} />;
+  if (state.status === 'signed-out') {
+    // Sin sesión, la raíz es la página pública; el resto pide entrar.
+    if (location.pathname === '/') return <Landing />;
+    return <Navigate to="/entrar" replace state={{ from: location.pathname }} />;
+  }
   return <>{children}</>;
 }
 
@@ -35,6 +46,9 @@ export function App() {
     <Routes>
       <Route path="/entrar" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/registro" element={<PublicOnly><Register /></PublicOnly>} />
+      <Route path="/olvide" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+      <Route path="/restablecer" element={<ResetPassword />} />
+      <Route path="/invitacion" element={<AcceptInvitation />} />
       <Route path="/terminos" element={<Legal title="Términos y condiciones" />} />
       <Route path="/privacidad" element={<Legal title="Política de tratamiento de datos personales" />} />
       <Route element={<RequireSession><Layout /></RequireSession>}>
@@ -51,6 +65,9 @@ export function App() {
         <Route path="productos/nuevo" element={<ProductEditor />} />
         <Route path="productos/:id" element={<ProductEditor />} />
         <Route path="configuracion" element={<Settings />} />
+        <Route path="empezar" element={<Setup />} />
+        <Route path="equipo" element={<Team />} />
+        <Route path="plan" element={<Plan />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

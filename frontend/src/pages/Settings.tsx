@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { useState, type FormEvent } from 'react';
 import { http } from '../api/client';
 import type { DocumentKind, Environment, NumberingRange, PaymentAccount, ProviderAccount } from '../api/types';
@@ -15,7 +16,25 @@ export function Settings() {
 
   return (
     <>
-      <PageHead title="Ajustes" subtitle="Cómo se envían tus facturas y con qué numeración." />
+      <PageHead title="Ajustes" subtitle="Cómo se envían tus documentos, con qué numeración y cómo cobras." />
+      <nav className="settings-hub" aria-label="Cuenta">
+        <Link to="/empezar" className="hub-link">
+          <strong>Configuración guiada</strong>
+          <span>Los pasos para pasar de cuenta nueva a primer documento.</span>
+        </Link>
+        {can('manage') && (
+          <Link to="/equipo" className="hub-link">
+            <strong>Equipo</strong>
+            <span>Invita personas y define qué puede hacer cada una.</span>
+          </Link>
+        )}
+        {can('usage') && (
+          <Link to="/plan" className="hub-link">
+            <strong>Mi plan</strong>
+            <span>Consumo, cambio de plan y documentos adicionales.</span>
+          </Link>
+        )}
+      </nav>
       <ProviderSection accounts={accounts.data} loading={accounts.loading} canManage={can('provider')} onChange={accounts.reload} />
       <RangesSection ranges={ranges.data} loading={ranges.loading} canManage={can('manage')} activeEnvironment={active?.environment} onChange={ranges.reload} />
       <PaymentSection canManage={can('provider')} />

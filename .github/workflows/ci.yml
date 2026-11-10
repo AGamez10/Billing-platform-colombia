@@ -203,12 +203,24 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
-          pnpm e2e 2>&1 | tee e2e.log; status="${PIPESTATUS[0]}"
+          CAPTURE=1 pnpm e2e 2>&1 | tee e2e.log; status="${PIPESTATUS[0]}"
           if [ "$status" != "0" ]; then
             grep -E '(✘|Error:|expect\()' e2e.log | head -30 | sed -E 's#^(.*)$#::error title=Playwright::\1#'
             exit "$status"
           fi
           echo "::notice title=E2E::$(grep -E '[0-9]+ passed' e2e.log | tail -1 | xargs)"
+
+      - name: Capturas de pantalla para revisión de diseño (en el registro del job)
+        if: always()
+        working-directory: frontend
+        run: |
+          for f in capturas/*.jpg; do
+            [ -f "$f" ] || continue
+            echo "=== CAPTURA $(basename "$f")"
+            base64 -w0 "$f"
+            echo
+            echo "=== FIN"
+          done
 
       - name: Verificar endpoints públicos y cierre por defecto
         run: |

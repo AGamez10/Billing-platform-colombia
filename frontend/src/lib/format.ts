@@ -1,4 +1,4 @@
-import type { DocumentKind, Environment, IdentificationType, InvoiceStatus } from '../api/types';
+import type { DocumentKind, Environment, IdentificationType, InvoiceStatus, Role } from '../api/types';
 
 const cop = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -108,3 +108,17 @@ export function documentTitle(kind: DocumentKind, number?: string): string {
   if (!number) return kind === 'POS_EQUIVALENT' ? 'Borrador POS' : 'Borrador de factura';
   return kind === 'POS_EQUIVALENT' ? `POS ${number}` : `Factura ${number}`;
 }
+
+export const ROLE_LABEL: Record<Role, string> = {
+  OWNER: 'Dueño',
+  ADMIN: 'Administrador',
+  BILLER: 'Facturador',
+  VIEWER: 'Consulta',
+};
+
+export const ROLE_DESCRIPTION: Record<Role, string> = {
+  OWNER: 'Todo, incluido el proveedor de facturación y la cuenta de cobros.',
+  ADMIN: 'Vende, emite, administra el equipo y la suscripción.',
+  BILLER: 'Vende, emite facturas y administra clientes y productos.',
+  VIEWER: 'Consulta documentos, clientes y productos sin modificarlos.',
+};

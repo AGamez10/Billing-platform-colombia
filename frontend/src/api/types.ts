@@ -222,3 +222,33 @@ export interface Charge {
   issueBlockedCode?: string;
   sale: Invoice;
 }
+
+export interface TeamMember {
+  userId: string;
+  fullName: string;
+  email: string;
+  role: Role;
+  since: string;
+  you: boolean;
+}
+
+export interface TeamInvitation {
+  id: string;
+  email: string;
+  role: Role;
+  sentAt: string;
+  expiresAt: string;
+}
+
+export interface Team {
+  members: TeamMember[];
+  invitations: TeamInvitation[];
+  maxUsers?: number;
+}
+
+export interface InvitationPreview {
+  organizationName: string;
+  email: string;
+  role: Role;
+  existingAccount: boolean;
+}

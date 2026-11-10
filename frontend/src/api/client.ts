@@ -119,8 +119,9 @@ export async function api<T>(method: Method, path: string, body?: unknown, extra
     }
   }
   if (!res.ok) throw await toError(res);
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  // 202/204 y respuestas sin cuerpo no traen JSON.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const http = {
@@ -129,5 +130,6 @@ export const http = {
   /** POST con cabeceras extra, p. ej. Idempotency-Key en la venta rápida. */
   postWithHeaders: <T>(path: string, body: unknown, headers: Record<string, string>) => api<T>('POST', path, body, headers),
   put: <T>(path: string, body: unknown) => api<T>('PUT', path, body),
+  patch: <T>(path: string, body: unknown) => api<T>('PATCH', path, body),
   del: (path: string) => api<void>('DELETE', path),
 };

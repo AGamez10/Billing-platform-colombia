@@ -15,6 +15,14 @@ export interface RegisterInput {
   acceptedPrivacyVersion: string;
 }
 
+export interface AcceptInvitationInput {
+  token: string;
+  password: string;
+  fullName?: string;
+  acceptedTermsVersion?: string;
+  acceptedPrivacyVersion?: string;
+}
+
 type SessionState =
   | { status: 'loading' }
   | { status: 'signed-out' }
@@ -24,6 +32,8 @@ interface SessionApi {
   state: SessionState;
   login(email: string, password: string, organizationId?: string): Promise<SessionPayload>;
   register(input: RegisterInput): Promise<void>;
+  /** Acepta una invitación y entra a esa organización. */
+  acceptInvitation(input: AcceptInvitationInput): Promise<void>;
   logout(): Promise<void>;
   can(permission: Permission): boolean;
 }
@@ -87,6 +97,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       async register(input) {
         const session = await http.post<SessionPayload>('/api/v1/auth/register', input);
+        await adopt(session);
+      },
+      async acceptInvitation(input) {
+        const session = await http.post<SessionPayload>('/api/v1/auth/invitations/accept', input);
         await adopt(session);
       },
       async logout() {

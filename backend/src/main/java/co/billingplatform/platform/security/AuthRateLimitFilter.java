@@ -38,16 +38,22 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Solo limita lo que se puede adivinar o abusar sin credenciales: iniciar sesión y registrarse.
+     * Solo limita lo que se puede adivinar o abusar sin credenciales: iniciar sesión, registrarse,
+     * recuperar contraseña (evita usar la plataforma para inundar buzones) y las invitaciones.
      * Renovar y cerrar sesión no se limitan por IP: el refresh token es aleatorio de 256 bits y su
      * reutilización revoca la familia; limitarlos bloquearía a una oficina detrás de una sola IP
      * cada vez que sus usuarios abren la aplicación.
      */
+    private static final java.util.Set<String> LIMITED = java.util.Set.of(
+            "/api/v1/auth/register", "/api/v1/auth/login",
+            "/api/v1/auth/password-reset/request", "/api/v1/auth/password-reset/confirm",
+            "/api/v1/auth/invitations/preview", "/api/v1/auth/invitations/accept");
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
         return !("POST".equals(request.getMethod())
-                && (uri.equals("/api/v1/auth/register") || uri.equals("/api/v1/auth/login")));
+                && LIMITED.contains(uri));
     }
 
     @Override

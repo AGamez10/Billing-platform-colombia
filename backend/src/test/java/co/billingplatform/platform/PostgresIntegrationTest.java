@@ -27,6 +27,8 @@ public abstract class PostgresIntegrationTest {
         registry.add("BILLING_DB_OWNER_PASSWORD", () -> "owner-test");
         registry.add("BILLING_JWT_SECRET", () -> "dGVzdC1vbmx5LWp3dC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC0wMTIzNDU=");
         registry.add("BILLING_AUTH_REQUESTS_PER_MINUTE", () -> "1000");
+        registry.add("billing.mail.mode", () -> "memory");
+        registry.add("billing.web.base-url", () -> "https://app.prueba.co");
         registry.add("billing.submission.poll-interval", () -> "200ms");
         registry.add("billing.submission.initial-delay", () -> "0s");
         // Llave maestra SOLO de pruebas (32 bytes en Base64); en producción viene de un secreto.

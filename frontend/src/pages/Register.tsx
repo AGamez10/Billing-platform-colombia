@@ -2,8 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { IdentificationType } from '../api/types';
 import { useSession } from '../auth/session';
-import { BRAND_NAME } from '../brand';
-import { Alert, Field, Icon, SelectField } from '../components/ui';
+import { AuthShell } from '../components/AuthShell';
+import { Alert, Field, SelectField } from '../components/ui';
 import { fieldErrors, messageFor } from '../lib/errors';
 import { ID_TYPE_LABEL } from '../lib/format';
 import { cleanIdNumber, nitCheckDigit } from '../lib/nit';
@@ -63,12 +63,7 @@ export function Register() {
   }
 
   return (
-    <div className="auth-shell">
-      <main className="auth-card">
-        <span className="brand">
-          {Icon.logo}
-          <span>{BRAND_NAME}</span>
-        </span>
+    <AuthShell wide>
         <div className="stack">
           <h1>Crea tu cuenta</h1>
           <p className="muted">20 documentos gratis para probar. Sin tarjeta.</p>
@@ -138,7 +133,6 @@ export function Register() {
         <p className="muted small">
           ¿Ya tienes cuenta? <Link to="/entrar">Inicia sesión</Link>
         </p>
-      </main>
-    </div>
+    </AuthShell>
   );
 }

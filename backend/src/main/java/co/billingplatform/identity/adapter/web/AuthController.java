@@ -4,7 +4,9 @@ import co.billingplatform.identity.application.AuthenticationService;
 import co.billingplatform.identity.application.IdentityPorts.Membership;
 import co.billingplatform.identity.application.IdentityPorts.Memberships;
 import co.billingplatform.identity.application.RefreshTokenService;
+import co.billingplatform.identity.application.PasswordRecoveryService;
 import co.billingplatform.identity.application.RegistrationService;
+import co.billingplatform.identity.application.TeamService;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.security.AccessTokens;
 import co.billingplatform.shared.domain.DomainException;
@@ -88,17 +90,43 @@ class AuthController {
     record MeResponse(UUID userId, UUID organizationId, String organizationName, String role,
                       List<OrganizationView> organizations) {}
 
+    record ResetRequest(@NotBlank @Size(max = 254) String email) {}
+
+    record ResetConfirm(@NotBlank @Size(max = 100) String token, @NotBlank @Size(max = 128) String password) {
+        @Override
+        public String toString() {
+            return "ResetConfirm[***]";
+        }
+    }
+
+    record InvitationToken(@NotBlank @Size(max = 100) String token) {}
+
+    record InvitationPreview(String organizationName, String email, String role, boolean existingAccount) {}
+
+    record AcceptInvitation(@NotBlank @Size(max = 100) String token, @Size(max = 200) String fullName,
+                            @NotBlank @Size(max = 128) String password,
+                            @Size(max = 40) String acceptedTermsVersion, @Size(max = 40) String acceptedPrivacyVersion) {
+        @Override
+        public String toString() {
+            return "AcceptInvitation[***]";
+        }
+    }
+
     private final RegistrationService registration;
     private final AuthenticationService authentication;
     private final RefreshTokenService refreshTokens;
     private final AccessTokens accessTokens;
     private final TenantTransactions tx;
     private final Memberships memberships;
+    private final PasswordRecoveryService recovery;
+    private final TeamService team;
 
     AuthController(RegistrationService registration, AuthenticationService authentication,
                    RefreshTokenService refreshTokens, AccessTokens accessTokens, TenantTransactions tx,
-                   Memberships memberships) {
+                   Memberships memberships, PasswordRecoveryService recovery, TeamService team) {
         this.memberships = memberships;
+        this.recovery = recovery;
+        this.team = team;
         this.registration = registration;
         this.authentication = authentication;
         this.refreshTokens = refreshTokens;
@@ -178,6 +206,53 @@ class AuthController {
             });
         }
         clearCookie(response);
+    }
+
+    @PostMapping("/password-reset/request")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Pedir el enlace para cambiar la contraseña. Responde igual exista o no la cuenta.")
+    void requestPasswordReset(@Valid @RequestBody ResetRequest r) {
+        tx.withoutTenant(() -> {
+            recovery.request(r.email());
+            return null;
+        });
+    }
+
+    @PostMapping("/password-reset/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Elegir la nueva contraseña con el enlace del correo. Cierra todas las sesiones.")
+    void confirmPasswordReset(@Valid @RequestBody ResetConfirm r) {
+        tx.withoutTenant(() -> {
+            recovery.confirm(r.token(), r.password());
+            return null;
+        });
+    }
+
+    @PostMapping("/invitations/preview")
+    @Operation(summary = "Ver a qué organización y con qué rol invita un enlace (sin sesión).")
+    InvitationPreview previewInvitation(@Valid @RequestBody InvitationToken r) {
+        TeamService.Preview p = tx.withoutTenant(() -> team.preview(r.token()));
+        return new InvitationPreview(p.organizationName(), p.email(), p.role().name(), p.existingAccount());
+    }
+
+    @PostMapping("/invitations/accept")
+    @Operation(summary = "Aceptar una invitación e iniciar sesión en esa organización. Cuenta nueva: nombre, "
+            + "contraseña y aceptación de los textos legales vigentes. Cuenta existente: su contraseña.")
+    SessionResponse acceptInvitation(@Valid @RequestBody AcceptInvitation r, HttpServletResponse response) {
+        TeamService.Preview preview = tx.withoutTenant(() -> team.preview(r.token()));
+        TenantId tenant = tx.withoutTenant(() -> team.tenantOf(r.token()));
+        TeamService.Accepted accepted;
+        if (preview.existingAccount()) {
+            // Misma verificación que el inicio de sesión, con su bloqueo por intentos fallidos.
+            UUID userId = tx.withoutTenantKeepingWritesOnDomainError(
+                    () -> authentication.authenticate(preview.email(), r.password())).userId();
+            accepted = tx.inTenant(tenant, () -> team.acceptExisting(tenant, r.token(), userId));
+        } else {
+            accepted = tx.inTenant(tenant, () -> team.acceptNew(tenant, r.token(), r.fullName(), r.password(),
+                    r.acceptedTermsVersion(), r.acceptedPrivacyVersion()));
+        }
+        return startSession(accepted.userId(), new Membership(accepted.tenantId(), accepted.role(),
+                accepted.organizationName()), response);
     }
 
     @GetMapping("/me")

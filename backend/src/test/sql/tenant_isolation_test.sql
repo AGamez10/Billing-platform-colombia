@@ -293,6 +293,31 @@ SELECT set_config('app.tenant_id', :tenant_b, false);
 SELECT t.expect_eq((SELECT count(*) FROM plan_change_requests), 0, 'B no ve las solicitudes de plan de A');
 SELECT set_config('app.tenant_id', '', false);
 
+-- 13. Invitaciones (V14): aisladas por tenant; el enlace se resuelve solo por su hash.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+INSERT INTO invitations (tenant_id, id, email, role, token_hash, invited_by, expires_at)
+VALUES (:tenant_a, gen_random_uuid(), 'caja@a.co', 'BILLER', '\xbb01', '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invitations (tenant_id, id, email, role, token_hash, invited_by, expires_at)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'caja@a.co', 'VIEWER', '\xbb02', '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days')$$,
+    '23505', 'una sola invitación abierta por correo');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invitations (tenant_id, id, email, role, token_hash, invited_by, expires_at)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'jefe@a.co', 'OWNER', '\xbb03', '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days')$$,
+    '23514', 'el dueño nunca se invita');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invitations (tenant_id, id, email, role, token_hash, invited_by, expires_at)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'Mayus@a.co', 'VIEWER', '\xbb04', '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days')$$,
+    '23514', 'el correo invitado se guarda en minúsculas');
+SELECT t.expect_sqlstate($$DELETE FROM invitations$$, '42501', 'las invitaciones no se borran (se anulan)');
+SELECT set_config('app.tenant_id', :tenant_b, false);
+SELECT t.expect_eq((SELECT count(*) FROM invitations), 0, 'B no ve las invitaciones de A');
+SELECT t.expect_eq(t.rows_affected($$UPDATE invitations SET revoked_at = now()$$), 0, 'B no puede anular invitaciones de A');
+SELECT set_config('app.tenant_id', '', false);
+SELECT t.expect_eq((SELECT count(*) FROM invitation_find('\xbb01')), 1, 'el enlace ubica la invitación sin tenant, por su hash');
+SELECT t.expect_eq((SELECT count(*) FROM invitation_find('\xbb99')), 0, 'un enlace desconocido no ubica nada');
+SELECT t.expect_sqlstate($$DELETE FROM password_reset_tokens$$, '42501', 'los enlaces de recuperación no se borran');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

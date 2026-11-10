@@ -1,6 +1,10 @@
 package co.billingplatform.platform.config;
 
+import co.billingplatform.identity.application.AccountPorts;
 import co.billingplatform.identity.application.AuthenticationService;
+import co.billingplatform.identity.application.IdentityEmails;
+import co.billingplatform.identity.application.PasswordRecoveryService;
+import co.billingplatform.identity.application.TeamService;
 import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.RegistrationService;
@@ -9,6 +13,7 @@ import co.billingplatform.customers.application.CustomerService;
 import co.billingplatform.products.application.ProductRepository;
 import co.billingplatform.products.application.ProductService;
 import co.billingplatform.shared.application.AuditTrail;
+import co.billingplatform.shared.application.Mailer;
 import co.billingplatform.tax.domain.TaxCatalog;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -52,6 +57,28 @@ class CoreConfiguration {
                                             IdentityPorts.TrialProvisioning trials, IdentityPorts.PasswordHasher hasher,
                                             IdentityPorts.LegalAcceptances acceptances, IdentityPorts.LegalVersions legal) {
         return new RegistrationService(onboarding, trials, hasher, acceptances, legal);
+    }
+
+    @Bean
+    IdentityEmails identityEmails(@Value("${billing.brand.name}") String brand, @Value("${billing.web.base-url}") String baseUrl) {
+        return new IdentityEmails(brand, baseUrl);
+    }
+
+    @Bean
+    PasswordRecoveryService passwordRecoveryService(IdentityPorts.UserAccounts users, AccountPorts.PasswordResets resets,
+                                                    AccountPorts.Accounts accounts, IdentityPorts.PasswordHasher hasher,
+                                                    Mailer mailer, IdentityEmails emails, Clock clock) {
+        return new PasswordRecoveryService(users, resets, accounts, hasher, mailer, emails, clock);
+    }
+
+    @Bean
+    TeamService teamService(AccountPorts.Team team, AccountPorts.Invitations invitations, AccountPorts.SeatLimit seats,
+                            AccountPorts.Accounts accounts, IdentityPorts.UserAccounts users,
+                            IdentityPorts.Memberships memberships, IdentityPorts.PasswordHasher hasher,
+                            IdentityPorts.LegalAcceptances acceptances, IdentityPorts.LegalVersions legal, Mailer mailer,
+                            IdentityEmails emails, AuditTrail audit, Clock clock) {
+        return new TeamService(team, invitations, seats, accounts, users, memberships, hasher, acceptances, legal, mailer,
+                emails, audit, clock);
     }
 
     /** Versiones vigentes de términos y política; cambiarlas obliga a aceptar de nuevo al registrarse. */

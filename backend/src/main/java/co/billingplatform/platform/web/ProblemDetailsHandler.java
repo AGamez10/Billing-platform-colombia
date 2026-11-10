@@ -69,6 +69,16 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("CHARGE_NOT_FOUND", HttpStatus.NOT_FOUND),
             Map.entry("PLAN_NOT_FOUND", HttpStatus.NOT_FOUND),
             Map.entry("PLAN_ALREADY_ACTIVE", HttpStatus.CONFLICT),
+            Map.entry("INVALID_RESET_LINK", HttpStatus.GONE),
+            Map.entry("INVITATION_INVALID", HttpStatus.GONE),
+            Map.entry("INVITATION_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("MEMBER_NOT_FOUND", HttpStatus.NOT_FOUND),
+            Map.entry("FORBIDDEN_ROLE", HttpStatus.FORBIDDEN),
+            Map.entry("ALREADY_MEMBER", HttpStatus.CONFLICT),
+            Map.entry("SEAT_LIMIT_REACHED", HttpStatus.CONFLICT),
+            Map.entry("CANNOT_MODIFY_SELF", HttpStatus.CONFLICT),
+            Map.entry("CANNOT_MODIFY_OWNER", HttpStatus.CONFLICT),
+            Map.entry("ACCOUNT_EXISTS_SIGN_IN", HttpStatus.CONFLICT),
             Map.entry("WEBHOOK_SIGNATURE_INVALID", HttpStatus.UNAUTHORIZED));
 
     @ExceptionHandler(DomainException.class)

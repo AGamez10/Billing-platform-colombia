@@ -62,6 +62,17 @@ const MESSAGES: Record<string, string> = {
   PLAN_NOT_AVAILABLE: 'Ese plan no se puede elegir.',
   PLAN_ALREADY_ACTIVE: 'Ya tienes ese plan activo.',
   PLAN_CYCLE_NOT_AVAILABLE: 'Ese plan no se vende con ese tipo de pago.',
+  INVALID_RESET_LINK: 'Este enlace ya no sirve: venció, ya se usó o pediste uno más nuevo. Pide otro.',
+  INVITATION_INVALID: 'Esta invitación ya no sirve: venció, fue anulada o ya se aceptó. Pide una nueva a quien te invitó.',
+  INVITATION_NOT_FOUND: 'Esa invitación ya no está abierta.',
+  MEMBER_NOT_FOUND: 'Esa persona ya no hace parte del equipo.',
+  FORBIDDEN_ROLE: 'No puedes dar un rol con más permisos que el tuyo.',
+  ALREADY_MEMBER: 'Esa persona ya hace parte del equipo.',
+  SEAT_LIMIT_REACHED: 'Tu plan llegó al máximo de usuarios.',
+  CANNOT_MODIFY_SELF: 'No puedes cambiar tu propio acceso.',
+  CANNOT_MODIFY_OWNER: 'El acceso del dueño no se puede cambiar.',
+  ACCOUNT_EXISTS_SIGN_IN: 'Ese correo ya tiene cuenta: escribe su contraseña para aceptar.',
+  INVALID_NAME: 'Escribe tu nombre completo.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 
