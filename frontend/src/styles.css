@@ -27,6 +27,7 @@
   --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif;
   --font-body: 'Public Sans Variable', 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
+  accent-color: var(--green);
   font-family: var(--font-body);
   color: var(--ink);
   background: var(--bg);
@@ -292,7 +293,7 @@ td.num, th.num { text-align: right; }
 .l-section > h2, .l-final h2, .l-mission h2 { font-size: clamp(28px, 4.4vw, 46px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; max-width: 20ch; }
 .l-sub { color: var(--ink-2); max-width: 60ch; margin-top: -12px; }
 .l-steps { list-style: none; counter-reset: step; margin: 0; padding: 0; display: grid; gap: 28px; }
-.l-steps li { counter-increment: step; display: grid; grid-template-columns: 48px 1fr; gap: 4px 16px; }
+.l-steps li { counter-increment: step; display: grid; grid-template-columns: 48px 1fr; gap: 4px 16px; align-content: start; }
 .l-steps li::before { content: counter(step); grid-row: span 2; width: 44px; height: 44px; border-radius: 50%; background: var(--night); color: #fff; display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-weight: 800; font-size: 20px; }
 .l-steps p { color: var(--ink-2); max-width: 40ch; }
