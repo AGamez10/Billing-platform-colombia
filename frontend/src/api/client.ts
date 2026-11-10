@@ -93,7 +93,7 @@ export function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 async function send(method: Method, path: string, body: unknown, withAuth: boolean, extra: Record<string, string> = {}): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json', ...extra };

@@ -14,7 +14,7 @@ const MESSAGES: Record<string, string> = {
   INVALID_NIT: 'El NIT o su dígito de verificación no son válidos.',
   INVALID_IDENTIFICATION: 'La identificación no es válida.',
   INVALID_EMAIL: 'El correo no es válido.',
-  INVALID_NAME: 'El nombre no es válido.',
+  INVALID_NAME: 'Escribe tu nombre completo.',
   CUSTOMER_ALREADY_EXISTS: 'Ya tienes un cliente con esa identificación.',
   CUSTOMER_NOT_FOUND: 'El cliente no existe o está inactivo.',
   PRODUCT_SKU_ALREADY_EXISTS: 'Ya tienes un producto con esa referencia.',
@@ -72,7 +72,6 @@ const MESSAGES: Record<string, string> = {
   CANNOT_MODIFY_SELF: 'No puedes cambiar tu propio acceso.',
   CANNOT_MODIFY_OWNER: 'El acceso del dueño no se puede cambiar.',
   ACCOUNT_EXISTS_SIGN_IN: 'Ese correo ya tiene cuenta: escribe su contraseña para aceptar.',
-  INVALID_NAME: 'Escribe tu nombre completo.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 
