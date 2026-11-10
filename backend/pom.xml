@@ -28,7 +28,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <archunit.version>1.4.1</archunit.version>
+        <archunit.version>1.5.1</archunit.version>
         <bouncycastle.version>1.86</bouncycastle.version>
         <springdoc.version>3.2.0</springdoc.version>
     </properties>
