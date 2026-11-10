@@ -1,12 +1,16 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { http } from '../api/client';
 import { AuthShell } from '../components/AuthShell';
 import { Alert, Field } from '../components/ui';
 import { messageFor } from '../lib/errors';
 
 export function ForgotPassword() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(() => {
+    const from = (location.state as { email?: unknown } | null)?.email;
+    return typeof from === 'string' ? from : '';
+  });
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

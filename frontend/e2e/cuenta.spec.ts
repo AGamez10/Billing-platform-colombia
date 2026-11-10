@@ -17,8 +17,10 @@ test('recuperar la contraseña con el enlace del correo', async ({ page, request
   await page.getByRole('button', { name: 'Cerrar sesión' }).last().click();
 
   await page.goto('/entrar');
-  await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click();
   await page.getByLabel('Correo').fill(email);
+  await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click();
+  await expect(page.getByRole('heading', { name: '¿Olvidaste tu contraseña?' })).toBeVisible();
+  await expect(page.getByLabel('Correo')).toHaveValue(email); // el correo del inicio de sesión viene escrito
   await page.getByRole('button', { name: 'Enviar enlace' }).click();
   await expect(page.getByRole('heading', { name: 'Revisa tu correo' })).toBeVisible();
 

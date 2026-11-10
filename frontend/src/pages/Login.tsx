@@ -61,7 +61,7 @@ export function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <p className="small right-text">
-              <Link to="/olvide">¿Olvidaste tu contraseña?</Link>
+              <Link to="/olvide" state={{ email: email.trim() }}>¿Olvidaste tu contraseña?</Link>
             </p>
             <button type="submit" className="btn btn-primary btn-block" disabled={busy || !email || !password}>
               {busy ? 'Entrando…' : 'Entrar'}
