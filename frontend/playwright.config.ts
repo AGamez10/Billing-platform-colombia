@@ -13,6 +13,9 @@ export default defineConfig({
     locale: 'es-CO',
     timezoneId: 'America/Bogota',
     trace: 'off',
+    // Sin límite por acción, un paso trabado solo reporta "timeout del test" sin decir cuál.
+    actionTimeout: 15_000,
+    navigationTimeout: 20_000,
   },
   projects: [
     { name: 'escritorio', use: { ...devices['Desktop Chrome'] } },

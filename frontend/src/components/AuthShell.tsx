@@ -30,9 +30,10 @@ export function AuthShell({ children, wide = false }: { children: ReactNode; wid
           <span>{BRAND_NAME}</span>
         </Link>
         <div className="auth-card">{children}</div>
-        <p className="auth-legal small muted">
-          <Link to="/terminos">Términos</Link> · <Link to="/privacidad">Tratamiento de datos</Link>
-        </p>
+        <nav className="auth-legal small" aria-label="Legal">
+          <Link to="/terminos">Términos</Link>
+          <Link to="/privacidad">Tratamiento de datos</Link>
+        </nav>
       </main>
     </div>
   );

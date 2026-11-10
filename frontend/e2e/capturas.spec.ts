@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { registerOrganization, suffix } from './helpers';
 
 // Capturas para revisar el diseño (solo con CAPTURE=1). Se guardan en capturas/.
@@ -15,9 +15,17 @@ test('capturas de pantallas principales', async ({ page }, info) => {
   await registerOrganization(page, `Tienda Doña Rosa ${suffix()}`, `capturas-${suffix()}@example.com`);
   await shot('inicio');
   await page.goto('/empezar');
+  await expect(page.getByRole('heading', { name: 'Configura tu cuenta' })).toBeVisible();
   await shot('empezar', true);
   await page.goto('/equipo');
+  await expect(page.getByRole('heading', { name: 'Invitar a alguien' })).toBeVisible();
   await shot('equipo', true);
   await page.goto('/plan');
+  await expect(page.getByRole('heading', { name: 'Tu plan también factura por otros' })).toBeVisible();
+  await page.waitForTimeout(500);
   await shot('plan', true);
+  await page.goto('/configuracion');
+  await expect(page.getByRole('heading', { name: 'Ajustes' })).toBeVisible();
+  await page.waitForTimeout(500);
+  await shot('ajustes', true);
 });

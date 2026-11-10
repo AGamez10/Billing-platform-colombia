@@ -63,7 +63,7 @@ test('invitar a la caja: acepta desde el correo y entra con su propio usuario', 
   await other.close();
 
   await page.reload();
-  await expect(page.getByText('Carlos Caja')).toBeVisible();
+  await expect(page.getByText('Carlos Caja', { exact: true })).toBeVisible();
 });
 
 test('configuración guiada: de cuenta nueva a lista para vender', async ({ page }) => {

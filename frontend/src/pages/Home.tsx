@@ -54,12 +54,7 @@ export function Home() {
 
       {!setupLoading && pending > 0 && (
         <section className="card stack" aria-labelledby="setup-title">
-          <div className="row">
-            <h2 id="setup-title">Para empezar a facturar</h2>
-            <Link to="/empezar" className="btn btn-primary right">
-              Configuración guiada
-            </Link>
-          </div>
+          <h2 id="setup-title">Para empezar a facturar</h2>
           <ol className="steps">
             {steps.map((s, i) => (
               <li key={s.text} className={`step${s.done ? ' done' : ''}`}>
@@ -78,6 +73,9 @@ export function Home() {
               </li>
             ))}
           </ol>
+          <Link to="/empezar" className="btn btn-primary setup-cta">
+            Configuración guiada
+          </Link>
         </section>
       )}
 

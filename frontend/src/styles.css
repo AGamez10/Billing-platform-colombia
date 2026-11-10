@@ -228,6 +228,7 @@ td.num, th.num { text-align: right; }
 .auth-brand-mobile:hover { color: var(--ink); }
 .auth-card { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: var(--shadow); }
 .auth-main.wide .auth-card { max-width: 560px; }
+.auth-legal { display: flex; gap: 20px; }
 .auth-legal a { color: var(--muted); }
 @media (min-width: 960px) {
   .auth-shell { grid-template-columns: minmax(360px, 5fr) 7fr; }
@@ -271,8 +272,8 @@ td.num, th.num { text-align: right; }
 .receipt-lines { list-style: none; padding: 16px 0; margin: 16px 0 0; border-top: 1px dashed #c8d2cc; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
 .receipt-lines li, .receipt-total { display: flex; justify-content: space-between; gap: 12px; }
 .receipt-total { border-top: 1px dashed #c8d2cc; padding-top: 14px; font-family: var(--font-display); font-weight: 800; font-size: 26px; }
-.receipt-paid { margin-top: 14px; color: var(--green-strong); font-weight: 600; }
-.receipt-stamp { position: absolute; right: 18px; bottom: 44px; transform: rotate(-8deg); border: 3px solid var(--green); color: var(--green); border-radius: 10px; padding: 4px 12px;
+.receipt-paid { margin-top: 10px; color: var(--green-strong); font-weight: 600; }
+.receipt-stamp { display: table; margin: 18px 0 0 auto; transform: rotate(-6deg); border: 3px solid var(--green); color: var(--green); border-radius: 10px; padding: 4px 12px;
   font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.01em; background: rgba(255,255,255,0.85); }
 @media (prefers-reduced-motion: no-preference) {
   .receipt-paper { animation: print 900ms cubic-bezier(.2,.7,.2,1) both; transform-origin: top center; }
@@ -285,7 +286,7 @@ td.num, th.num { text-align: right; }
 }
 @keyframes print { from { clip-path: inset(0 0 100% 0); transform: rotate(-1.5deg) translateY(-12px); } to { clip-path: inset(0 0 0 0); transform: rotate(-1.5deg); } }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
-@keyframes stamp { from { opacity: 0; transform: rotate(-8deg) scale(1.8); } to { opacity: 1; transform: rotate(-8deg) scale(1); } }
+@keyframes stamp { from { opacity: 0; transform: rotate(-6deg) scale(1.8); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
 
 .l-section { max-width: 1180px; margin: 0 auto; padding: 56px 16px; display: flex; flex-direction: column; gap: 28px; }
 .l-section > h2, .l-final h2, .l-mission h2 { font-size: clamp(28px, 4.4vw, 46px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; max-width: 20ch; }
@@ -378,3 +379,4 @@ td.num, th.num { text-align: right; }
 .hub-link:hover { border-color: var(--green); color: var(--ink); }
 .sidenav-account { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
 .sidenav-account a { font-size: 14px; }
+.setup-cta { align-self: flex-start; }
