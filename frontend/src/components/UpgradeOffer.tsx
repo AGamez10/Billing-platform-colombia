@@ -128,7 +128,8 @@ export function upgradeOptions(plans: Plan[], current?: Plan): Plan[] {
 
 /** "· 2 meses gratis" cuando el anual equivale a menos de 12 mensualidades. */
 export function annualSaving(p: Plan): string {
-  if (!p.monthlyPrice || !p.annualPrice) return '';
+  // Solo frente a un pago mensual que de verdad se vende; si no, no hay ahorro que prometer.
+  if (!p.monthlyBillingAllowed || !p.monthlyPrice || !p.annualPrice) return '';
   const free = 12 - Math.round(Number(p.annualPrice) / Number(p.monthlyPrice));
   return free > 0 ? ` · ${free} ${free === 1 ? 'mes' : 'meses'} gratis` : '';
 }
