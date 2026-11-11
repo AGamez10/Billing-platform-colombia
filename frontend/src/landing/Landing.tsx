@@ -21,7 +21,7 @@ export function Landing() {
   const general = all.filter((p) => p.family === 'GENERAL');
   const commerce = all.filter((p) => p.family === 'COMMERCE');
   const cheapestMonthly = all
-    .filter((p) => p.monthlyBillingAllowed && p.monthlyPrice)
+    .filter((p) => p.family !== 'TRIAL' && p.monthlyBillingAllowed && Number(p.monthlyPrice) > 0)
     .map((p) => Number(p.monthlyPrice))
     .sort((a, b) => a - b)[0];
 
@@ -50,8 +50,9 @@ export function Landing() {
         </header>
 
         <div className="lp-hero-grid">
+          <h1 id="hero-h">Vende, cobra y la factura sale sola.</h1>
+          <Hero3D fallback={<StaticReceipt />} />
           <div className="lp-hero-copy">
-            <h1 id="hero-h">Vende, cobra y la factura sale sola.</h1>
             <p className="lp-lead">
               Factura electrónica y tiquete POS para el comercio colombiano. Tu cliente paga con QR y, en el momento en que el pago se confirma,
               el documento se emite. Sin digitar dos veces, sin esperar al final del día.
@@ -66,8 +67,8 @@ export function Landing() {
             </div>
             <ul className="lp-hero-facts">
               <li>
-                <strong>{cheapestMonthly ? formatCop(cheapestMonthly) : 'Precios públicos'}</strong>
-                <span>{cheapestMonthly ? 'el plan mensual más bajo' : 'en esta página'}</span>
+                <strong>{cheapestMonthly ? `Desde ${formatCop(cheapestMonthly)}` : 'Precios públicos'}</strong>
+                <span>{cheapestMonthly ? 'al mes, precio publicado' : 'en esta página'}</span>
               </li>
               <li>
                 <strong>Sin tarjeta</strong>
@@ -79,7 +80,6 @@ export function Landing() {
               </li>
             </ul>
           </div>
-          <Hero3D fallback={<StaticReceipt />} />
         </div>
       </section>
 

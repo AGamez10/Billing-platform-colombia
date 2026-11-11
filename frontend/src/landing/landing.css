@@ -31,24 +31,31 @@
 .lp-btn-outline:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.06); }
 @media (min-width: 900px) { .lp-nav { display: flex; } .lp-btn-quiet { display: inline-flex; } }
 
-.lp-hero-grid { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 16px; align-items: center; }
+/* Celular: título, escena y luego el resto, para que el 3D se vea sin bajar. Escritorio: dos columnas. */
+.lp-hero-grid { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; display: grid; gap: 8px; grid-template-areas: "title" "scene" "copy"; }
+.lp-hero-grid > h1 { grid-area: title; }
+.lp-hero-grid > .hero-3d { grid-area: scene; }
+.lp-hero-grid > .lp-hero-copy { grid-area: copy; }
 .lp-hero h1 { color: #fff; font-size: clamp(44px, 7.6vw, 92px); line-height: 0.96; letter-spacing: -0.04em; font-weight: 800; max-width: 10.5ch; }
-.lp-lead { margin-top: 24px; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.55; color: #b9cbc2; max-width: 46ch; }
+.lp-lead { margin-top: 0; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.55; color: #b9cbc2; max-width: 46ch; }
 .lp-cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 .lp-hero-facts { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(3, auto); gap: 8px 28px; justify-content: start; }
 .lp-hero-facts li { display: flex; flex-direction: column; gap: 2px; }
 .lp-hero-facts strong { color: #fff; font-family: var(--font-display); font-size: 20px; font-weight: 750; letter-spacing: -0.01em; }
 .lp-hero-facts span { color: #8fa89c; font-size: 13px; }
 @media (max-width: 520px) { .lp-hero-facts { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1000px) { .lp-hero-grid { grid-template-columns: 6fr 6fr; padding: 40px 20px 88px; gap: 24px; } }
+@media (min-width: 1000px) {
+  .lp-hero-grid { grid-template-columns: 6fr 6fr; grid-template-areas: "title scene" "copy scene"; grid-template-rows: auto 1fr; padding: 48px 20px 88px; column-gap: 24px; row-gap: 28px; }
+  .lp-hero-grid > h1 { align-self: end; }
+}
 
 /* El lienzo 3D y su versión estática ocupan el mismo lugar: no hay salto de diseño al cargar. */
-.hero-3d { position: relative; height: clamp(420px, 62vw, 640px); }
+.hero-3d { position: relative; height: clamp(360px, 92vw, 520px); margin: 0 -20px; }
 .hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 700ms ease; }
 .hero-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 500ms ease; }
 .hero-3d.ready .hero-canvas { opacity: 1; }
 .hero-3d.ready .hero-fallback { opacity: 0; pointer-events: none; }
-@media (min-width: 1000px) { .hero-3d { height: 620px; } }
+@media (min-width: 1000px) { .hero-3d { height: 640px; margin: 0; align-self: center; } }
 
 /* ---------- Confianza ---------- */
 .lp-trust { background: #fff; border-bottom: 1px solid var(--line); padding: 64px 0; }

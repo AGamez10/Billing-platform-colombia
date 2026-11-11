@@ -387,10 +387,10 @@ export async function mountHeroScene(canvas: HTMLCanvasElement, options: HeroSce
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     const narrow = camera.aspect < 1;
-    camera.position.z = narrow ? 11.5 : 9;
+    camera.position.z = narrow ? 9.6 : 7.6;
     camera.updateProjectionMatrix();
-    phone.position.set(narrow ? -0.75 : -1.05, -0.05, 0);
-    printer.position.set(narrow ? 1.05 : 1.35, 1.55, 0.6);
+    phone.position.set(narrow ? -0.8 : -0.95, -0.05, 0);
+    printer.position.set(narrow ? 1.1 : 1.25, 1.55, 0.6);
     printer.rotation.set(0, -0.28, 0.04);
     shadow.position.set(phone.position.x, -2.35, 0);
     slotTopY = printer.position.y - 0.06;
