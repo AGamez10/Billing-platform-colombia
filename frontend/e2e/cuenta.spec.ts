@@ -8,7 +8,7 @@ test('la página pública: demo sin registro, calculadora con precios reales y r
 
   // La caja de demostración funciona de punta a punta sin cuenta
   await page.getByRole('button', { name: /Leche 1 L/ }).click();
-  await page.getByRole('button', { name: /Cobrar con QR \$ 12\.200/ }).click();
+  await page.getByRole('button', { name: /Cobrar con QR \$ 12\.700/ }).click();
   await expect(page.getByRole('img', { name: 'Código QR de demostración' })).toBeVisible();
   await page.getByRole('button', { name: 'Simular que el cliente pagó' }).click();
   await expect(page.getByText('Pago recibido')).toBeVisible();
