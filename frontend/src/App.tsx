@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { useSession } from './auth/session';
 import { Layout } from './components/Layout';
@@ -7,7 +7,6 @@ import { CustomerEditor, CustomerList } from './pages/Customers';
 import { AcceptInvitation } from './pages/AcceptInvitation';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Home } from './pages/Home';
-import { Landing } from './pages/Landing';
 import { Plan } from './pages/Plan';
 import { ResetPassword } from './pages/ResetPassword';
 import { Setup } from './pages/Setup';
@@ -22,13 +21,22 @@ import { Register } from './pages/Register';
 import { Sell } from './pages/Sell';
 import { Settings } from './pages/Settings';
 
+// La página pública (con 3D y gráficas) es un paquete aparte: quien ya trabaja en la app nunca lo descarga.
+const Landing = lazy(() => import('./landing/Landing').then((m) => ({ default: m.Landing })));
+
 function RequireSession({ children }: { children: ReactNode }) {
   const { state } = useSession();
   const location = useLocation();
   if (state.status === 'loading') return <Loading />;
   if (state.status === 'signed-out') {
     // Sin sesión, la raíz es la página pública; el resto pide entrar.
-    if (location.pathname === '/') return <Landing />;
+    if (location.pathname === '/') {
+      return (
+        <Suspense fallback={<Loading />}>
+          <Landing />
+        </Suspense>
+      );
+    }
     return <Navigate to="/entrar" replace state={{ from: location.pathname }} />;
   }
   return <>{children}</>;

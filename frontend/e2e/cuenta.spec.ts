@@ -1,10 +1,26 @@
 import { expect, test } from '@playwright/test';
 import { linkFromEmail, PASSWORD, registerOrganization, suffix } from './helpers';
 
-test('la página pública explica qué hacemos, muestra precios reales y lleva al registro', async ({ page }) => {
+test('la página pública: demo sin registro, calculadora con precios reales y registro', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Vende, cobra y la factura sale sola.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Cada suscripción le factura a alguien más' })).toBeVisible();
+
+  // La caja de demostración funciona de punta a punta sin cuenta
+  await page.getByRole('button', { name: /Leche 1 L/ }).click();
+  await page.getByRole('button', { name: /Cobrar con QR \$ 12\.200/ }).click();
+  await expect(page.getByRole('img', { name: 'Código QR de demostración' })).toBeVisible();
+  await page.getByRole('button', { name: 'Simular que el cliente pagó' }).click();
+  await expect(page.getByText('Pago recibido')).toBeVisible();
+  await expect(page.getByText('Demostración: no se envió a la DIAN.')).toBeVisible();
+
+  // La calculadora recomienda con el catálogo real
+  await page.getByRole('radio', { name: 'Vendo en caja (POS)' }).click();
+  await expect(page.locator('.calc-plan')).toHaveText('Comercio 500');
+  await page.getByRole('slider').focus();
+  await page.keyboard.press('End');
+  await expect(page.locator('.calc-plan')).toHaveText('Comercio 3.000');
+  await page.getByText('Ver todos los planes').click();
   await expect(page.getByRole('rowheader', { name: 'Comercio 1.200' })).toBeVisible();
   await page.getByRole('link', { name: /Empieza gratis con 20 documentos/ }).click();
   await expect(page).toHaveURL(/\/registro$/);
