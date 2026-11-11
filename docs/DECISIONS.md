@@ -270,6 +270,11 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 - La raíz `/` muestra la página pública sin sesión y el inicio de la app con sesión. Los precios se leen del catálogo (`/public/plans`), nunca se escriben a mano.
 - Las pantallas de acceso muestran la misión a la izquierda en pantallas anchas.
 
+**Revisión 2026-11-10 (pedido del propietario: landing "de talla nacional" con 3D y gráficas):**
+- Hero oscuro con escena Three.js que cuenta la promesa: el celular corre la caja (venta → QR → pago) y el tiquete sale impreso con el sello "Emitido". Reemplaza al tiquete animado en CSS, que queda como versión estática.
+- Presupuesto de rendimiento: la landing es un paquete aparte (7 KB gzip); Three.js (~130 KB gzip) se descarga después de pintar la página, en tiempo ocioso; Chart.js (~50 KB gzip) solo cuando la calculadora se acerca a la pantalla. Sin sombras dinámicas ni postprocesado, píxeles limitados a 1,75×, texturas de lienzo que solo se redibujan al cambiar de estado, bucle detenido fuera de pantalla o con la pestaña oculta. Sin WebGL, con ahorro de datos o con movimiento reducido: versión estática.
+- Caja de demostración en la misma página (sin cuenta, sin llamadas al servidor) y calculadora de costo por documento con el catálogo real. La confianza se apoya en hechos verificables (estado ante la DIAN, ambientes, aislamiento, dinero directo al comercio), no en cifras inventadas ni en comparaciones con terceros sin fuente.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

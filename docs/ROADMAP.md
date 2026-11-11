@@ -87,6 +87,7 @@
 - Configuración guiada (`/empezar`), página Mi plan (`/plan`), centro de Ajustes, página pública en `/` con precios del catálogo y la misión, y nueva identidad visual (ADR-0023).
 - Pruebas: servicios, API, SQL, e2e con Mailpit (escritorio y celular).
 - Falta: dominio y SMTP de producción; nombre comercial; contador del fondo solidario en Mi plan.
+- Landing renovada: hero 3D (Three.js), caja de demostración sin registro, calculadora con Chart.js, secciones de confianza, cambio desde otro sistema y fondo solidario (ADR-0023, revisión).
 
 ## Producto: lo que el mercado ya tiene + lo nuestro
 
