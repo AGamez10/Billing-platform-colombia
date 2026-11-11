@@ -170,7 +170,8 @@ class PaymentsApiTest extends ApiTest {
         LocalDate today = LocalDate.now();
         send("POST", "/api/v1/numbering-ranges", token,
                 ("{\"kind\":\"POS_EQUIVALENT\",\"environment\":\"SIMULATION\",\"resolutionNumber\":\"18760000010\",\"prefix\":\"P\","
-                        + "\"rangeFrom\":1,\"rangeTo\":10,\"validFrom\":\"%s\",\"validTo\":\"%s\"}").formatted(today, today.plusDays(30)));
+                        + "\"rangeFrom\":1,\"rangeTo\":10,\"validFrom\":\"%s\",\"validTo\":\"%s\"}").formatted(today.minusDays(1), today.plusDays(30)));
+        // validFrom de ayer: la JVM de CI está en UTC y la fecha de emisión es la de Colombia (UTC-5).
         HttpResponse<String> mismatch = charge(token, "cobro-" + UUID.randomUUID());
         assertEquals(409, mismatch.statusCode(), mismatch.body());
         assertEquals("PAYMENT_ENVIRONMENT_MISMATCH", field(mismatch.body(), "code"),

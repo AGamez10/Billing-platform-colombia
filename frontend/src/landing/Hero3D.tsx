@@ -20,10 +20,10 @@ export function Hero3D({ fallback }: { fallback: ReactNode }) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let disposed = false;
     let handle: { dispose(): void } | null = null;
-    const idle = (cb: () => void) =>
-      'requestIdleCallback' in window
-        ? (window as Window & { requestIdleCallback: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback(cb, { timeout: 1200 })
-        : window.setTimeout(cb, 300);
+    const idle = (cb: () => void) => {
+      if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(cb, { timeout: 1200 });
+      else globalThis.setTimeout(cb, 300);
+    };
     idle(() => {
       import('./heroScene')
         .then((m) => m.mountHeroScene(canvas, { reducedMotion }))
