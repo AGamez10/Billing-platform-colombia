@@ -42,7 +42,7 @@ orgs=$(q "SELECT count(*) FROM organizations")
 invoices=$(q "SELECT count(*) FROM invoices")
 users=$(q "SELECT count(*) FROM users")
 # billing_app sin organización en contexto no ve nada: RLS sigue activo tras restaurar.
-leaked=$(docker exec "$name" psql -U postgres -d billing -At -c "SET ROLE billing_app; SELECT count(*) FROM invoices")
+leaked=$(docker exec "$name" psql -U postgres -d billing -qAt -c "SET ROLE billing_app" -c "SELECT count(*) FROM invoices")
 if [ -z "$version" ] || [ "$version" -lt 1 ]; then echo "FALLO: sin historial de migraciones" >&2; exit 1; fi
 if [ "$leaked" != "0" ]; then echo "FALLO: billing_app ve $leaked facturas sin organización" >&2; exit 1; fi
 echo "RESTAURACIÓN OK: migración V$version · $orgs organizaciones · $users usuarios · $invoices documentos · RLS activo"
