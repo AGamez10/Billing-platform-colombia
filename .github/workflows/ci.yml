@@ -114,7 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: frontend/package.json
 
@@ -188,7 +188,7 @@ jobs:
           [ "$user" != "root" ] || { echo "::error title=Web::nginx corre como root"; exit 1; }
           echo "::notice title=Web::Interfaz, rutas SPA, manifest PWA, proxy /api y cabeceras de seguridad OK"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: frontend/package.json
 
