@@ -46,7 +46,7 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/invitations/preview", "/api/v1/auth/invitations/accept")
                         .permitAll()
                         // Webhooks de pasarelas: sin sesión; se autentican con el token de la URL y la firma.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/bold/*")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/bold/*", "/api/v1/webhooks/mercadopago")
                         .permitAll()
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().denyAll())

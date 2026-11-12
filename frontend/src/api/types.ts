@@ -252,3 +252,24 @@ export interface InvitationPreview {
   role: Role;
   existingAccount: boolean;
 }
+
+export interface SubscriptionInfo {
+  planCode: string;
+  status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+  periodStart: string;
+  periodEnd: string;
+  /** Mercado Pago configurado: el plan se paga en línea. */
+  onlinePayments: boolean;
+}
+
+export interface SubscriptionCheckout {
+  id: string;
+  status: 'PENDING' | 'PAID' | 'EXPIRED';
+  planCode: string;
+  cycle: BillingCycle;
+  amount: number;
+  checkoutUrl?: string;
+  /** Estado del último intento en Mercado Pago, para orientar si fue rechazado. */
+  lastAttempt?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REFUNDED';
+  paidAt?: string;
+}

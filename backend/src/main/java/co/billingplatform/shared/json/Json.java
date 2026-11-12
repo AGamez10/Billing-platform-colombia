@@ -1,4 +1,4 @@
-package co.billingplatform.payments.adapter.bold;
+package co.billingplatform.shared.json;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Lector JSON mínimo y estricto para las respuestas de Bold (objetos, listas, textos, números,
+ * Lector JSON mínimo y estricto para las respuestas de pasarelas (Bold, Mercado Pago) (objetos, listas, textos, números,
  * booleanos y null). Evita acoplar el adaptador a la versión del mapper del framework y se prueba
  * sin Spring. Rechaza entradas de más de 1 MB o con más de 64 niveles.
  */
-final class BoldJson {
+public final class Json {
 
     private static final int MAX_LENGTH = 1_000_000;
     private static final int MAX_DEPTH = 64;
@@ -19,15 +19,15 @@ final class BoldJson {
     private final String s;
     private int i;
 
-    private BoldJson(String s) {
+    private Json(String s) {
         this.s = s;
     }
 
-    static Object parse(String json) {
+    public static Object parse(String json) {
         if (json == null || json.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("JSON missing or too large");
         }
-        BoldJson p = new BoldJson(json);
+        Json p = new Json(json);
         p.ws();
         Object v = p.value(0);
         p.ws();
@@ -38,7 +38,7 @@ final class BoldJson {
     }
 
     /** Navega por claves de objetos; devuelve null si algún tramo no existe. */
-    static Object path(Object root, String... keys) {
+    public static Object path(Object root, String... keys) {
         Object cur = root;
         for (String k : keys) {
             if (!(cur instanceof Map<?, ?> m)) {
@@ -49,13 +49,13 @@ final class BoldJson {
         return cur;
     }
 
-    static String text(Object root, String... keys) {
+    public static String text(Object root, String... keys) {
         Object v = path(root, keys);
         return v == null ? null : v instanceof BigDecimal b ? b.toPlainString() : v.toString();
     }
 
     /** Escapa texto para JSON (lo usa el adaptador al construir peticiones). */
-    static String quote(String value) {
+    public static String quote(String value) {
         StringBuilder b = new StringBuilder("\"");
         for (char c : value.toCharArray()) {
             switch (c) {

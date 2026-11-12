@@ -1,5 +1,6 @@
 package co.billingplatform.payments.adapter.bold;
 
+import co.billingplatform.shared.json.Json;
 import co.billingplatform.payments.domain.Charge;
 import co.billingplatform.payments.domain.PaymentAccount;
 import co.billingplatform.payments.port.MerchantPaymentGateway;
@@ -61,11 +62,11 @@ public final class BoldGateway implements MerchantPaymentGateway {
     public List<String> verifyCredentials(Credentials credentials) {
         Object body = call(credentials, HttpRequest.newBuilder(uri("/online/link/v1/payment_methods")).GET());
         List<String> methods = new ArrayList<>();
-        Object payload = BoldJson.path(body, "payload");
+        Object payload = Json.path(body, "payload");
         Object list = payload instanceof Map<?, ?> m && m.get("payment_methods") != null ? m.get("payment_methods") : payload;
         if (list instanceof List<?> l) {
             for (Object o : l) {
-                String name = o instanceof Map<?, ?> m ? BoldJson.text(m, "name") : String.valueOf(o);
+                String name = o instanceof Map<?, ?> m ? Json.text(m, "name") : String.valueOf(o);
                 if (name != null) methods.add(name);
             }
         } else if (list instanceof Map<?, ?> m) {
@@ -78,13 +79,13 @@ public final class BoldGateway implements MerchantPaymentGateway {
     public CreatedLink createLink(Credentials credentials, String reference, BigDecimal amount, String description) {
         BigDecimal pesos = amount.setScale(0, RoundingMode.HALF_UP);
         String json = "{\"amount_type\":\"CLOSE\",\"amount\":{\"currency\":\"COP\",\"total_amount\":" + pesos.toPlainString()
-                + ",\"tip_amount\":0},\"reference\":" + BoldJson.quote(reference)
-                + ",\"description\":" + BoldJson.quote(description) + "}";
+                + ",\"tip_amount\":0},\"reference\":" + Json.quote(reference)
+                + ",\"description\":" + Json.quote(description) + "}";
         Object body = call(credentials, HttpRequest.newBuilder(uri("/online/link/v1"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json)));
-        String id = BoldJson.text(body, "payload", "payment_link");
-        String url = BoldJson.text(body, "payload", "url");
+        String id = Json.text(body, "payload", "payment_link");
+        String url = Json.text(body, "payload", "url");
         if (id == null || url == null || !url.startsWith("https://")) {
             throw new GatewayException("Bold did not return a payment link", false);
         }
@@ -97,9 +98,9 @@ public final class BoldGateway implements MerchantPaymentGateway {
             throw new GatewayException("Invalid link id", false);
         }
         Object body = call(credentials, HttpRequest.newBuilder(uri("/online/link/v1/" + URLEncoder.encode(linkId, StandardCharsets.UTF_8))).GET());
-        Object root = BoldJson.path(body, "payload") instanceof Map<?, ?> p ? p : body;
-        String status = BoldJson.text(root, "status");
-        return new LinkStatus(map(status), BoldJson.text(root, "transaction_id"), BoldJson.text(root, "payment_method"));
+        Object root = Json.path(body, "payload") instanceof Map<?, ?> p ? p : body;
+        String status = Json.text(root, "status");
+        return new LinkStatus(map(status), Json.text(root, "transaction_id"), Json.text(root, "payment_method"));
     }
 
     @Override
@@ -157,7 +158,7 @@ public final class BoldGateway implements MerchantPaymentGateway {
             throw new GatewayException("Bold answered HTTP " + res.statusCode(), false);
         }
         try {
-            return BoldJson.parse(res.body());
+            return Json.parse(res.body());
         } catch (IllegalArgumentException e) {
             throw new GatewayException("Bold answered invalid JSON", false);
         }

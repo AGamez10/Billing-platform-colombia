@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { http } from '../api/client';
-import type { BillingCycle, Plan, PlanChange, Quota } from '../api/types';
+import type { BillingCycle, Plan, PlanChange, Quota, SubscriptionCheckout, SubscriptionInfo } from '../api/types';
 import { useSession } from '../auth/session';
 import { messageFor } from '../lib/errors';
 import { formatCop } from '../lib/format';
@@ -12,26 +12,38 @@ import { Alert, Spinner } from './ui';
  * los documentos adicionales solo aparecen si el plan los admite, con aceptación expresa
  * (ADR-0014). Elegir un plan registra la solicitud con su precio; el plan se activa al pagar.
  */
-export function UpgradeOffer({ onResolved, showAll = false, title }: { onResolved?: () => void; showAll?: boolean; title?: string }) {
+export function UpgradeOffer({ onResolved, showAll = false, title, includeCurrent = false }: { onResolved?: () => void; showAll?: boolean; title?: string; includeCurrent?: boolean }) {
   const { can } = useSession();
   const plans = useApi<Plan[]>('/api/v1/public/plans');
   const quota = useApi<Quota>('/api/v1/subscription/quota');
   const pending = useApi<PlanChange>('/api/v1/subscription/plan-change-requests/pending');
+  const subscription = useApi<SubscriptionInfo>('/api/v1/subscription');
+  const online = !!subscription.data?.onlinePayments;
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accept, setAccept] = useState(false);
   const canDecide = can('manage');
 
-  if (plans.loading || quota.loading || pending.loading) return <Spinner label="Cargando planes" />;
+  if (plans.loading || quota.loading || pending.loading || subscription.loading) return <Spinner label="Cargando planes" />;
   const all = plans.data ?? [];
   const q = quota.data;
   const current = all.find((p) => p.code === q?.planCode);
-  const options = showAll ? all.filter((p) => p.family !== 'TRIAL' && p.code !== current?.code) : upgradeOptions(all, current);
+  const options = showAll
+    ? all.filter((p) => p.family !== 'TRIAL' && (includeCurrent || p.code !== current?.code))
+    : upgradeOptions(all, current);
 
   async function choose(plan: Plan, cycle: BillingCycle) {
     setBusy(`${plan.code}:${cycle}`);
     setError(null);
     try {
+      if (online) {
+        // Pago en línea: Mercado Pago (tarjeta, PSE y los medios que ofrezca). Al volver, Mi plan confirma el pago.
+        const checkout = await http.post<SubscriptionCheckout>('/api/v1/subscription/checkouts', { planCode: plan.code, cycle });
+        if (checkout.checkoutUrl) {
+          window.location.assign(checkout.checkoutUrl);
+          return;
+        }
+      }
       await http.post<PlanChange>('/api/v1/subscription/plan-change-requests', { planCode: plan.code, cycle });
       await pending.reload();
     } catch (err) {
@@ -60,7 +72,8 @@ export function UpgradeOffer({ onResolved, showAll = false, title }: { onResolve
     <section className="card stack upgrade" aria-labelledby="upgrade-h">
       <h2 id="upgrade-h">{title ?? (q?.planCode === 'TRIAL' ? 'Elige tu plan para seguir emitiendo' : 'Sube de plan y sigue emitiendo')}</h2>
       {error && <Alert tone="error">{error}</Alert>}
-      {chosen && pending.data && (
+      {online && <p className="small muted">Pagas en Mercado Pago con tarjeta, PSE u otros medios. El plan se activa apenas se confirme el pago.</p>}
+      {!online && chosen && pending.data && (
         <Alert tone="ok">
           Elegiste <strong>{chosen.name}</strong> con pago {pending.data.cycle === 'ANNUAL' ? 'anual' : 'mensual'} por{' '}
           <strong>{formatCop(pending.data.quotedPrice)}</strong>. Te enviaremos el link de pago; el plan se activa cuando se confirme.
@@ -77,12 +90,12 @@ export function UpgradeOffer({ onResolved, showAll = false, title }: { onResolve
             </p>
             {p.monthlyBillingAllowed && p.monthlyPrice && (
               <button type="button" className="btn btn-primary btn-block" disabled={!canDecide || !!busy} onClick={() => void choose(p, 'MONTHLY')}>
-                {busy === `${p.code}:MONTHLY` ? 'Guardando…' : `${formatCop(p.monthlyPrice)} al mes`}
+                {busy === `${p.code}:MONTHLY` ? (online ? 'Abriendo Mercado Pago…' : 'Guardando…') : `${formatCop(p.monthlyPrice)} al mes`}
               </button>
             )}
             {p.annualPrice && (
               <button type="button" className="btn btn-secondary btn-block" disabled={!canDecide || !!busy} onClick={() => void choose(p, 'ANNUAL')}>
-                {busy === `${p.code}:ANNUAL` ? 'Guardando…' : `${formatCop(p.annualPrice)} al año${annualSaving(p)}`}
+                {busy === `${p.code}:ANNUAL` ? (online ? 'Abriendo Mercado Pago…' : 'Guardando…') : `${formatCop(p.annualPrice)} al año${annualSaving(p)}`}
               </button>
             )}
           </article>

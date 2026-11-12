@@ -44,6 +44,7 @@ Internet ─▶ Caddy/Nginx (TLS, HSTS) ─┬─▶ frontend estático
 - Backups: `pg_dump` diario cifrado a almacenamiento externo + retención 30 días; prueba de restauración mensual. Evaluar WAL archiving cuando haya clientes en producción.
 - Observabilidad: Actuator (health/metrics) no expuesto públicamente; logs JSON sin secretos ni datos tributarios completos.
 - Correo transaccional (recuperar contraseña, invitaciones): SMTP con STARTTLS. Opción recomendada por costo: Amazon SES (del orden de USD 0,10 por cada mil correos según su lista pública; confirmar el precio vigente antes de contratar), con el dominio verificado y SPF, DKIM y DMARC publicados para no caer en spam. Variables: `BILLING_MAIL_MODE=smtp`, `BILLING_MAIL_FROM`, `BILLING_SMTP_HOST`, `BILLING_SMTP_PORT=587`, `BILLING_SMTP_USERNAME`, `BILLING_SMTP_PASSWORD`, `BILLING_WEB_BASE_URL` (la URL pública con HTTPS). En local, Docker Compose levanta Mailpit (http://localhost:8025) y nada sale a internet.
+- Pago de planes con Mercado Pago (ADR-0024): `BILLING_MERCADOPAGO_ACCESS_TOKEN`, `BILLING_MERCADOPAGO_WEBHOOK_SECRET` y `BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=true`. En el panel de la aplicación de Mercado Pago, configurar el webhook `https://<dominio>/api/v1/webhooks/mercadopago` con el evento de pagos. Las credenciales nunca van al repositorio ni al chat.
 - Ambientes separados (desarrollo, habilitación, producción) con bases y credenciales de proveedor distintas.
 
 Esta sección se convertirá en una guía paso a paso cuando exista el build completo y se haya desplegado al menos una vez.

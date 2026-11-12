@@ -52,6 +52,15 @@ billing:
     # smtp (producción), log (por omisión: no envía) o memory (pruebas).
     mode: ${BILLING_MAIL_MODE:log}
     from: ${BILLING_MAIL_FROM:no-responder@localhost}
+  mercadopago:
+    # Pago de NUESTROS planes (ADR-0024). Sin access token, el pago en línea queda deshabilitado.
+    access-token: ${BILLING_MERCADOPAGO_ACCESS_TOKEN:}
+    webhook-secret: ${BILLING_MERCADOPAGO_WEBHOOK_SECRET:}
+    # En producción solo un pago real (live_mode) activa un plan. En pruebas con credenciales de prueba: false.
+    require-live-mode: ${BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE:true}
+  subscriptions:
+    # Días después del fin del periodo antes de pasar a PAST_DUE (no emite hasta pagar).
+    grace-days: ${BILLING_SUBSCRIPTION_GRACE_DAYS:3}
   legal:
     # Versión de los textos legales vigentes. Mientras estén en revisión del abogado, son borradores.
     terms-version: ${BILLING_TERMS_VERSION:borrador-2026-11}

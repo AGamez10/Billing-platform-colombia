@@ -72,6 +72,10 @@ const MESSAGES: Record<string, string> = {
   CANNOT_MODIFY_SELF: 'No puedes cambiar tu propio acceso.',
   CANNOT_MODIFY_OWNER: 'El acceso del dueño no se puede cambiar.',
   ACCOUNT_EXISTS_SIGN_IN: 'Ese correo ya tiene cuenta: escribe su contraseña para aceptar.',
+  SUBSCRIPTION_PAYMENTS_NOT_CONFIGURED: 'El pago en línea de planes todavía no está activo. Escríbenos y te enviamos el link de pago.',
+  SUBSCRIPTION_PAYMENTS_UNAVAILABLE: 'Mercado Pago no responde en este momento. Intenta de nuevo en unos minutos.',
+  CHECKOUT_NOT_FOUND: 'No encontramos ese pago.',
+  CHECKOUT_EXPIRED: 'Ese link de pago venció. Elige el plan otra vez.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 

@@ -318,6 +318,26 @@ SELECT t.expect_eq((SELECT count(*) FROM invitation_find('\xbb01')), 1, 'el enla
 SELECT t.expect_eq((SELECT count(*) FROM invitation_find('\xbb99')), 0, 'un enlace desconocido no ubica nada');
 SELECT t.expect_sqlstate($$DELETE FROM password_reset_tokens$$, '42501', 'los enlaces de recuperación no se borran');
 
+-- 14. Pago de planes (V15): checkouts aislados; un pago activa a lo sumo uno; vencimientos.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+INSERT INTO subscription_checkouts (tenant_id, id, plan_code, cycle, amount, status, gateway, created_by)
+VALUES (:tenant_a, 'cc000000-0000-0000-0000-0000000000a1', 'EMPRENDEDOR', 'MONTHLY', 12900, 'PENDING', 'MERCADOPAGO', '00000000-0000-0000-0000-0000000000a1');
+SELECT t.expect_sqlstate(
+    $$UPDATE subscription_checkouts SET status = 'PAID' WHERE id = 'cc000000-0000-0000-0000-0000000000a1'$$,
+    '23514', 'un checkout pagado exige el pago y la fecha');
+UPDATE subscription_checkouts SET status = 'PAID', gateway_payment_id = '777', paid_at = now() WHERE id = 'cc000000-0000-0000-0000-0000000000a1';
+SELECT t.expect_sqlstate(
+    $$INSERT INTO subscription_checkouts (tenant_id, id, plan_code, cycle, amount, status, gateway, gateway_payment_id, paid_at, created_by)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'PRO', 'MONTHLY', 69900, 'PAID', 'MERCADOPAGO', '777', now(), '00000000-0000-0000-0000-0000000000a1')$$,
+    '23505', 'un mismo pago nunca activa dos checkouts');
+SELECT t.expect_sqlstate($$DELETE FROM subscription_checkouts$$, '42501', 'los pagos de planes no se borran');
+SELECT set_config('app.tenant_id', :tenant_b, false);
+SELECT t.expect_eq((SELECT count(*) FROM subscription_checkouts), 0, 'B no ve los pagos de planes de A');
+SELECT set_config('app.tenant_id', '', false);
+SELECT t.expect_eq((SELECT count(*) FROM (SELECT subscription_checkout_tenant('cc000000-0000-0000-0000-0000000000a1') AS t) x WHERE x.t::text = :tenant_a), 1, 'el aviso ubica el tenant del checkout sin contexto');
+SELECT t.expect_eq((SELECT count(*) FROM claim_pending_checkouts(10)), 0, 'un checkout pagado no se concilia');
+SELECT t.expect_eq((SELECT count(*) FROM (SELECT mark_overdue_subscriptions(DATE '2000-01-01', 3)) x), 1, 'el vencimiento corre sin tenant');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

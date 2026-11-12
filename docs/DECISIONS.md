@@ -275,6 +275,21 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 - Presupuesto de rendimiento: la landing es un paquete aparte (7 KB gzip); Three.js (~130 KB gzip) se descarga después de pintar la página, en tiempo ocioso; Chart.js (~50 KB gzip) solo cuando la calculadora se acerca a la pantalla. Sin sombras dinámicas ni postprocesado, píxeles limitados a 1,75×, texturas de lienzo que solo se redibujan al cambiar de estado, bucle detenido fuera de pantalla o con la pestaña oculta. Sin WebGL, con ahorro de datos o con movimiento reducido: versión estática.
 - Caja de demostración en la misma página (sin cuenta, sin llamadas al servidor) y calculadora de costo por documento con el catálogo real. La confianza se apoya en hechos verificables (estado ante la DIAN, ambientes, aislamiento, dinero directo al comercio), no en cifras inventadas ni en comparaciones con terceros sin fuente.
 
+## ADR-0024 — Pago de nuestros planes con Mercado Pago (Checkout Pro)
+*2026-11-12 — aceptada*
+
+**Decisión:** cada pago de plan es un *checkout* con plan, ciclo y valor fijos (V15). Se crea una preferencia de Checkout Pro (`POST /checkout/preferences`) con `external_reference` = id del checkout; el cliente paga en Mercado Pago con los medios que ofrezca (tarjeta, PSE y otros) y vuelve a Mi plan.
+
+- **Mercado Pago es la fuente de verdad.** El aviso (webhook) se acepta solo con firma `x-signature` válida (HMAC-SHA256 del manifiesto `id;request-id;ts` con la clave secreta) y aun así no se cree: se consulta el pago a la API. También se consulta al volver de Mercado Pago y cada 2 minutos para lo pendiente (48 h).
+- **Activa el plan solo un pago aprobado, en COP, por exactamente el valor del checkout, de esa referencia y real** (`live_mode`; en pruebas se desactiva con `BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=false`). Un pago activa a lo sumo un checkout (índice único).
+- **Vigencia:** renovar el mismo plan estando al día extiende desde el fin del periodo; cambiar de plan, salir de la prueba o pagar vencido empieza hoy (fecha de Colombia). Sin prorrateo en el piloto.
+- **Vencimiento:** a los 3 días de gracia (configurable) después del fin, la suscripción pasa a PAST_DUE y no emite hasta pagar.
+- Sin access token configurado, la app funciona y el plan se pide como solicitud (pago manual, ADR-0021).
+
+**Por qué Checkout Pro y no suscripciones con cobro automático (preapproval):** en Colombia buena parte de los micro y pequeños negocios paga por PSE o en efectivo, que no sirven para cobros recurrentes con tarjeta. El cobro automático queda como opción adicional para quien pague con tarjeta.
+
+**Pendiente:** avisos por correo antes del vencimiento; factura electrónica de nuestra propia suscripción (somos facturadores: la emitiremos con la plataforma misma cuando Muisca esté conectado); confirmar con un contador el tratamiento del IVA de la suscripción.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

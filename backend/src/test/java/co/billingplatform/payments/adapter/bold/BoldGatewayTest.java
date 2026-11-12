@@ -1,5 +1,6 @@
 package co.billingplatform.payments.adapter.bold;
 
+import co.billingplatform.shared.json.Json;
 import co.billingplatform.payments.domain.Charge;
 import co.billingplatform.payments.domain.PaymentAccount;
 import co.billingplatform.payments.port.MerchantPaymentGateway;
@@ -129,12 +130,12 @@ class BoldGatewayTest {
     @Test
     @DisplayName("JSON: escapes, números exactos y rechazo de basura")
     void parsesJsonStrictly() {
-        Object v = BoldJson.parse("{\"a\":[1,2.50,{\"b\":\"x\\\"y\\u00e9\"}],\"c\":true,\"d\":null}");
-        assertEquals("x\"yé", BoldJson.text(((java.util.List<?>) BoldJson.path(v, "a")).get(2), "b"));
-        assertEquals("2.50", ((java.util.List<?>) BoldJson.path(v, "a")).get(1).toString());
-        assertThrows(IllegalArgumentException.class, () -> BoldJson.parse("{\"a\":1} extra"));
-        assertThrows(IllegalArgumentException.class, () -> BoldJson.parse("{\"a\":"));
-        assertThrows(IllegalArgumentException.class, () -> BoldJson.parse("[".repeat(100) + "]".repeat(100)));
+        Object v = Json.parse("{\"a\":[1,2.50,{\"b\":\"x\\\"y\\u00e9\"}],\"c\":true,\"d\":null}");
+        assertEquals("x\"yé", Json.text(((java.util.List<?>) Json.path(v, "a")).get(2), "b"));
+        assertEquals("2.50", ((java.util.List<?>) Json.path(v, "a")).get(1).toString());
+        assertThrows(IllegalArgumentException.class, () -> Json.parse("{\"a\":1} extra"));
+        assertThrows(IllegalArgumentException.class, () -> Json.parse("{\"a\":"));
+        assertThrows(IllegalArgumentException.class, () -> Json.parse("[".repeat(100) + "]".repeat(100)));
     }
 
     private static String hmac(String key, byte[] body) throws Exception {

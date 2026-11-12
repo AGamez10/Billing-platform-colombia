@@ -36,6 +36,10 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `POST /team/invitations` | USERS_MANAGE | `{email, role}` (ADMIN, BILLER, VIEWER; nunca más permisos que los propios). Reenviar reemplaza la anterior |
 | `DELETE /team/invitations/{id}` | USERS_MANAGE | Anula una invitación abierta |
 | `PATCH /team/members/{userId}` / `DELETE` | USERS_MANAGE | Cambia el rol / retira el acceso (nunca al dueño ni a uno mismo) |
+| `GET /subscription` | USAGE_READ | Plan, estado (`TRIAL`, `ACTIVE`, `PAST_DUE`), vigencia y `onlinePayments` |
+| `POST /subscription/checkouts` | BILLING_MANAGE | `{planCode, cycle}`: crea el pago en Mercado Pago y devuelve `checkoutUrl` (ADR-0024). 503 si el pago en línea no está configurado |
+| `GET /subscription/checkouts/{id}` | USAGE_READ | Estado del pago (`PENDING`, `PAID`, `EXPIRED`) y `lastAttempt`; consulta a Mercado Pago si sigue pendiente |
+| `POST /webhooks/mercadopago` | público (firma `x-signature`) | Aviso de Mercado Pago; el pago se consulta a su API |
 | `POST /subscription/plan-change-requests` | BILLING_MANAGE | Elige plan y ciclo (`MONTHLY`/`ANNUAL`) desde la oferta de mejora; guarda el precio cotizado. El plan cambia al confirmarse el pago (ADR-0021) |
 | `GET /subscription/plan-change-requests/pending` | USAGE_READ | Solicitud pendiente de pago, si la hay |
 | `POST /pos-sales` | INVOICE_WRITE + INVOICE_FINALIZE | Venta rápida: crea y emite el POS en un paso. Exige `Idempotency-Key` (ADR-0018) |
