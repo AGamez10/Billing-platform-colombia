@@ -12,8 +12,15 @@ import java.util.Objects;
  * nunca se presenta como factura electrónica con validez tributaria.
  *
  * @param documentKey código único del documento (CUFE/CUDE) informado por el proveedor
+ * @param qrPayload   contenido del código QR de la representación gráfica tal como lo entrega el
+ *                    proveedor ({@code null} si no lo informa); la plataforma no lo calcula
  */
-public record ValidationEvidence(String documentKey, ProviderEnvironment environment, Instant validatedAt) {
+public record ValidationEvidence(String documentKey, ProviderEnvironment environment, Instant validatedAt,
+                                 String qrPayload) {
+
+    public ValidationEvidence(String documentKey, ProviderEnvironment environment, Instant validatedAt) {
+        this(documentKey, environment, validatedAt, null);
+    }
 
     public ValidationEvidence {
         if (documentKey == null || documentKey.isBlank()) {
@@ -21,5 +28,9 @@ public record ValidationEvidence(String documentKey, ProviderEnvironment environ
         }
         Objects.requireNonNull(environment);
         Objects.requireNonNull(validatedAt);
+        qrPayload = qrPayload == null || qrPayload.isBlank() ? null : qrPayload;
+        if (qrPayload != null && qrPayload.length() > 2000) {
+            throw new IllegalArgumentException("QR payload is too long");
+        }
     }
 }

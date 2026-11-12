@@ -47,7 +47,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static final java.util.Set<String> LIMITED = java.util.Set.of(
             "/api/v1/auth/register", "/api/v1/auth/login",
             "/api/v1/auth/password-reset/request", "/api/v1/auth/password-reset/confirm",
-            "/api/v1/auth/invitations/preview", "/api/v1/auth/invitations/accept");
+            "/api/v1/auth/invitations/preview", "/api/v1/auth/invitations/accept",
+            "/api/v1/public/documents/view");
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

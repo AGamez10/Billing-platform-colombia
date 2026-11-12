@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { nitCheckDigit } from '../src/lib/nit';
+import { linkFromEmail } from './helpers';
 
 function randomNit(): string {
   return String(900_000_000 + Math.floor(Math.random() * 99_999_999));
@@ -60,6 +61,27 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/sin validez tributaria/).first()).toBeVisible();
   await expect(page.getByText(/^SIMULATED-/)).toBeVisible();
+
+  // 6. Representación gráfica: CUFE, QR del proveedor y advertencia de práctica
+  await page.getByRole('link', { name: 'Ver e imprimir' }).click();
+  await expect(page.getByText('DOCUMENTO DE PRÁCTICA — no se envió a la DIAN y no tiene validez tributaria').first()).toBeVisible();
+  await expect(page.getByRole('img', { name: /Código QR del CUFE/ })).toBeVisible();
+  await expect(page.getByText('SETT1', { exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Volver' }).click();
+
+  // 7. Enviar al comprador y abrir el enlace sin cuenta, como lo haría él
+  const buyer = `comprador-${suffix}@example.com`;
+  await page.getByLabel('Enviar al correo').fill(buyer);
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByText(`Enviado a ${buyer}.`)).toBeVisible();
+  const link = await linkFromEmail(page.request, buyer, '/documento');
+  const guest = await page.context().browser()!.newContext();
+  const buyerPage = await guest.newPage();
+  await buyerPage.goto(link);
+  await expect(buyerPage.getByRole('heading', { name: `Fundación E2E ${suffix}` })).toBeVisible();
+  await expect(buyerPage.getByText(/no tiene validez tributaria/).first()).toBeVisible();
+  await expect(buyerPage).toHaveURL(/\/documento$/); // el token sale de la barra de direcciones
+  await guest.close();
 });
 
 test('comercio: venta rápida a consumidor final emite el POS en simulación', async ({ page }) => {

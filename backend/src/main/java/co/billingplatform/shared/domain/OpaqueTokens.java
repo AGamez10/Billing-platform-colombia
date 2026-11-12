@@ -1,4 +1,4 @@
-package co.billingplatform.identity.domain;
+package co.billingplatform.shared.domain;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -8,7 +8,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 
 /**
- * Tokens opacos de alta entropía (refresh tokens, claves de API). Al tener 256 bits
+ * Tokens opacos de alta entropía (refresh tokens, claves de API, enlaces de un documento). Al tener 256 bits
  * aleatorios, un SHA-256 sin sal es suficiente para almacenarlos: no aplica fuerza bruta
  * por diccionario como en contraseñas. Nunca se guarda el valor en claro.
  */

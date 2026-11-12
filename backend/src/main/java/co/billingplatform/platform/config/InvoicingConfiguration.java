@@ -5,6 +5,7 @@ import co.billingplatform.electronicinvoicing.application.ProviderAccountService
 import co.billingplatform.electronicinvoicing.application.ProviderRegistry;
 import co.billingplatform.electronicinvoicing.port.ElectronicInvoicingProvider;
 import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
+import co.billingplatform.invoicing.application.DocumentSharingService;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
 import co.billingplatform.invoicing.application.InvoiceRepository;
@@ -16,6 +17,7 @@ import co.billingplatform.invoicing.application.SubmissionQueue;
 import co.billingplatform.invoicing.application.SubmitInvoiceService;
 import co.billingplatform.invoicing.application.UsageMeter;
 import co.billingplatform.shared.application.AuditTrail;
+import co.billingplatform.shared.application.Mailer;
 import co.billingplatform.shared.domain.RoundingPolicy;
 import co.billingplatform.subscriptions.application.OverageConsentRepository;
 import co.billingplatform.subscriptions.application.OverageConsentService;
@@ -82,6 +84,14 @@ class InvoicingConfiguration {
     InvoiceDraftService invoiceDraftService(InvoiceRepository invoices, CustomerService customers, TaxCatalog taxes,
                                             DocumentCalculator calculator, AuditTrail audit, Clock clock) {
         return new InvoiceDraftService(invoices, customers, taxes, calculator, audit, clock);
+    }
+
+    @Bean
+    DocumentSharingService documentSharingService(InvoiceRepository invoices, DocumentSharingService.ShareLinks links,
+                                                  IssuerDirectory issuers, Mailer mailer, AuditTrail audit,
+                                                  @Value("${billing.brand.name}") String brand,
+                                                  @Value("${billing.web.base-url}") String baseUrl, Clock clock) {
+        return new DocumentSharingService(invoices, links, issuers, mailer, audit, brand, baseUrl, clock);
     }
 
     @Bean

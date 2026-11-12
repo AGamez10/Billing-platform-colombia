@@ -306,3 +306,38 @@ export interface SubscriptionCheckout {
   lastAttempt?: 'APPROVED' | 'PENDING' | 'REJECTED' | 'REFUNDED';
   paidAt?: string;
 }
+
+export interface SheetParty {
+  identificationType: IdentificationType;
+  identificationNumber: string;
+  checkDigit?: number | null;
+  legalName: string;
+  email?: string | null;
+  address?: string | null;
+  cityCode?: string | null;
+  cityName?: string | null;
+  departmentName?: string | null;
+  personTypeCode?: string | null;
+  vatRegime?: VatRegime | null;
+  responsibilities: TaxResponsibility[];
+}
+
+/** Representación gráfica de un documento validado (también la ve el comprador por enlace). */
+export interface DocumentSheet {
+  kind: DocumentKind;
+  number: string;
+  issueDate: string;
+  validatedAt: string;
+  environment: Environment;
+  legallyValid: boolean;
+  simulated: boolean;
+  issuer: SheetParty;
+  customer: SheetParty;
+  finalConsumer: boolean;
+  authorization: { resolutionNumber: string; prefix?: string | null; rangeFrom: number; rangeTo: number; validFrom: string; validTo: string };
+  lines: InvoiceLine[];
+  taxSubtotals: Invoice['taxSubtotals'];
+  totals: Invoice['totals'];
+  documentKey: string;
+  qrPayload?: string | null;
+}

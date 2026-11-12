@@ -152,7 +152,8 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 env == null ? null : ProviderEnvironment.valueOf(env),
                 ref == null ? null : new ExternalReference(ref),
                 validationEnv == null ? null : new ValidationEvidence((String) r.get("document_key"),
-                        ProviderEnvironment.valueOf(validationEnv), ((Timestamp) r.get("validated_at")).toInstant()),
+                        ProviderEnvironment.valueOf(validationEnv), ((Timestamp) r.get("validated_at")).toInstant(),
+                        (String) r.get("qr_payload")),
                 reasons == null ? List.of() : Arrays.asList(reasons),
                 (Boolean) r.get("outcome_uncertain"),
                 (Integer) r.get("provider_interactions"),
@@ -234,7 +235,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                                issue_date = :issueDate, prefix = :prefix, number = :number, numbering_range_id = :range,
                                line_extension_amount = :lineExt, tax_total = :taxTotal, payable_amount = :payable,
                                provider_account_id = :account, environment = :env,
-                               external_reference = :ref, document_key = :docKey, validation_environment = :valEnv,
+                               external_reference = :ref, document_key = :docKey, validation_environment = :valEnv, qr_payload = :qr,
                                validated_at = :validatedAt, outcome_uncertain = :uncertain,
                                provider_interactions = :interactions, last_error = :lastError,
                                rejection_reasons = CAST(:reasons AS jsonb), version = version + 1, updated_at = now()
@@ -280,6 +281,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         p.put("env", inv.environment().map(Enum::name).orElse(null));
         p.put("ref", inv.externalReference().map(ExternalReference::value).orElse(null));
         p.put("docKey", inv.evidence().map(ValidationEvidence::documentKey).orElse(null));
+        p.put("qr", inv.evidence().map(ValidationEvidence::qrPayload).orElse(null));
         p.put("valEnv", inv.evidence().map(e -> e.environment().name()).orElse(null));
         p.put("validatedAt", inv.evidence().map(e -> Timestamp.from(e.validatedAt())).orElse(null));
         p.put("uncertain", inv.outcomeUncertain());

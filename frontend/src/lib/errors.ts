@@ -82,6 +82,10 @@ const MESSAGES: Record<string, string> = {
   INVALID_ORGANIZATION: 'Revisa los datos de tu empresa.',
   ISSUER_PROFILE_INCOMPLETE: 'Antes de facturar en real, completa los datos tributarios de tu empresa en Ajustes → Datos de tu empresa.',
   CUSTOMER_PROFILE_INCOMPLETE: 'A este cliente le faltan sus datos tributarios. Complétalos en Clientes, vuelve a guardar el borrador y emite.',
+  INVOICE_NOT_VALIDATED: 'Solo se puede ver, imprimir o enviar un documento ya validado.',
+  SHARE_LIMIT_REACHED: 'Ya compartiste este documento muchas veces hoy. Intenta mañana o usa un enlace que ya enviaste.',
+  SHARE_LINK_NOT_FOUND: 'Este enlace no existe o ya venció. Pídele a quien te lo envió uno nuevo.',
+  CUSTOMER_EMAIL_REQUIRED: 'El cliente no tiene correo. Escribe a qué correo enviarlo.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 

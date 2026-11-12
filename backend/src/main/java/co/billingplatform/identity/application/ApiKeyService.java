@@ -2,7 +2,7 @@ package co.billingplatform.identity.application;
 
 import co.billingplatform.identity.application.IdentityPorts.ApiKeyRecord;
 import co.billingplatform.identity.application.IdentityPorts.ApiKeys;
-import co.billingplatform.identity.domain.OpaqueTokens;
+import co.billingplatform.shared.domain.OpaqueTokens;
 import co.billingplatform.identity.domain.Permission;
 import co.billingplatform.shared.application.AuditTrail;
 import co.billingplatform.shared.domain.Actor;

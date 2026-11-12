@@ -1,6 +1,6 @@
 package co.billingplatform.identity.application;
 
-import co.billingplatform.identity.domain.OpaqueTokens;
+import co.billingplatform.shared.domain.OpaqueTokens;
 import co.billingplatform.identity.domain.PasswordPolicy;
 import co.billingplatform.shared.application.Mailer;
 import co.billingplatform.shared.domain.DomainException;

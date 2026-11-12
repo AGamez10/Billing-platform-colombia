@@ -3,7 +3,7 @@ package co.billingplatform.identity.application;
 import co.billingplatform.identity.application.IdentityPorts.Memberships;
 import co.billingplatform.identity.application.IdentityPorts.RefreshTokenRecord;
 import co.billingplatform.identity.application.IdentityPorts.RefreshTokens;
-import co.billingplatform.identity.domain.OpaqueTokens;
+import co.billingplatform.shared.domain.OpaqueTokens;
 import co.billingplatform.identity.domain.Role;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.TenantId;

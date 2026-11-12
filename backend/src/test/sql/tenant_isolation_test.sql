@@ -358,6 +358,32 @@ SELECT t.expect_sqlstate($$UPDATE customers SET person_type = 'LEGAL' WHERE id =
 SELECT t.expect_eq(t.rows_affected($$UPDATE organizations SET legal_name = 'pwned' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002'$$), 0,
        'IDOR: no se modifica el perfil de otra organización');
 
+-- 16. Enlaces de documento (V17): aislados; búsqueda solo por hash exacto y vigente; QR inmutable.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+INSERT INTO invoice_share_links (tenant_id, id, invoice_id, token_hash, channel, created_by, created_at, expires_at)
+VALUES (:tenant_a, gen_random_uuid(), 'f0000000-0000-0000-0000-0000000000a2', sha256('token-a'::bytea), 'LINK',
+        '00000000-0000-0000-0000-0000000000a1', now(), now() + interval '1 day'),
+       (:tenant_a, gen_random_uuid(), 'f0000000-0000-0000-0000-0000000000a2', sha256('vencido'::bytea), 'LINK',
+        '00000000-0000-0000-0000-0000000000a1', now() - interval '2 days', now() - interval '1 second');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invoice_share_links (tenant_id, id, invoice_id, token_hash, channel, created_by, expires_at)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'f0000000-0000-0000-0000-0000000000b1',
+              sha256('x'::bytea), 'LINK', '00000000-0000-0000-0000-0000000000a1', now() + interval '1 day')$$,
+    '23503', 'un enlace no puede apuntar a un documento de otra organización');
+SELECT t.expect_sqlstate($$UPDATE invoice_share_links SET expires_at = now() + interval '10 years'$$, '42501',
+       'la vigencia de un enlace no se puede extender');
+SELECT t.expect_sqlstate($$DELETE FROM invoice_share_links$$, '42501', 'los enlaces no se borran (se revocan)');
+UPDATE invoices SET qr_payload = 'QR-1' WHERE id = 'f0000000-0000-0000-0000-0000000000a2';
+SELECT t.expect_sqlstate($$UPDATE invoices SET qr_payload = 'QR-falso' WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
+       '23514', 'el QR de un documento no cambia una vez fijado');
+SELECT set_config('app.tenant_id', :tenant_b, false);
+SELECT t.expect_eq((SELECT count(*) FROM invoice_share_links), 0, 'B no ve los enlaces de A');
+SELECT set_config('app.tenant_id', '', false);
+SELECT t.expect_eq((SELECT count(*) FROM invoice_share_find(sha256('token-a'::bytea))), 1, 'el enlace vigente se resuelve sin tenant');
+SELECT t.expect_eq((SELECT count(*) FROM invoice_share_find(sha256('vencido'::bytea))), 0, 'un enlace vencido no abre nada');
+SELECT t.expect_eq((SELECT count(*) FROM invoice_share_find(sha256('otro'::bytea))), 0, 'un token desconocido no abre nada');
+SELECT t.expect_eq((SELECT count(*) FROM invoice_share_links), 0, 'sin tenant no se listan enlaces');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

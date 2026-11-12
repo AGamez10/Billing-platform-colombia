@@ -1,5 +1,6 @@
 package co.billingplatform.identity.domain;
 
+import co.billingplatform.shared.domain.OpaqueTokens;
 import co.billingplatform.shared.domain.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

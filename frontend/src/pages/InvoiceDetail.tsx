@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { http } from '../api/client';
 import type { Invoice } from '../api/types';
 import { useSession } from '../auth/session';
-import { Alert, EnvironmentBadge, Loading, PageHead, Spinner, StatusBadge } from '../components/ui';
+import { Alert, EnvironmentBadge, Field, Loading, PageHead, Spinner, StatusBadge } from '../components/ui';
 import { isQuotaError, messageFor } from '../lib/errors';
 import { QuotaBlocked } from '../components/UpgradeOffer';
 import { documentTitle, formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
@@ -76,6 +76,7 @@ export function InvoiceDetail() {
       {error && <Alert tone="error">{error}</Alert>}
       {quotaBlocked && <QuotaBlocked canSeePlans={can('usage')} onResolved={() => setQuotaBlocked(false)} />}
       <StatusExplanation invoice={inv} />
+      {inv.status === 'ACCEPTED' && <ShareActions invoiceId={inv.id} customerEmail={inv.customer.email} canSend={can('write')} />}
 
       {isDraft && can('write') && (
         <div className="row">
@@ -219,4 +220,101 @@ function StatusExplanation({ invoice: inv }: { invoice: Invoice }) {
     case 'FAILED':
       return <Alert tone="error">No fue posible enviarla tras varios intentos. Nuestro equipo debe revisarla; escríbenos a soporte.</Alert>;
   }
+}
+
+/** Ver, imprimir y hacer llegar el documento al comprador: correo, WhatsApp o enlace copiado. */
+function ShareActions({ invoiceId, customerEmail, canSend }: { invoiceId: string; customerEmail?: string; canSend: boolean }) {
+  const [email, setEmail] = useState(customerEmail ?? '');
+  const [busy, setBusy] = useState<'mail' | 'link' | null>(null);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    setBusy('mail');
+    setNotice(null);
+    try {
+      const r = await http.post<{ sentTo: string }>(`/api/v1/invoices/${invoiceId}/send`, { email: email.trim() || undefined });
+      setNotice({ tone: 'ok', text: `Enviado a ${r.sentTo}.` });
+    } catch (err) {
+      setNotice({ tone: 'error', text: messageFor(err) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createLink(): Promise<string | null> {
+    if (link) return link;
+    setBusy('link');
+    setNotice(null);
+    try {
+      const r = await http.post<{ link: string }>(`/api/v1/invoices/${invoiceId}/share-links`);
+      setLink(r.link);
+      return r.link;
+    } catch (err) {
+      setNotice({ tone: 'error', text: messageFor(err) });
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function copy() {
+    const url = await createLink();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotice({ tone: 'ok', text: 'Enlace copiado. Pégalo donde quieras.' });
+    } catch {
+      setNotice({ tone: 'ok', text: 'Enlace listo: cópialo de la casilla de abajo.' });
+    }
+  }
+
+  async function whatsapp() {
+    // La pestaña se abre antes de esperar al servidor: los navegadores bloquean ventanas abiertas después.
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    const url = await createLink();
+    if (!url) {
+      tab?.close();
+      return;
+    }
+    const target = `https://wa.me/?text=${encodeURIComponent(`Hola, aquí está tu documento: ${url}`)}`;
+    if (tab) tab.location.href = target;
+    else window.location.href = target;
+  }
+
+  return (
+    <section className="card stack" aria-labelledby="enviar-h">
+      <div className="section-title">
+        <h2 id="enviar-h">Entregar al cliente</h2>
+        <Link to={`/facturas/${invoiceId}/documento`} className="btn btn-secondary">
+          Ver e imprimir
+        </Link>
+      </div>
+      {notice && <Alert tone={notice.tone}>{notice.text}</Alert>}
+      {canSend ? (
+        <>
+          <form className="row share-row" onSubmit={(e) => void send(e)}>
+            <Field label="Enviar al correo" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@correo.com" />
+            <button type="submit" className="btn btn-primary" disabled={busy !== null}>
+              {busy === 'mail' ? 'Enviando…' : 'Enviar'}
+            </button>
+          </form>
+          <div className="row">
+            <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void whatsapp()}>
+              Enviar por WhatsApp
+            </button>
+            <button type="button" className="btn btn-ghost" disabled={busy !== null} onClick={() => void copy()}>
+              Copiar enlace
+            </button>
+          </div>
+          {link && <input className="mono small" readOnly value={link} aria-label="Enlace del documento" onFocus={(e) => e.target.select()} />}
+          <p className="small muted">El enlace deja ver e imprimir el documento sin cuenta y vence en 180 días.</p>
+        </>
+      ) : (
+        <p className="small muted">Pide a quien factura que lo envíe.</p>
+      )}
+    </section>
+  );
 }

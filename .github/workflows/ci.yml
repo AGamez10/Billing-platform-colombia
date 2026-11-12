@@ -304,7 +304,7 @@ jobs:
           code=$(curl -ks -o /dev/null -w '%{http_code}' https://localhost/actuator/health)
           [ "$code" = "404" ] || { echo "::error title=Caddy::/actuator expuesto ($code)"; exit 1; }
           curl -ksS https://localhost/api/v1/public/municipalities | grep -q '"code":"11001"'
-          if docker compose --project-directory . -f compose.prod.yml ps --format '{{.Publishers}}' | grep -q 5432; then
+          if docker compose --project-directory . -f compose.prod.yml port postgres 5432 2>/dev/null | grep -qE ':[1-9][0-9]*$'; then
             echo "::error title=Producción::PostgreSQL tiene un puerto publicado"; exit 1
           fi
           body='{"organizationName":"Fundación Copia","identificationType":"NIT","identificationNumber":"800197268","checkDigit":4,"fullName":"CI","email":"copia@example.com","password":"caballo bateria grapa","acceptedTermsVersion":"borrador-2026-11","acceptedPrivacyVersion":"borrador-2026-11"}'

@@ -29,6 +29,10 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente. Fuera de simulación exige perfil tributario del emisor y del cliente (`409 ISSUER_PROFILE_INCOMPLETE` / `CUSTOMER_PROFILE_INCOMPLETE`, ADR-0025) |
 | `GET /invoices/{id}` | INVOICE_READ | Devuelve estado, número, ambiente, totales, subtotales por tarifa, evidencia del proveedor e historial |
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
+| `GET /invoices/{id}/sheet` | INVOICE_READ | Representación gráfica de un documento validado: emisor y comprador (con municipio y perfil tributario), resolución, líneas, totales, CUFE/CUDE y `qrPayload` del proveedor (ADR-0027) |
+| `POST /invoices/{id}/share-links` | INVOICE_WRITE | Enlace de solo lectura para el comprador (`link` con el token en el fragmento; 180 días). Máx. 20 por documento al día |
+| `POST /invoices/{id}/send` | INVOICE_WRITE | `{email?}`: envía el enlace por correo al comprador o al correo indicado. `409 INVOICE_NOT_VALIDATED` si no está validado |
+| `POST /public/documents/view` | público (límite por IP) | `{token}`: el comprador ve su documento sin cuenta. `404 SHARE_LINK_NOT_FOUND` si no existe o venció |
 | `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |
 | `POST /subscription/overage-consent` | BILLING_MANAGE (dueño/admin) | Aceptación expresa de documentos adicionales a $150 en el ciclo actual (ADR-0014) |
 | `POST /auth/password-reset/request` | público (límite por IP) | Envía el enlace para cambiar la contraseña. Responde 202 exista o no la cuenta |

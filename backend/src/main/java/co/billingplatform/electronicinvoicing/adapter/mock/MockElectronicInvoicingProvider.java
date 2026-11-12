@@ -180,11 +180,12 @@ public final class MockElectronicInvoicingProvider implements ElectronicInvoicin
     }
 
     private ValidationEvidence evidence(ElectronicDocument document) {
-        return new ValidationEvidence(
-                SIMULATED_KEY_PREFIX + UUID.nameUUIDFromBytes(
-                        (document.tenantId() + ":" + document.fullNumber()).getBytes(StandardCharsets.UTF_8)),
-                ProviderEnvironment.SIMULATION,
-                clock.instant());
+        String key = SIMULATED_KEY_PREFIX + UUID.nameUUIDFromBytes(
+                (document.tenantId() + ":" + document.fullNumber()).getBytes(StandardCharsets.UTF_8));
+        // QR deliberadamente distinto del de la DIAN: nadie debe poder confundirlo con uno real.
+        String qr = "DOCUMENTO DE PRACTICA - SIN VALIDEZ TRIBUTARIA\nNumero: " + document.fullNumber()
+                + "\nCodigo: " + key;
+        return new ValidationEvidence(key, ProviderEnvironment.SIMULATION, clock.instant(), qr);
     }
 
     private static String scopedNumber(ProviderAccount account, String fullNumber) {

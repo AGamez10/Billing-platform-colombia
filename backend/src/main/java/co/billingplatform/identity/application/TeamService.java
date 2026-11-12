@@ -2,7 +2,7 @@ package co.billingplatform.identity.application;
 
 import co.billingplatform.identity.application.AccountPorts.Invitation;
 import co.billingplatform.identity.application.AccountPorts.Member;
-import co.billingplatform.identity.domain.OpaqueTokens;
+import co.billingplatform.shared.domain.OpaqueTokens;
 import co.billingplatform.identity.domain.PasswordPolicy;
 import co.billingplatform.identity.domain.Role;
 import co.billingplatform.shared.application.AuditTrail;

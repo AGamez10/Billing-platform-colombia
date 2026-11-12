@@ -1,7 +1,7 @@
 package co.billingplatform.identity.adapter.crypto;
 
 import co.billingplatform.identity.application.IdentityPorts;
-import co.billingplatform.identity.domain.OpaqueTokens;
+import co.billingplatform.shared.domain.OpaqueTokens;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Component;
 

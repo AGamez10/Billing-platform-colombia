@@ -12,6 +12,8 @@ import { ResetPassword } from './pages/ResetPassword';
 import { Setup } from './pages/Setup';
 import { Team } from './pages/Team';
 import { Company } from './pages/Company';
+import { DocumentPrint } from './pages/DocumentPrint';
+import { PublicDocument } from './pages/PublicDocument';
 import { InvoiceDetail } from './pages/InvoiceDetail';
 import { InvoiceEditor } from './pages/InvoiceEditor';
 import { InvoiceList } from './pages/Invoices';
@@ -58,6 +60,7 @@ export function App() {
       <Route path="/olvide" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
       <Route path="/restablecer" element={<ResetPassword />} />
       <Route path="/invitacion" element={<AcceptInvitation />} />
+      <Route path="/documento" element={<PublicDocument />} />
       <Route path="/terminos" element={<Legal title="Términos y condiciones" />} />
       <Route path="/privacidad" element={<Legal title="Política de tratamiento de datos personales" />} />
       <Route element={<RequireSession><Layout /></RequireSession>}>
@@ -67,6 +70,7 @@ export function App() {
         <Route path="facturas/nueva" element={<InvoiceEditor />} />
         <Route path="facturas/:id" element={<InvoiceDetail />} />
         <Route path="facturas/:id/editar" element={<InvoiceEditor />} />
+        <Route path="facturas/:id/documento" element={<DocumentPrint />} />
         <Route path="clientes" element={<CustomerList />} />
         <Route path="clientes/nuevo" element={<CustomerEditor />} />
         <Route path="clientes/:id" element={<CustomerEditor />} />

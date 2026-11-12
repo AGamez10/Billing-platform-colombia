@@ -314,6 +314,17 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 
 **Pendiente:** primera ejecución en el VPS real (dominio, SMTP, bucket); monitoreo externo de disponibilidad (p. ej. un chequeo HTTP gratuito) y alerta si falla la copia diaria.
 
+## ADR-0027 — Representación gráfica y entrega al comprador por enlace
+*2026-11-12 — aceptada*
+
+**Decisión:** un documento validado tiene una representación gráfica (`GET /invoices/{id}/sheet`) que la interfaz dibuja para ver, imprimir o guardar como PDF desde el navegador, y se entrega al comprador con un **enlace de solo lectura** (correo, WhatsApp o copiar). El enlace lleva un token de 256 bits en el fragmento (`/documento#t=…`), se guarda solo su SHA-256, vence a los 180 días, se puede revocar y se resuelve con una función acotada (V17). El comprador lo abre sin cuenta con `POST /public/documents/view` (POST para que el token no quede en registros; límite por IP).
+
+- **El QR no lo calculamos:** su contenido lo define el Anexo Técnico y lo entrega el proveedor junto con el CUFE/CUDE (`qr_payload`, inmutable una vez fijado). Si el proveedor no lo informa, la representación lo dice en vez de inventarlo. El simulador entrega un QR que dice "DOCUMENTO DE PRÁCTICA - SIN VALIDEZ TRIBUTARIA".
+- **Advertencias:** todo lo que no es producción lo dice arriba y abajo de la representación y en el asunto del correo ("[Sin validez tributaria]").
+- **PDF del navegador y no del servidor:** evita una librería de PDF y su superficie de ataque en el piloto. Cuando el proveedor entregue su PDF y el XML (AttachedDocument), se adjuntarán al correo.
+
+**Pendiente y explícito:** la entrega del XML/AttachedDocument al adquiriente que exige la DIAN para la factura electrónica depende del proveedor (Muisca); hasta tenerlo, este envío es una cortesía, no la entrega formal. Revocar enlaces desde la interfaz.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
