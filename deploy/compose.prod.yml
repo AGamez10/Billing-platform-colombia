@@ -1,0 +1,112 @@
+# Producción en un VPS (ADR-0016, ADR-0026): Caddy (HTTPS automático) → web (nginx + interfaz)
+# → backend (Spring Boot) → PostgreSQL. Solo Caddy publica puertos (80 y 443).
+#
+#   /opt/billing/deploy/scripts/deploy.sh v0.1.0
+#
+# Todas las variables vienen de /opt/billing/deploy/.env (permisos 600, fuera del repositorio).
+# Las que no tienen valor por defecto son obligatorias: si faltan, docker compose se niega a
+# arrancar en vez de levantar algo inseguro.
+
+name: billing
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Falta POSTGRES_SUPERUSER_PASSWORD}
+      BILLING_DB_NAME: billing
+      BILLING_DB_OWNER_PASSWORD: ${BILLING_DB_OWNER_PASSWORD:?Falta BILLING_DB_OWNER_PASSWORD}
+      BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD:?Falta BILLING_DB_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../infrastructure/postgres/init:/billing-init:ro
+      - ../infrastructure/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d billing"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1g }
+    logging: *logging
+
+  backend:
+    image: ${BILLING_IMAGE_REGISTRY:-ghcr.io/agamez10}/billing-platform-backend:${BILLING_VERSION:?Falta BILLING_VERSION}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BILLING_DB_URL: jdbc:postgresql://postgres:5432/billing
+      BILLING_DB_OWNER_PASSWORD: ${BILLING_DB_OWNER_PASSWORD}
+      BILLING_DB_APP_PASSWORD: ${BILLING_DB_APP_PASSWORD}
+      BILLING_JWT_SECRET: ${BILLING_JWT_SECRET:?Falta BILLING_JWT_SECRET}
+      BILLING_SECRETS_KEY: ${BILLING_SECRETS_KEY:?Falta BILLING_SECRETS_KEY}
+      BILLING_AUTH_REQUESTS_PER_MINUTE: ${BILLING_AUTH_REQUESTS_PER_MINUTE:-10}
+      BILLING_BRAND_NAME: ${BILLING_BRAND_NAME:?Falta BILLING_BRAND_NAME}
+      BILLING_WEB_BASE_URL: https://${BILLING_DOMAIN:?Falta BILLING_DOMAIN}
+      BILLING_MAIL_MODE: ${BILLING_MAIL_MODE:-smtp}
+      BILLING_MAIL_FROM: ${BILLING_MAIL_FROM:?Falta BILLING_MAIL_FROM}
+      BILLING_SMTP_HOST: ${BILLING_SMTP_HOST:-}
+      BILLING_SMTP_PORT: ${BILLING_SMTP_PORT:-587}
+      BILLING_SMTP_USERNAME: ${BILLING_SMTP_USERNAME:-}
+      BILLING_SMTP_PASSWORD: ${BILLING_SMTP_PASSWORD:-}
+      BILLING_SMTP_AUTH: ${BILLING_SMTP_AUTH:-true}
+      BILLING_SMTP_STARTTLS: ${BILLING_SMTP_STARTTLS:-true}
+      BILLING_MERCADOPAGO_ACCESS_TOKEN: ${BILLING_MERCADOPAGO_ACCESS_TOKEN:-}
+      BILLING_MERCADOPAGO_WEBHOOK_SECRET: ${BILLING_MERCADOPAGO_WEBHOOK_SECRET:-}
+      BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE: ${BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE:-true}
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 1g }
+    logging: *logging
+
+  web:
+    image: ${BILLING_IMAGE_REGISTRY:-ghcr.io/agamez10}/billing-platform-web:${BILLING_VERSION}
+    restart: unless-stopped
+    depends_on: [backend]
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 128m }
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      BILLING_DOMAIN: ${BILLING_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Falta ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 128m }
+    logging: *logging
+
+networks:
+  internal:
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

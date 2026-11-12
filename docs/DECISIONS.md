@@ -302,6 +302,18 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 
 **Fuentes verificadas el 2026-11-12:** anexo DIAN "Reglas activas 1 agosto 2020" (lista de responsabilidades para FE) y documentación de Muisca/Aliaddo (tipo de persona y régimen).
 
+## ADR-0026 — Kit de producción: Caddy, imágenes en GHCR y copias cifradas con age
+*2026-11-12 — aceptada*
+
+**Decisión:** `deploy/compose.prod.yml` con Caddy delante (HTTPS automático con Let's Encrypt, HSTS, `/actuator` cerrado), imágenes construidas por el flujo **Release** en GitHub Container Registry por etiqueta `vX.Y.Z`, y `deploy/scripts/` para secretos, despliegue, copias y prueba de restauración. Todo el kit se ejerce en CI contra `localhost`.
+
+- **Caddy y no nginx+certbot:** renueva certificados solo, configuración de diez líneas, sin cron extra. No confía en `X-Forwarded-For` del cliente (el límite por IP depende de eso).
+- **Imágenes publicadas y no build en el VPS:** el VPS no compila (no compite por RAM con producción) y lo desplegado es exactamente lo que pasó CI. GHCR no tiene costo adicional para este volumen.
+- **Copias con age (llave pública en el servidor):** quien comprometa el VPS no puede leer las copias; la privada vive con el dueño. Diarias, externas con rclone (30 días) y prueba de restauración automática en CI y manual mensual. WAL/PITR se evaluará con clientes en producción (hoy, pérdida máxima aceptada: 24 h, más la copia previa a cada actualización).
+- **Límites de CPU/RAM y rotación de registros por contenedor**, para convivir en un VPS pequeño.
+
+**Pendiente:** primera ejecución en el VPS real (dominio, SMTP, bucket); monitoreo externo de disponibilidad (p. ej. un chequeo HTTP gratuito) y alerta si falla la copia diaria.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

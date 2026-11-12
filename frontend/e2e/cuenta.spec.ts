@@ -104,7 +104,7 @@ test('datos de la empresa: dirección con municipio DANE y responsabilidades del
   await expect(page.getByText(/obligatorios para facturar en real/)).toBeVisible();
 
   await page.getByLabel('Correo de facturación').fill('facturas@hogar.example');
-  await page.getByLabel('Dirección').fill('Calle 10 # 5-20');
+  await page.getByLabel('Dirección', { exact: true }).fill('Calle 10 # 5-20');
   const city = page.getByRole('combobox', { name: 'Municipio' });
   await city.fill('santiago de cali');
   await page.getByRole('option', { name: /Santiago de Cali/ }).click();

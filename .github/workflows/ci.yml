@@ -252,3 +252,87 @@ jobs:
       - name: Apagar
         if: always()
         run: docker compose down -v
+
+  deploy-kit:
+    name: Kit de producción (HTTPS, copia cifrada y restauración)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: deploy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Revisar los scripts (shellcheck)
+        run: (cd scripts && shellcheck -x ./*.sh) && shellcheck ../infrastructure/postgres/docker-entrypoint-initdb.d/*.sh
+
+      - name: Construir las imágenes como las publicaría el flujo Release
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          docker build -q -t "ghcr.io/agamez10/billing-platform-backend:$tag" ../backend
+          docker build -q --build-arg VITE_BRAND_NAME="Marca CI" -t "ghcr.io/agamez10/billing-platform-web:$tag" ../frontend
+          sudo apt-get install -y -qq age >/dev/null
+
+      - name: Preparar el .env como en el servidor
+        run: |
+          scripts/init-secrets.sh
+          scripts/init-secrets.sh > "$RUNNER_TEMP/again.txt"
+          grep -q "ya tiene valor: se conserva" "$RUNNER_TEMP/again.txt"   # idempotente: nunca rota secretos
+          [ "$(stat -c '%a' .env)" = "600" ]
+          age-keygen -o "$RUNNER_TEMP/backup-key.txt" 2>/dev/null
+          recipient=$(age-keygen -y "$RUNNER_TEMP/backup-key.txt")
+          set_env() { sed -i "s|^$1=.*|$1=$2|" .env; grep -q "^$1=" .env || echo "$1=$2" >> .env; }
+          set_env BILLING_DOMAIN localhost
+          set_env ACME_EMAIL ci@example.com
+          set_env BILLING_BRAND_NAME "Marca CI"
+          set_env BILLING_MAIL_FROM ci@example.com
+          set_env BILLING_MAIL_MODE log
+          set_env BACKUP_AGE_RECIPIENT "$recipient"
+
+      - name: Desplegar (HTTPS con Caddy en localhost)
+        run: BILLING_SKIP_PULL=1 scripts/deploy.sh "$TAG"
+
+      - name: Verificar HTTPS, cabeceras y rutas cerradas
+        run: |
+          set -e
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost/)
+          [ "$code" = "308" ] || { echo "::error title=Caddy::HTTP debería redirigir a HTTPS (dio $code)"; exit 1; }
+          headers=$(curl -ksSI https://localhost/)
+          echo "$headers" | grep -qi "strict-transport-security: max-age=31536000" || { echo "::error title=Caddy::falta HSTS"; exit 1; }
+          echo "$headers" | grep -qi "content-security-policy: default-src 'self'" || { echo "::error title=Caddy::falta CSP"; exit 1; }
+          code=$(curl -ks -o /dev/null -w '%{http_code}' https://localhost/actuator/health)
+          [ "$code" = "404" ] || { echo "::error title=Caddy::/actuator expuesto ($code)"; exit 1; }
+          curl -ksS https://localhost/api/v1/public/municipalities | grep -q '"code":"11001"'
+          if docker compose --project-directory . -f compose.prod.yml ps --format '{{.Publishers}}' | grep -q 5432; then
+            echo "::error title=Producción::PostgreSQL tiene un puerto publicado"; exit 1
+          fi
+          body='{"organizationName":"Fundación Copia","identificationType":"NIT","identificationNumber":"800197268","checkDigit":4,"fullName":"CI","email":"copia@example.com","password":"caballo bateria grapa","acceptedTermsVersion":"borrador-2026-11","acceptedPrivacyVersion":"borrador-2026-11"}'
+          curl -ksS -f -X POST -H 'Content-Type: application/json' -d "$body" https://localhost/api/v1/auth/register > /dev/null
+          echo "::notice title=Producción::HTTPS, redirección, HSTS, CSP, actuator cerrado, PostgreSQL sin puerto y registro por el dominio OK"
+
+      - name: Copia cifrada y prueba de restauración
+        run: |
+          set -e
+          scripts/backup.sh ci
+          file=$(ls -t backups/*.dump.age | head -1)
+          other=$(mktemp -d)/otra.txt; age-keygen -o "$other" 2>/dev/null
+          if age --decrypt -i "$other" "$file" > /dev/null 2>&1; then echo "::error title=Copias::se leyó sin la llave"; exit 1; fi
+          scripts/restore-check.sh "$file" "$RUNNER_TEMP/backup-key.txt" | tee restore.log
+          grep -q "1 organizaciones" restore.log
+          echo "::notice title=Copias::$(tail -1 restore.log)"
+
+      - name: Actualizar con copia previa (mismo flujo que una versión nueva)
+        run: |
+          BILLING_SKIP_PULL=1 scripts/deploy.sh "$TAG"
+          ls backups | grep -q "pre-$TAG"
+
+      - name: Anotar fallos
+        if: failure()
+        run: |
+          docker compose --project-directory . -f compose.prod.yml logs --no-color --tail 60 backend caddy 2>&1 \
+            | grep -Ei 'error|exception|caused by' | head -20 | sed -E 's#^(.*)$#::error title=Producción log::\1#' || true
+
+      - name: Apagar
+        if: always()
+        run: docker compose --project-directory . -f compose.prod.yml down -v || true

@@ -1,0 +1,55 @@
+name: Release
+
+# Publica las imágenes del backend y la interfaz en GitHub Container Registry para desplegarlas
+# en el VPS con deploy/scripts/deploy.sh <versión>. Se dispara con una etiqueta vX.Y.Z (o a mano).
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    name: Imágenes ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Nombres
+        id: names
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          tags="sha-${GITHUB_SHA::7}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then tags="$tags ${GITHUB_REF_NAME}"; fi
+          echo "registry=ghcr.io/$owner" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar
+        env:
+          REGISTRY: ${{ steps.names.outputs.registry }}
+          TAGS: ${{ steps.names.outputs.tags }}
+          BRAND: ${{ vars.BILLING_BRAND_NAME }}
+        run: |
+          set -e
+          backend_tags=""; web_tags=""
+          for t in $TAGS; do
+            backend_tags="$backend_tags -t $REGISTRY/billing-platform-backend:$t"
+            web_tags="$web_tags -t $REGISTRY/billing-platform-web:$t"
+          done
+          # shellcheck disable=SC2086
+          docker buildx build --push --provenance=false $backend_tags backend
+          # shellcheck disable=SC2086
+          docker buildx build --push --provenance=false --build-arg VITE_BRAND_NAME="$BRAND" $web_tags frontend
+          echo "::notice title=Release::Publicado $TAGS en $REGISTRY"

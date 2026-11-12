@@ -1,0 +1,32 @@
+# HTTPS automático (Let's Encrypt) para el dominio de BILLING_DOMAIN. Con "localhost" usa una
+# autoridad interna (así se prueba en CI). El resto (CSP, rutas, proxy /api) lo hace el
+# contenedor web; aquí solo TLS, HSTS, compresión y cierre de rutas internas.
+# Sin trusted_proxies: Caddy descarta el X-Forwarded-For que mande el cliente y lo fija con la IP
+# real de la conexión (el límite de intentos por IP del backend depende de eso).
+{
+	email {$ACME_EMAIL}
+}
+
+{$BILLING_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Métricas y salud del backend nunca se exponen (tampoco llegan por el proxy de la web).
+	@internal path /actuator /actuator/*
+	respond @internal 404
+
+	request_body {
+		max_size 2MB
+	}
+
+	reverse_proxy web:8080
+
+	log {
+		output stdout
+		format json
+	}
+}
