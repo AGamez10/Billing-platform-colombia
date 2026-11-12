@@ -1,0 +1,67 @@
+# Descarga la DIVIPOLA oficial del DANE (municipios y departamentos) desde datos.gov.co y la
+# guarda como catálogo de la aplicación. Se ejecuta a mano (Actions → "Catálogo DIVIPOLA").
+# Valida tamaño y códigos conocidos antes de confirmar: un archivo incompleto nunca se guarda.
+name: Catálogo DIVIPOLA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  divipola:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Descargar de datos.gov.co (DANE)
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 "https://www.datos.gov.co/resource/gdxc-w37w.json?\$limit=5000" -o /tmp/divipola.json
+          echo "Campos del primer registro:"; jq -r '.[0] | keys | join(", ")' /tmp/divipola.json
+          jq -c '.[0]' /tmp/divipola.json
+
+      - name: Convertir a CSV (codigo, municipio, codigo_departamento, departamento)
+        run: |
+          set -euo pipefail
+          out=backend/src/main/resources/catalog/divipola.csv
+          mkdir -p "$(dirname "$out")"
+          {
+            echo "code,name,department_code,department_name"
+            jq -r '
+              def pick($re): (to_entries | map(select(.key | test($re; "i"))) | .[0].value // "");
+              .[] | [
+                (pick("^cod.*mpio$|^cod_mpio|codigo_municipio") | tostring),
+                (pick("^nom.*mpio$|^nom_mpio|nombre_municipio|^municipio$") | tostring),
+                (pick("^cod.*dpto$|^cod_dpto|codigo_departamento") | tostring),
+                (pick("^dpto$|^nom.*dpto$|nombre_departamento|^departamento$") | tostring)
+              ]
+              | select(.[0] != "")
+              | .[0] |= (gsub("[^0-9]"; "") | if length < 5 then ("0" * (5 - length)) + . else . end)
+              | .[2] |= (gsub("[^0-9]"; "") | if length < 2 then ("0" * (2 - length)) + . else . end)
+              | @csv' /tmp/divipola.json | sort -u
+          } > "$out"
+          wc -l "$out"; head -5 "$out"
+
+      - name: Validar
+        run: |
+          set -euo pipefail
+          f=backend/src/main/resources/catalog/divipola.csv
+          n=$(($(wc -l < "$f") - 1))
+          echo "municipios: $n"
+          [ "$n" -ge 1100 ] && [ "$n" -le 1200 ] || { echo "::error::cantidad inesperada: $n"; exit 1; }
+          for code in 11001 05001 76001 08001 68001; do
+            grep -q "^\"$code\"," "$f" || { echo "::error::falta el municipio $code"; exit 1; }
+          done
+          awk -F'","' 'NR>1 && substr($1,2,2) != $3 { bad++ } END { if (bad) { print "::error::" bad " filas con departamento inconsistente"; exit 1 } }' "$f"
+
+      - name: Confirmar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/src/main/resources/catalog/divipola.csv
+          if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
+          git commit -m "Catálogo DIVIPOLA (DANE, datos.gov.co, generado en CI)"
+          git push
