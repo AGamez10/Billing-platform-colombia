@@ -290,10 +290,24 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 
 **Pendiente:** avisos por correo antes del vencimiento; factura electrónica de nuestra propia suscripción (somos facturadores: la emitiremos con la plataforma misma cuando Muisca esté conectado); confirmar con un contador el tratamiento del IVA de la suscripción.
 
+## ADR-0025 — Perfil tributario de emisor y adquiriente; municipios DIVIPOLA
+*2026-11-12 — aceptada*
+
+**Decisión:** el emisor (`organizations`) y los clientes (`customers`) guardan tipo de persona (`LEGAL`/`NATURAL`), régimen frente al IVA (`RESPONSIBLE`/`NOT_RESPONSIBLE`) y responsabilidades del RUT (`O-13`, `O-15`, `O-23`, `O-47` o `R-99-PN`, esta última excluyente), más dirección y municipio DANE (V16). El documento copia esos datos del cliente en su snapshot al guardarse el borrador; el emisor se lee al transmitir.
+
+- **Exigencia por ambiente:** en `SIMULATION` no se exigen (se puede practicar desde el registro). En `HABILITATION` y `PRODUCTION`, finalizar falla con `409 ISSUER_PROFILE_INCOMPLETE` si al emisor le falta perfil, dirección o correo, y con `409 CUSTOMER_PROFILE_INCOMPLETE` si una factura (no POS a consumidor final) es para un cliente sin perfil. No se consume número.
+- **Códigos:** en el dominio van nombres; los códigos DIAN (1/2, 48/49, O-xx) se exponen en la API y los traduce cada adaptador. No exigimos la dirección del adquiriente hasta confirmar con el Anexo y Muisca cuándo es obligatoria.
+- **El NIT no se edita:** la base solo concede a la aplicación `UPDATE` por columnas en `organizations` (razón social, contacto, perfil, dirección), nunca identificación ni estado.
+- **DIVIPOLA versionada en el repositorio** (`catalog/divipola.csv`, ~1.120 municipios, 33 departamentos), generada por el flujo de CI "Catálogo DIVIPOLA" desde los datos abiertos del DANE (datos.gov.co, `gdxc-w37w`) con validaciones de tamaño y capitales. Se carga en memoria y se expone en `GET /public/municipalities` con caché de un día. Sin tabla: es un catálogo pequeño y de cambio muy raro; actualizarlo es correr el flujo y revisar el diff.
+
+**Fuentes verificadas el 2026-11-12:** anexo DIAN "Reglas activas 1 agosto 2020" (lista de responsabilidades para FE) y documentación de Muisca/Aliaddo (tipo de persona y régimen).
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
 |---|---|---|---|
 | 2026-11-05 | Anexo Técnico FE vigente | Versión 1.9; Res. 000165/2023, obligatoria desde 2024-05-01 por Res. 000008/2024 | Sovos; normogramas oficiales Res. 0008/2024 |
 | 2026-11-05 | Tarifa general de IVA | 19% (ET art. 468). Hay un proyecto de reforma en trámite (oct-2026) que mueve bienes entre tarifas; no aprobado | Vanguardia, 30-oct-2026 |
+| 2026-11-12 | Responsabilidades fiscales en FE | O-13 gran contribuyente, O-15 autorretenedor, O-23 agente de retención IVA, O-47 régimen simple, R-99-PN no aplica | Anexo DIAN "Reglas activas 1 agosto 2020" |
+| 2026-11-12 | Municipios | DIVIPOLA vigente: 1.122 municipios / 33 departamentos | DANE, datos.gov.co `gdxc-w37w` |
 | 2026-11-05 | Vías para facturar | Solución gratuita DIAN, desarrollo propio, proveedor tecnológico | micrositios.dian.gov.co |

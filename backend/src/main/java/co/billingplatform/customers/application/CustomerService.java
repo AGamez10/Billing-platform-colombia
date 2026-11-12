@@ -3,8 +3,10 @@ package co.billingplatform.customers.application;
 import co.billingplatform.customers.domain.Customer;
 import co.billingplatform.invoicing.application.CustomerDirectory;
 import co.billingplatform.shared.application.AuditTrail;
+import co.billingplatform.shared.application.Municipalities;
 import co.billingplatform.shared.domain.Actor;
 import co.billingplatform.shared.domain.DomainException;
+import co.billingplatform.shared.domain.FiscalProfile;
 import co.billingplatform.shared.domain.IdentificationType;
 import co.billingplatform.shared.domain.Page;
 import co.billingplatform.shared.domain.Party;
@@ -23,19 +25,23 @@ import java.util.UUID;
 public final class CustomerService implements CustomerDirectory {
 
     public record Details(IdentificationType identificationType, String identificationNumber, Integer checkDigit,
-                          String legalName, String email, String phone, String address, String cityCode) {}
+                          String legalName, String email, String phone, String address, String cityCode,
+                          FiscalProfile fiscal) {}
 
     private final CustomerRepository customers;
     private final AuditTrail audit;
+    private final Municipalities municipalities;
 
-    public CustomerService(CustomerRepository customers, AuditTrail audit) {
+    public CustomerService(CustomerRepository customers, AuditTrail audit, Municipalities municipalities) {
         this.customers = Objects.requireNonNull(customers);
         this.audit = Objects.requireNonNull(audit);
+        this.municipalities = Objects.requireNonNull(municipalities);
     }
 
     public Customer create(TenantId tenantId, Actor actor, Details d) {
         Customer customer = Customer.create(tenantId, identification(d), d.legalName(), d.email(),
-                d.phone(), d.address(), d.cityCode());
+                d.phone(), d.address(), d.cityCode(), d.fiscal());
+        municipalities.requireKnown(customer.cityCode());
         customers.insert(customer);
         audit.record(new AuditTrail.Event(tenantId, actor, "CUSTOMER_CREATED", "customer", customer.id().toString(), Map.of()));
         return customer;
@@ -46,7 +52,9 @@ public final class CustomerService implements CustomerDirectory {
         if (current.version() != expectedVersion) {
             throw versionConflict();
         }
-        Customer updated = current.withDetails(identification(d), d.legalName(), d.email(), d.phone(), d.address(), d.cityCode());
+        Customer updated = current.withDetails(identification(d), d.legalName(), d.email(), d.phone(), d.address(),
+                d.cityCode(), d.fiscal());
+        municipalities.requireKnown(updated.cityCode());
         if (!customers.update(updated)) {
             throw versionConflict();
         }

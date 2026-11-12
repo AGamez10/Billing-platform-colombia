@@ -22,6 +22,11 @@ test('capturas de pantallas principales', async ({ page }, info) => {
   await page.goto('/empezar');
   await expect(page.getByRole('heading', { name: 'Configura tu cuenta' })).toBeVisible();
   await shot('empezar', true);
+  await page.goto('/empresa');
+  await expect(page.getByRole('heading', { name: 'Datos de tu empresa' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Municipio' }).fill('bogo');
+  await expect(page.getByRole('option').first()).toBeVisible();
+  await shot('empresa', true);
   await page.goto('/equipo');
   await expect(page.getByRole('heading', { name: 'Invitar a alguien' })).toBeVisible();
   await shot('equipo', true);

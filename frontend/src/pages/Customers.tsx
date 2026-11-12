@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { http } from '../api/client';
-import type { Customer, IdentificationType, Page } from '../api/types';
+import type { Customer, FiscalProfile, IdentificationType, Page } from '../api/types';
 import { useSession } from '../auth/session';
+import { FiscalFields } from '../components/FiscalFields';
+import { MunicipalityPicker } from '../components/MunicipalityPicker';
+import { defaultFiscal, fiscalSummary } from '../lib/fiscal';
 import { Alert, Empty, Field, Icon, Loading, PageHead, SelectField, Spinner } from '../components/ui';
 import { fieldErrors, messageFor } from '../lib/errors';
 import { formatIdentification, ID_TYPE_LABEL } from '../lib/format';
@@ -93,6 +96,8 @@ interface CustomerFormState {
   email: string;
   phone: string;
   address: string;
+  cityCode: string;
+  fiscal: FiscalProfile;
 }
 
 const EMPTY: CustomerFormState = {
@@ -103,6 +108,8 @@ const EMPTY: CustomerFormState = {
   email: '',
   phone: '',
   address: '',
+  cityCode: '',
+  fiscal: defaultFiscal('NIT'),
 };
 
 export function CustomerEditor() {
@@ -115,6 +122,7 @@ export function CustomerEditor() {
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [fiscalTouched, setFiscalTouched] = useState(false);
 
   useEffect(() => {
     const c = existing.data;
@@ -127,7 +135,10 @@ export function CustomerEditor() {
         email: c.email ?? '',
         phone: c.phone ?? '',
         address: c.address ?? '',
+        cityCode: c.cityCode ?? '',
+        fiscal: c.fiscal ?? defaultFiscal(c.identificationType),
       });
+      setFiscalTouched(!!c.fiscal);
     }
   }, [existing.data]);
 
@@ -153,6 +164,8 @@ export function CustomerEditor() {
       email: form.email.trim() || undefined,
       phone: form.phone.trim() || undefined,
       address: form.address.trim() || undefined,
+      cityCode: form.cityCode || undefined,
+      fiscal: { personType: form.fiscal.personType, vatRegime: form.fiscal.vatRegime, responsibilities: form.fiscal.responsibilities },
     };
     try {
       if (isNew) {
@@ -185,7 +198,15 @@ export function CustomerEditor() {
       <form className="card stack" onSubmit={(e) => void submit(e)} noValidate>
         {error && <Alert tone="error">{error}</Alert>}
         <div className="grid-2">
-          <SelectField label="Tipo de identificación" value={form.identificationType} disabled={readOnly || !isNew} onChange={(e) => set('identificationType')(e.target.value)}>
+          <SelectField
+            label="Tipo de identificación"
+            value={form.identificationType}
+            disabled={readOnly || !isNew}
+            onChange={(e) => {
+              const t = e.target.value as IdentificationType;
+              setForm((f) => ({ ...f, identificationType: t, fiscal: fiscalTouched ? f.fiscal : defaultFiscal(t) }));
+            }}
+          >
             {ID_TYPES.map((t) => (
               <option key={t} value={t}>
                 {ID_TYPE_LABEL[t]}
@@ -221,7 +242,26 @@ export function CustomerEditor() {
           <Field label="Correo" type="email" hint="Aquí le llegará la factura." disabled={readOnly} value={form.email} onChange={(e) => set('email')(e.target.value)} error={fields.email} />
           <Field label="Teléfono" type="tel" disabled={readOnly} value={form.phone} onChange={(e) => set('phone')(e.target.value)} />
         </div>
-        <Field label="Dirección" disabled={readOnly} value={form.address} onChange={(e) => set('address')(e.target.value)} />
+        <div className="grid-2">
+          <Field label="Dirección" disabled={readOnly} value={form.address} onChange={(e) => set('address')(e.target.value)} error={fields.address} />
+          <MunicipalityPicker disabled={readOnly} value={form.cityCode} onChange={set('cityCode')} error={fields.cityCode}
+            hint="Opcional en POS; recomendable para facturas." />
+        </div>
+        <details className="disclosure" open={isNew || !existing.data?.fiscal}>
+          <summary>
+            <strong>Datos tributarios</strong>
+            <span className="small muted"> {fiscalSummary(form.fiscal)}</span>
+          </summary>
+          <FiscalFields
+            whose="customer"
+            disabled={readOnly}
+            value={form.fiscal}
+            onChange={(f) => {
+              setFiscalTouched(true);
+              setForm((prev) => ({ ...prev, fiscal: f }));
+            }}
+          />
+        </details>
         {!readOnly && (
           <div className="row">
             <button type="submit" className="btn btn-primary" disabled={busy || dvMismatch}>

@@ -22,6 +22,10 @@ export function Settings() {
           <strong>Configuración guiada</strong>
           <span>Los pasos para pasar de cuenta nueva a primer documento.</span>
         </Link>
+        <Link to="/empresa" className="hub-link">
+          <strong>Datos de tu empresa</strong>
+          <span>Razón social, dirección y datos tributarios del RUT.</span>
+        </Link>
         {can('manage') && (
           <Link to="/equipo" className="hub-link">
             <strong>Equipo</strong>

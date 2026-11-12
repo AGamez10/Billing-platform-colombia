@@ -11,6 +11,7 @@ import { Plan } from './pages/Plan';
 import { ResetPassword } from './pages/ResetPassword';
 import { Setup } from './pages/Setup';
 import { Team } from './pages/Team';
+import { Company } from './pages/Company';
 import { InvoiceDetail } from './pages/InvoiceDetail';
 import { InvoiceEditor } from './pages/InvoiceEditor';
 import { InvoiceList } from './pages/Invoices';
@@ -75,6 +76,7 @@ export function App() {
         <Route path="configuracion" element={<Settings />} />
         <Route path="empezar" element={<Setup />} />
         <Route path="equipo" element={<Team />} />
+        <Route path="empresa" element={<Company />} />
         <Route path="plan" element={<Plan />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

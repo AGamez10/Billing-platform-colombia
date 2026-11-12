@@ -5,6 +5,7 @@ import co.billingplatform.customers.domain.Customer;
 import co.billingplatform.identity.domain.Permission;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.web.CurrentUser;
+import co.billingplatform.platform.web.FiscalProfileDto;
 import co.billingplatform.shared.domain.IdentificationType;
 import co.billingplatform.shared.domain.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,10 +46,11 @@ class CustomerController {
             @Size(max = 254) String email,
             @Size(max = 30) String phone,
             @Size(max = 300) String address,
-            @Size(max = 10) String cityCode) {
+            @Size(max = 10) String cityCode,
+            @Valid FiscalProfileDto fiscal) {
         CustomerService.Details details() {
             return new CustomerService.Details(identificationType, identificationNumber, checkDigit, legalName,
-                    email, phone, address, cityCode);
+                    email, phone, address, cityCode, FiscalProfileDto.toDomain(fiscal));
         }
     }
 
@@ -56,11 +58,11 @@ class CustomerController {
 
     record CustomerView(UUID id, String identificationType, String identificationNumber, Integer checkDigit,
                         String legalName, String email, String phone, String address, String cityCode,
-                        boolean active, int version) {
+                        FiscalProfileDto fiscal, boolean active, int version) {
         static CustomerView of(Customer c) {
             return new CustomerView(c.id(), c.identification().type().name(), c.identification().number(),
                     c.identification().checkDigit(), c.legalName(), c.email(), c.phone(), c.address(), c.cityCode(),
-                    c.active(), c.version());
+                    FiscalProfileDto.of(c.fiscal()), c.active(), c.version());
         }
     }
 

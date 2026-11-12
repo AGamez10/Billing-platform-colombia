@@ -4,6 +4,7 @@ import co.billingplatform.identity.application.AccountPorts;
 import co.billingplatform.identity.application.AuthenticationService;
 import co.billingplatform.identity.application.IdentityEmails;
 import co.billingplatform.identity.application.PasswordRecoveryService;
+import co.billingplatform.identity.application.OrganizationProfileService;
 import co.billingplatform.identity.application.TeamService;
 import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.RefreshTokenService;
@@ -13,6 +14,8 @@ import co.billingplatform.customers.application.CustomerService;
 import co.billingplatform.products.application.ProductRepository;
 import co.billingplatform.products.application.ProductService;
 import co.billingplatform.shared.application.AuditTrail;
+import co.billingplatform.shared.application.Municipalities;
+import co.billingplatform.platform.catalog.DivipolaCatalog;
 import co.billingplatform.shared.application.Mailer;
 import co.billingplatform.tax.domain.TaxCatalog;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,8 +46,13 @@ class CoreConfiguration {
     }
 
     @Bean
-    CustomerService customerService(CustomerRepository customers, AuditTrail audit) {
-        return new CustomerService(customers, audit);
+    Municipalities municipalities() {
+        return DivipolaCatalog.fromClasspath();
+    }
+
+    @Bean
+    CustomerService customerService(CustomerRepository customers, AuditTrail audit, Municipalities municipalities) {
+        return new CustomerService(customers, audit, municipalities);
     }
 
     @Bean
@@ -79,6 +87,12 @@ class CoreConfiguration {
                             IdentityEmails emails, AuditTrail audit, Clock clock) {
         return new TeamService(team, invitations, seats, accounts, users, memberships, hasher, acceptances, legal, mailer,
                 emails, audit, clock);
+    }
+
+    @Bean
+    OrganizationProfileService organizationProfileService(OrganizationProfileService.Profiles profiles,
+                                                          Municipalities municipalities, AuditTrail audit) {
+        return new OrganizationProfileService(profiles, municipalities, audit);
     }
 
     /** Versiones vigentes de términos y política; cambiarlas obliga a aceptar de nuevo al registrarse. */

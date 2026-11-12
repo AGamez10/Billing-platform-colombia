@@ -34,6 +34,8 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("PROVIDER_ACCOUNT_NOT_FOUND", HttpStatus.NOT_FOUND),
             Map.entry("NUMBERING_RANGE_NOT_FOUND", HttpStatus.CONFLICT),
             Map.entry("NO_PROVIDER_CONFIGURED", HttpStatus.CONFLICT),
+            Map.entry("ISSUER_PROFILE_INCOMPLETE", HttpStatus.CONFLICT),
+            Map.entry("CUSTOMER_PROFILE_INCOMPLETE", HttpStatus.CONFLICT),
             Map.entry("INVALID_STATE_TRANSITION", HttpStatus.CONFLICT),
             Map.entry("RECONCILIATION_REQUIRED", HttpStatus.CONFLICT),
             Map.entry("CONFLICTING_PROVIDER_RESULT", HttpStatus.CONFLICT),

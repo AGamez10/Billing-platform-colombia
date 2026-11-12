@@ -4,6 +4,8 @@ import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.domain.ProviderId;
 import co.billingplatform.shared.domain.IdentificationType;
+import co.billingplatform.shared.domain.FiscalAddress;
+import co.billingplatform.shared.domain.FiscalProfile;
 import co.billingplatform.shared.domain.Party;
 import co.billingplatform.shared.domain.PartyIdentification;
 import co.billingplatform.shared.domain.RoundingPolicy;
@@ -27,11 +29,21 @@ public final class InvoiceFixtures {
 
     public static Party customer() {
         return new Party(PartyIdentification.of(IdentificationType.CEDULA_CIUDADANIA, "1020304050"),
+                "Cliente de Prueba", "cliente@example.com", FiscalProfile.naturalNotResponsible(),
+                new FiscalAddress("Calle 10 # 5-20", "11001"));
+    }
+
+    /** Cliente creado antes de V16 o sin completar: sin perfil tributario. */
+    public static Party customerWithoutFiscalProfile() {
+        return new Party(PartyIdentification.of(IdentificationType.CEDULA_CIUDADANIA, "1020304050"),
                 "Cliente de Prueba", "cliente@example.com");
     }
 
     public static Party issuer() {
-        return new Party(PartyIdentification.nit("800197268", 4), "Emisor de Prueba S.A.S.", "facturacion@example.com");
+        return new Party(PartyIdentification.nit("800197268", 4), "Emisor de Prueba S.A.S.", "facturacion@example.com",
+                new FiscalProfile(FiscalProfile.PersonType.LEGAL, FiscalProfile.VatRegime.RESPONSIBLE,
+                        java.util.Set.of(FiscalProfile.TaxResponsibility.AGENTE_RETENCION_IVA)),
+                new FiscalAddress("Carrera 7 # 32-16", "11001"));
     }
 
     public static List<InvoiceLine> lines() {

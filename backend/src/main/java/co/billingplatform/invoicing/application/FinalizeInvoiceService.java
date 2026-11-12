@@ -2,6 +2,7 @@ package co.billingplatform.invoicing.application;
 
 import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ProviderAccount;
+import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
 import co.billingplatform.invoicing.domain.Invoice;
 import co.billingplatform.invoicing.domain.InvoiceStatus;
@@ -10,6 +11,7 @@ import co.billingplatform.shared.application.AuditTrail;
 import co.billingplatform.shared.domain.Actor;
 import co.billingplatform.shared.domain.ColombianTime;
 import co.billingplatform.shared.domain.DomainException;
+import co.billingplatform.shared.domain.Party;
 import co.billingplatform.shared.domain.TenantId;
 import co.billingplatform.tax.domain.DocumentCalculator;
 import co.billingplatform.tax.domain.TaxCatalog;
@@ -40,11 +42,14 @@ public final class FinalizeInvoiceService {
     private final TaxCatalog taxes;
     private final DocumentCalculator calculator;
     private final AuditTrail audit;
+    private final IssuerDirectory issuers;
     private final Clock clock;
 
     public FinalizeInvoiceService(InvoiceRepository invoices, NumberingRangeRepository ranges,
                                   ProviderAccountRepository accounts, SubmissionQueue queue, UsageMeter usage,
-                                  TaxCatalog taxes, DocumentCalculator calculator, AuditTrail audit, Clock clock) {
+                                  TaxCatalog taxes, DocumentCalculator calculator, AuditTrail audit,
+                                  IssuerDirectory issuers, Clock clock) {
+        this.issuers = Objects.requireNonNull(issuers);
         this.invoices = Objects.requireNonNull(invoices);
         this.ranges = Objects.requireNonNull(ranges);
         this.accounts = Objects.requireNonNull(accounts);
@@ -66,6 +71,7 @@ public final class FinalizeInvoiceService {
                 .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
                         "The organization has no electronic invoicing provider configured"));
         usage.ensureCanIssue(tenantId, account.environment());
+        ensureFiscalData(tenantId, account.environment(), null);
         ranges.lockActiveRange(tenantId, kind, account.environment(), ColombianTime.today(clock))
                 .orElseThrow(() -> new DomainException("NUMBERING_RANGE_NOT_FOUND",
                         "No active %s numbering resolution for %s".formatted(kind, account.environment())));
@@ -82,6 +88,7 @@ public final class FinalizeInvoiceService {
                 .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
                         "The organization has no electronic invoicing provider configured"));
         usage.ensureCanIssue(tenantId, account.environment());
+        ensureFiscalData(tenantId, account.environment(), invoice.kind() == DocumentKind.INVOICE ? invoice.customer() : null);
 
         LocalDate issueDate = ColombianTime.today(clock);
         NumberingRange range = ranges.lockActiveRange(tenantId, invoice.kind(), account.environment(), issueDate)
@@ -99,5 +106,25 @@ public final class FinalizeInvoiceService {
                         "environment", account.environment().name(),
                         "provider", account.providerId().value())));
         return invoice;
+    }
+
+    /**
+     * En habilitación y producción el documento viaja al proveedor y a la DIAN: el emisor necesita
+     * perfil tributario y dirección, y el adquiriente de una factura su perfil tributario. En
+     * simulación (práctica) no se exige, para poder probar antes de completar la configuración.
+     */
+    private void ensureFiscalData(TenantId tenantId, ProviderEnvironment environment, Party customer) {
+        if (environment == ProviderEnvironment.SIMULATION) {
+            return;
+        }
+        Party issuer = issuers.issuerOf(tenantId);
+        if (issuer.fiscal() == null || issuer.address() == null || issuer.email() == null) {
+            throw new DomainException("ISSUER_PROFILE_INCOMPLETE",
+                    "Complete the organization's tax profile and address before issuing in " + environment);
+        }
+        if (customer != null && !customer.isFinalConsumer() && customer.fiscal() == null) {
+            throw new DomainException("CUSTOMER_PROFILE_INCOMPLETE",
+                    "Complete the customer's tax profile and save the draft again before issuing");
+        }
     }
 }

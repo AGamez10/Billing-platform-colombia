@@ -11,6 +11,8 @@ import co.billingplatform.invoicing.domain.Invoice;
 import co.billingplatform.invoicing.domain.InvoiceLine;
 import co.billingplatform.invoicing.domain.InvoiceStatus;
 import co.billingplatform.platform.persistence.JsonText;
+import co.billingplatform.shared.domain.FiscalAddress;
+import co.billingplatform.shared.domain.FiscalProfile;
 import co.billingplatform.shared.domain.IdentificationType;
 import co.billingplatform.shared.domain.Party;
 import co.billingplatform.shared.domain.PartyIdentification;
@@ -78,6 +80,11 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                                i.customer_snapshot->>'idType' AS c_id_type, i.customer_snapshot->>'idNumber' AS c_id_number,
                                i.customer_snapshot->>'checkDigit' AS c_dv, i.customer_snapshot->>'name' AS c_name,
                                i.customer_snapshot->>'email' AS c_email,
+                               i.customer_snapshot->>'personType' AS c_person_type,
+                               i.customer_snapshot->>'vatRegime' AS c_vat_regime,
+                               i.customer_snapshot->>'responsibilities' AS c_responsibilities,
+                               i.customer_snapshot->>'addressLine' AS c_address_line,
+                               i.customer_snapshot->>'cityCode' AS c_city_code,
                                ARRAY(SELECT jsonb_array_elements_text(i.rejection_reasons)) AS reasons
                         FROM invoices i
                         LEFT JOIN numbering_ranges r ON r.tenant_id = i.tenant_id AND r.id = i.numbering_range_id
@@ -119,7 +126,13 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         String dv = (String) r.get("c_dv");
         Party customer = new Party(new PartyIdentification(IdentificationType.valueOf((String) r.get("c_id_type")),
                 (String) r.get("c_id_number"), dv == null ? null : Integer.valueOf(dv)),
-                (String) r.get("c_name"), (String) r.get("c_email"));
+                (String) r.get("c_name"), (String) r.get("c_email"),
+                r.get("c_person_type") == null ? null : FiscalProfile.of(
+                        FiscalProfile.PersonType.valueOf((String) r.get("c_person_type")),
+                        FiscalProfile.VatRegime.valueOf((String) r.get("c_vat_regime")),
+                        Arrays.asList(((String) r.get("c_responsibilities")).split(","))),
+                r.get("c_city_code") == null ? null
+                        : new FiscalAddress((String) r.get("c_address_line"), (String) r.get("c_city_code")));
 
         Long number = (Long) r.get("number");
         String env = (String) r.get("environment");
@@ -239,6 +252,15 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         customer.put("checkDigit", inv.customer().identification().checkDigit());
         customer.put("name", inv.customer().legalName());
         customer.put("email", inv.customer().email());
+        inv.customer().fiscalProfile().ifPresent(f -> {
+            customer.put("personType", f.personType().name());
+            customer.put("vatRegime", f.vatRegime().name());
+            customer.put("responsibilities", String.join(",", f.responsibilityCodes()));
+        });
+        inv.customer().fiscalAddress().ifPresent(a -> {
+            customer.put("addressLine", a.line());
+            customer.put("cityCode", a.cityCode());
+        });
 
         Map<String, Object> p = new HashMap<>();
         p.put("t", inv.tenantId().value());

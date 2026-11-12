@@ -76,6 +76,12 @@ const MESSAGES: Record<string, string> = {
   SUBSCRIPTION_PAYMENTS_UNAVAILABLE: 'Mercado Pago no responde en este momento. Intenta de nuevo en unos minutos.',
   CHECKOUT_NOT_FOUND: 'No encontramos ese pago.',
   CHECKOUT_EXPIRED: 'Ese link de pago venció. Elige el plan otra vez.',
+  INVALID_FISCAL_PROFILE: 'Revisa los datos tributarios: elige tipo de persona, régimen y al menos una responsabilidad (R-99-PN no se combina con otras).',
+  INVALID_ADDRESS: 'Escribe la dirección y elige el municipio de la lista.',
+  UNKNOWN_MUNICIPALITY: 'Elige el municipio de la lista.',
+  INVALID_ORGANIZATION: 'Revisa los datos de tu empresa.',
+  ISSUER_PROFILE_INCOMPLETE: 'Antes de facturar en real, completa los datos tributarios de tu empresa en Ajustes → Datos de tu empresa.',
+  CUSTOMER_PROFILE_INCOMPLETE: 'A este cliente le faltan sus datos tributarios. Complétalos en Clientes, vuelve a guardar el borrador y emite.',
   HTTP_429: 'Demasiados intentos seguidos. Espera un minuto y vuelve a intentar.',
 };
 

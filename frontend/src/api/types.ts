@@ -36,8 +36,41 @@ export interface Customer {
   phone?: string;
   address?: string;
   cityCode?: string;
+  fiscal?: FiscalProfile | null;
   active: boolean;
   version: number;
+}
+
+export type PersonType = 'LEGAL' | 'NATURAL';
+export type VatRegime = 'RESPONSIBLE' | 'NOT_RESPONSIBLE';
+export type TaxResponsibility = 'O-13' | 'O-15' | 'O-23' | 'O-47' | 'R-99-PN';
+
+export interface FiscalProfile {
+  personType: PersonType;
+  vatRegime: VatRegime;
+  responsibilities: TaxResponsibility[];
+  personTypeCode?: string;
+  vatRegimeCode?: string;
+}
+
+export interface Municipality {
+  code: string;
+  name: string;
+  departmentCode: string;
+  departmentName: string;
+}
+
+export interface OrganizationProfile {
+  identificationType: IdentificationType;
+  identificationNumber: string;
+  checkDigit?: number | null;
+  legalName: string;
+  tradeName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  fiscal?: FiscalProfile | null;
+  address?: { line: string; cityCode: string; cityName?: string | null; departmentCode: string; departmentName?: string | null } | null;
+  readyToIssue: boolean;
 }
 
 export interface Product {

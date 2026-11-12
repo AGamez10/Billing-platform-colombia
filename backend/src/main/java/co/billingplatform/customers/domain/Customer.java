@@ -1,6 +1,8 @@
 package co.billingplatform.customers.domain;
 
 import co.billingplatform.shared.domain.DomainException;
+import co.billingplatform.shared.domain.FiscalAddress;
+import co.billingplatform.shared.domain.FiscalProfile;
 import co.billingplatform.shared.domain.Party;
 import co.billingplatform.shared.domain.PartyIdentification;
 import co.billingplatform.shared.domain.TenantId;
@@ -21,6 +23,7 @@ public record Customer(
         String phone,
         String address,
         String cityCode,
+        FiscalProfile fiscal,
         boolean active,
         int version) {
 
@@ -37,21 +40,27 @@ public record Customer(
     }
 
     public static Customer create(TenantId tenantId, PartyIdentification identification, String legalName, String email,
-                                  String phone, String address, String cityCode) {
-        return new Customer(UUID.randomUUID(), tenantId, identification, legalName, email, phone, address, cityCode, true, 0);
+                                  String phone, String address, String cityCode, FiscalProfile fiscal) {
+        return new Customer(UUID.randomUUID(), tenantId, identification, legalName, email, phone, address, cityCode, fiscal,
+                true, 0);
     }
 
     public Customer withDetails(PartyIdentification identification, String legalName, String email,
-                                String phone, String address, String cityCode) {
-        return new Customer(id, tenantId, identification, legalName, email, phone, address, cityCode, active, version + 1);
+                                String phone, String address, String cityCode, FiscalProfile fiscal) {
+        return new Customer(id, tenantId, identification, legalName, email, phone, address, cityCode, fiscal, active,
+                version + 1);
     }
 
     public Customer deactivated() {
-        return new Customer(id, tenantId, identification, legalName, email, phone, address, cityCode, false, version + 1);
+        return new Customer(id, tenantId, identification, legalName, email, phone, address, cityCode, fiscal, false,
+                version + 1);
     }
 
+    /** Snapshot para el documento; la dirección solo viaja completa (línea y municipio). */
     public Party asParty() {
-        return new Party(identification, legalName, email);
+        FiscalAddress fiscalAddress = address != null && address.length() >= 3 && cityCode != null
+                ? new FiscalAddress(address, cityCode) : null;
+        return new Party(identification, legalName, email, fiscal, fiscalAddress);
     }
 
     private static String optional(String value, int max, String pattern, String message) {

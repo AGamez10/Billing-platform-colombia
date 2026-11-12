@@ -51,14 +51,17 @@ class InvoiceLifecycleServiceTest {
     private final Meter meter = new Meter();
     private final List<AuditTrail.Event> auditEvents = new ArrayList<>();
 
+    private Party customerOfAData = InvoiceFixtures.customer();
+    private Party issuerData = InvoiceFixtures.issuer();
+
     private final CustomerDirectory customers = (tenant, id) ->
-            tenant.equals(tenantA) && id.equals(customerOfA) ? Optional.of(InvoiceFixtures.customer()) : Optional.<Party>empty();
+            tenant.equals(tenantA) && id.equals(customerOfA) ? Optional.of(customerOfAData) : Optional.<Party>empty();
 
     private final InvoiceDraftService drafts = new InvoiceDraftService(invoices, customers, TestTaxRates.catalog(),
             InvoiceFixtures.CALCULATOR, auditEvents::add, LATE_EVENING_IN_BOGOTA);
     private final FinalizeInvoiceService finalizer = new FinalizeInvoiceService(invoices, ranges, accounts,
             (tenant, id) -> queued.add(id), meter, TestTaxRates.catalog(), InvoiceFixtures.CALCULATOR,
-            auditEvents::add, LATE_EVENING_IN_BOGOTA);
+            auditEvents::add, tenant -> issuerData, LATE_EVENING_IN_BOGOTA);
 
     static final class Ranges implements NumberingRangeRepository {
         final Map<String, NumberingRange> active = new HashMap<>();
@@ -200,6 +203,37 @@ class InvoiceLifecycleServiceTest {
         assertEquals(InvoiceStatus.DRAFT, invoices.store.get(draft.id()).status());
         assertEquals(990000000, production.nextNumber());
         assertTrue(queued.isEmpty());
+    }
+
+    @Test
+    @DisplayName("en ambientes reales se exige el perfil tributario del emisor y del cliente; en simulación no")
+    void fiscalDataRequiredOutsideSimulation() {
+        configureHabilitation(tenantA);
+        issuerData = new Party(issuerData.identification(), issuerData.legalName(), issuerData.email());
+        Invoice draft = drafts.create(tenantA, actor, command());
+        assertEquals("ISSUER_PROFILE_INCOMPLETE", assertThrows(DomainException.class,
+                () -> finalizer.finalizeInvoice(tenantA, actor, draft.id())).code());
+        assertEquals("ISSUER_PROFILE_INCOMPLETE", assertThrows(DomainException.class,
+                () -> finalizer.ensureCanFinalize(tenantA, DocumentKind.INVOICE)).code());
+
+        issuerData = InvoiceFixtures.issuer();
+        customerOfAData = InvoiceFixtures.customerWithoutFiscalProfile();
+        Invoice withoutProfile = drafts.create(tenantA, actor, command());
+        assertEquals("CUSTOMER_PROFILE_INCOMPLETE", assertThrows(DomainException.class,
+                () -> finalizer.finalizeInvoice(tenantA, actor, withoutProfile.id())).code());
+        assertEquals(InvoiceStatus.DRAFT, withoutProfile.status());
+        assertTrue(queued.isEmpty(), "sin número consumido ni envío programado");
+
+        customerOfAData = InvoiceFixtures.customer();
+        drafts.update(tenantA, actor, withoutProfile.id(), command());
+        assertEquals(InvoiceStatus.PENDING_SUBMISSION, finalizer.finalizeInvoice(tenantA, actor, withoutProfile.id()).status(),
+                "al guardar de nuevo el borrador toma los datos actualizados del cliente");
+
+        TenantId practice = tenantB;
+        accounts.activate(practice, new ProviderId("alpha"), ProviderEnvironment.SIMULATION, null);
+        ranges.add(InvoiceFixtures.range(practice, ProviderEnvironment.SIMULATION));
+        issuerData = new Party(issuerData.identification(), issuerData.legalName(), null);
+        finalizer.ensureCanFinalize(practice, DocumentKind.INVOICE); // en simulación se puede practicar sin perfil
     }
 
     @Test

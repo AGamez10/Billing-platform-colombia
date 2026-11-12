@@ -14,11 +14,14 @@ public enum Permission {
     USERS_MANAGE,
     API_KEYS_MANAGE,
     PROVIDER_MANAGE,
+    /** Datos del emisor: razón social, perfil tributario y dirección fiscal. */
+    ORGANIZATION_MANAGE,
     /** Decisiones con efecto en el cobro (aceptar documentos adicionales). */
     BILLING_MANAGE;
 
     /** Permisos administrativos que nunca se delegan a una clave de API. */
     public boolean isAdministrative() {
-        return this == USERS_MANAGE || this == API_KEYS_MANAGE || this == PROVIDER_MANAGE || this == BILLING_MANAGE;
+        return this == USERS_MANAGE || this == API_KEYS_MANAGE || this == PROVIDER_MANAGE || this == BILLING_MANAGE
+                || this == ORGANIZATION_MANAGE;
     }
 }

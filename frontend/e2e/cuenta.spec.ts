@@ -96,3 +96,26 @@ test('configuración guiada: de cuenta nueva a lista para vender', async ({ page
   await page.getByRole('link', { name: 'Hacer una venta' }).click();
   await expect(page).toHaveURL(/\/vender$/);
 });
+
+test('datos de la empresa: dirección con municipio DANE y responsabilidades del RUT', async ({ page }) => {
+  await registerOrganization(page, `Hogar de Paso ${suffix()}`, `empresa-${suffix()}@example.com`);
+  await page.goto('/empresa');
+  await expect(page.getByRole('heading', { name: 'Datos de tu empresa' })).toBeVisible();
+  await expect(page.getByText(/obligatorios para facturar en real/)).toBeVisible();
+
+  await page.getByLabel('Correo de facturación').fill('facturas@hogar.example');
+  await page.getByLabel('Dirección').fill('Calle 10 # 5-20');
+  const city = page.getByRole('combobox', { name: 'Municipio' });
+  await city.fill('santiago de cali');
+  await page.getByRole('option', { name: /Santiago de Cali/ }).click();
+  await expect(city).toHaveValue('Santiago de Cali · Valle del Cauca');
+
+  await page.getByText('Responsable de IVA', { exact: true }).click();
+  await page.getByRole('checkbox', { name: /O-23/ }).check();
+  await expect(page.getByRole('checkbox', { name: /R-99-PN/ })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Guardar datos de la empresa' }).click();
+  await expect(page.getByText('Tus datos tributarios están completos')).toBeVisible();
+
+  await page.goto('/empezar');
+  await expect(page.getByText(/Listo: Hogar de Paso .*, Santiago de Cali\./)).toBeVisible();
+});

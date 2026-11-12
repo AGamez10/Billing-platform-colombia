@@ -338,6 +338,26 @@ SELECT t.expect_eq((SELECT count(*) FROM (SELECT subscription_checkout_tenant('c
 SELECT t.expect_eq((SELECT count(*) FROM claim_pending_checkouts(10)), 0, 'un checkout pagado no se concilia');
 SELECT t.expect_eq((SELECT count(*) FROM (SELECT mark_overdue_subscriptions(DATE '2000-01-01', 3)) x), 1, 'el vencimiento corre sin tenant');
 
+-- 15. Perfil tributario (V16): completo o nada; el NIT de la organización no se puede cambiar.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+SELECT t.expect_eq(t.rows_affected($$UPDATE organizations SET person_type = 'LEGAL', vat_regime = 'RESPONSIBLE',
+       tax_responsibilities = 'O-13,O-23', address_line = 'Calle 1 # 2-3', city_code = '11001'$$), 1,
+       'la organización completa su perfil tributario');
+SELECT t.expect_sqlstate($$UPDATE organizations SET id_number = '900000001'$$, '42501',
+       'la aplicación no puede cambiar el NIT de la organización');
+SELECT t.expect_sqlstate($$UPDATE organizations SET status = 'ACTIVE'$$, '42501',
+       'la aplicación no puede cambiar el estado de la organización');
+SELECT t.expect_sqlstate($$UPDATE organizations SET tax_responsibilities = 'R-99-PN,O-13'$$, '23514',
+       'R-99-PN no se combina con otras responsabilidades');
+SELECT t.expect_sqlstate($$UPDATE organizations SET vat_regime = NULL$$, '23514',
+       'el perfil tributario va completo');
+SELECT t.expect_sqlstate($$UPDATE organizations SET city_code = NULL$$, '23514',
+       'la dirección fiscal lleva línea y municipio');
+SELECT t.expect_sqlstate($$UPDATE customers SET person_type = 'LEGAL' WHERE id = 'c0000000-0000-0000-0000-0000000000a2'$$, '23514',
+       'el perfil tributario del cliente va completo');
+SELECT t.expect_eq(t.rows_affected($$UPDATE organizations SET legal_name = 'pwned' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002'$$), 0,
+       'IDOR: no se modifica el perfil de otra organización');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

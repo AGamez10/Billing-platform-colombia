@@ -16,14 +16,17 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 |---|---|---|
 | `POST /auth/register` | público (rate limit) | Crea la organización, el usuario dueño y la prueba gratis (20 documentos) |
 | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `GET /auth/me` | público / cookie / token | Sesión (refresh rotatorio en cookie segura) |
-| `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. Bloqueo optimista con `version`; DELETE desactiva |
+| `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. `fiscal` opcional: `{personType: LEGAL\|NATURAL, vatRegime: RESPONSIBLE\|NOT_RESPONSIBLE, responsibilities: ["O-13"…] o ["R-99-PN"]}`; `cityCode` debe existir en la DIVIPOLA. Bloqueo optimista con `version`; DELETE desactiva |
 | `GET/POST /products`, `GET/PUT/DELETE /products/{id}` | PRODUCT_* | Productos y servicios con códigos de tarifa vigentes |
 | `GET /public/plans`, `GET /public/tax-rates` | público | Catálogo comercial y tarifas con fundamento legal |
+| `GET /public/municipalities` | público (caché 1 día) | Municipios DIVIPOLA del DANE: `code` (5 dígitos), `name`, `departmentCode`, `departmentName` |
+| `GET /organization` | cualquier miembro | Datos del emisor: identificación, razón social, contacto, `fiscal`, `address` (con nombre del municipio) y `readyToIssue` |
+| `PUT /organization` | ORGANIZATION_MANAGE (dueño/admin) | `{legalName, tradeName?, email, phone?, addressLine, cityCode, fiscal}`. La identificación no se cambia. `422 UNKNOWN_MUNICIPALITY` si el código no está en la DIVIPOLA |
 | `GET/POST /provider-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Proveedor y ambiente activos para nuevas facturas. Hoy solo está disponible `mock` en `SIMULATION` |
 | `GET/POST /numbering-ranges` | POST: NUMBERING_MANAGE | Resolución de numeración tal como figura en la resolución DIAN, por ambiente |
 | `POST /invoices` | INVOICE_WRITE | Crea un borrador. Totales e impuestos los calcula el servidor; no consume número |
 | `PUT /invoices/{id}` · `DELETE /invoices/{id}` | INVOICE_WRITE | Solo borradores (`409` si ya se emitió) |
-| `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente |
+| `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente. Fuera de simulación exige perfil tributario del emisor y del cliente (`409 ISSUER_PROFILE_INCOMPLETE` / `CUSTOMER_PROFILE_INCOMPLETE`, ADR-0025) |
 | `GET /invoices/{id}` | INVOICE_READ | Devuelve estado, número, ambiente, totales, subtotales por tarifa, evidencia del proveedor e historial |
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
 | `GET /subscription/quota` | USAGE_READ | Documentos usados en el ciclo. Solo cuentan los emitidos en PRODUCTION |

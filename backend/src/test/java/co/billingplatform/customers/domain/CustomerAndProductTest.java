@@ -2,6 +2,7 @@ package co.billingplatform.customers.domain;
 
 import co.billingplatform.products.domain.Product;
 import co.billingplatform.shared.domain.DomainException;
+import co.billingplatform.shared.domain.FiscalProfile;
 import co.billingplatform.shared.domain.IdentificationType;
 import co.billingplatform.shared.domain.Page;
 import co.billingplatform.shared.domain.PartyIdentification;
@@ -22,17 +23,17 @@ class CustomerAndProductTest {
     @Test
     @DisplayName("cliente: valida NIT, correo, teléfono y código DANE; cada cambio sube la versión")
     void customer() {
-        Customer c = Customer.create(tenant, PartyIdentification.nit("800197268", 4), "  DIAN  ", "A@B.CO", "601 555 0000", null, "11001");
+        Customer c = Customer.create(tenant, PartyIdentification.nit("800197268", 4), "  DIAN  ", "A@B.CO", "601 555 0000", null, "11001", null);
         assertEquals("DIAN", c.legalName());
         assertEquals("a@b.co", c.email());
         assertEquals(0, c.version());
-        assertEquals(1, c.withDetails(c.identification(), "Otro", null, null, null, null).version());
+        assertEquals(1, c.withDetails(c.identification(), "Otro", null, null, null, null, FiscalProfile.naturalNotResponsible()).version());
         assertFalse(c.deactivated().active());
 
         assertThrows(DomainException.class, () -> Customer.create(tenant, PartyIdentification.of(IdentificationType.CEDULA_CIUDADANIA, "1"),
-                "X", null, "abc", null, null));
+                "X", null, "abc", null, null, null));
         assertThrows(DomainException.class, () -> Customer.create(tenant, PartyIdentification.of(IdentificationType.CEDULA_CIUDADANIA, "1"),
-                "X", null, null, null, "BOG"));
+                "X", null, null, null, "BOG", null));
     }
 
     @Test

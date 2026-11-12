@@ -2,6 +2,7 @@ package co.billingplatform.customers.adapter.persistence;
 
 import co.billingplatform.customers.application.CustomerRepository;
 import co.billingplatform.customers.domain.Customer;
+import co.billingplatform.platform.persistence.FiscalColumns;
 import co.billingplatform.platform.persistence.SqlText;
 import co.billingplatform.shared.domain.DomainException;
 import co.billingplatform.shared.domain.IdentificationType;
@@ -33,8 +34,10 @@ class JdbcCustomerRepository implements CustomerRepository {
         try {
             jdbc.sql("""
                             INSERT INTO customers (tenant_id, id, id_type, id_number, check_digit, legal_name, email,
-                                                   phone, address, city_code, active, version)
-                            VALUES (:t, :id, :type, :number, :dv, :name, :email, :phone, :address, :city, :active, :v)
+                                                   phone, address, city_code, person_type, vat_regime,
+                                                   tax_responsibilities, active, version)
+                            VALUES (:t, :id, :type, :number, :dv, :name, :email, :phone, :address, :city, :personType,
+                                    :vatRegime, :responsibilities, :active, :v)
                             """)
                     .params(params(c))
                     .update();
@@ -49,7 +52,8 @@ class JdbcCustomerRepository implements CustomerRepository {
             return jdbc.sql("""
                             UPDATE customers SET id_type = :type, id_number = :number, check_digit = :dv,
                                    legal_name = :name, email = :email, phone = :phone, address = :address,
-                                   city_code = :city, active = :active, version = :v, updated_at = now()
+                                   city_code = :city, person_type = :personType, vat_regime = :vatRegime,
+                                   tax_responsibilities = :responsibilities, active = :active, version = :v, updated_at = now()
                             WHERE tenant_id = :t AND id = :id AND version = :v - 1
                             """)
                     .params(params(c))
@@ -102,6 +106,7 @@ class JdbcCustomerRepository implements CustomerRepository {
         p.put("phone", c.phone());
         p.put("address", c.address());
         p.put("city", c.cityCode());
+        FiscalColumns.put(p, c.fiscal());
         p.put("active", c.active());
         p.put("v", c.version());
         return p;
@@ -119,6 +124,7 @@ class JdbcCustomerRepository implements CustomerRepository {
                 rs.getString("phone"),
                 rs.getString("address"),
                 rs.getString("city_code"),
+                FiscalColumns.read(rs),
                 rs.getBoolean("active"),
                 rs.getInt("version"));
     }

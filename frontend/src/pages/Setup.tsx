@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { http } from '../api/client';
-import type { InvoiceSummary, NumberingRange, Page, PaymentAccount, ProviderAccount } from '../api/types';
+import type { InvoiceSummary, NumberingRange, OrganizationProfile, Page, PaymentAccount, ProviderAccount } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, Loading, PageHead } from '../components/ui';
 import { messageFor } from '../lib/errors';
@@ -37,6 +37,7 @@ export function Setup() {
   const ranges = useApi<NumberingRange[]>('/api/v1/numbering-ranges');
   const invoices = useApi<Page<InvoiceSummary>>('/api/v1/invoices?limit=1');
   const payments = useApi<PaymentAccount>('/api/v1/payment-accounts');
+  const company = useApi<OrganizationProfile>('/api/v1/organization');
   const [mode, setModeState] = useState<SalesMode | null>(storedMode);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export function Setup() {
 
   return (
     <>
-      <PageHead title="Configura tu cuenta" subtitle="Cuatro pasos, en este orden. Puedes practicar todo sin riesgo antes de facturar de verdad." />
+      <PageHead title="Configura tu cuenta" subtitle="Cinco pasos. Puedes practicar todo sin riesgo antes de facturar de verdad." />
       {error && <Alert tone="error">{error}</Alert>}
 
       <ol className="setup">
@@ -116,7 +117,28 @@ export function Setup() {
           </div>
         </SetupStep>
 
-        <SetupStep n={2} done={!!active} title="Conecta la facturación electrónica">
+        <SetupStep n={2} done={!!company.data?.readyToIssue} title="Datos tributarios de tu empresa">
+          {company.data?.readyToIssue ? (
+            <p>
+              Listo: {company.data.legalName}
+              {company.data.address?.cityName ? `, ${company.data.address.cityName}` : ''}.{' '}
+              <Link to="/empresa">Revisar</Link>
+            </p>
+          ) : (
+            <div className="stack tight-stack">
+              <p className="muted">
+                Dirección, régimen y responsabilidades de tu RUT. No hacen falta para practicar, sí para facturar en real.
+              </p>
+              <div>
+                <Link to="/empresa" className="btn btn-secondary">
+                  Completar datos de la empresa
+                </Link>
+              </div>
+            </div>
+          )}
+        </SetupStep>
+
+        <SetupStep n={3} done={!!active} title="Conecta la facturación electrónica">
           {active ? (
             <p>
               Listo: estás en <strong>{ENVIRONMENT_LABEL[active.environment].toLowerCase()}</strong>.
@@ -149,7 +171,7 @@ export function Setup() {
           )}
         </SetupStep>
 
-        <SetupStep n={3} done={numberingDone} title="Numeración de tus documentos" locked={!mode || !active}>
+        <SetupStep n={4} done={numberingDone} title="Numeración de tus documentos" locked={!mode || !active}>
           <p className="muted">
             La DIAN autoriza los números que puedes usar mediante una resolución de numeración.
             {wantsPos && wantsInvoice ? ' Necesitas una para facturas y otra para el POS.' : ''}
@@ -176,7 +198,7 @@ export function Setup() {
           )}
         </SetupStep>
 
-        <SetupStep n={4} done={firstDone} title="Tu primer documento" locked={!numberingDone}>
+        <SetupStep n={5} done={firstDone} title="Tu primer documento" locked={!numberingDone}>
           <p className="muted">Hazlo ahora: en práctica no cuenta en tu plan.</p>
           <div className="row">
             {wantsPos && (

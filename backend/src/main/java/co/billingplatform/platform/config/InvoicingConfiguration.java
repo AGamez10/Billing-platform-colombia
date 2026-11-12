@@ -88,8 +88,8 @@ class InvoicingConfiguration {
     FinalizeInvoiceService finalizeInvoiceService(InvoiceRepository invoices, NumberingRangeRepository ranges,
                                                   ProviderAccountRepository accounts, SubmissionQueue queue,
                                                   UsageMeter usage, TaxCatalog taxes, DocumentCalculator calculator,
-                                                  AuditTrail audit, Clock clock) {
-        return new FinalizeInvoiceService(invoices, ranges, accounts, queue, usage, taxes, calculator, audit, clock);
+                                                  AuditTrail audit, IssuerDirectory issuers, Clock clock) {
+        return new FinalizeInvoiceService(invoices, ranges, accounts, queue, usage, taxes, calculator, audit, issuers, clock);
     }
 
     @Bean
