@@ -88,7 +88,8 @@ public final class FinalizeInvoiceService {
                 .orElseThrow(() -> new DomainException("NO_PROVIDER_CONFIGURED",
                         "The organization has no electronic invoicing provider configured"));
         usage.ensureCanIssue(tenantId, account.environment());
-        ensureFiscalData(tenantId, account.environment(), invoice.kind() == DocumentKind.INVOICE ? invoice.customer() : null);
+        ensureFiscalData(tenantId, account.environment(),
+                invoice.kind() == DocumentKind.POS_EQUIVALENT ? null : invoice.customer());
 
         LocalDate issueDate = ColombianTime.today(clock);
         NumberingRange range = ranges.lockActiveRange(tenantId, invoice.kind(), account.environment(), issueDate)

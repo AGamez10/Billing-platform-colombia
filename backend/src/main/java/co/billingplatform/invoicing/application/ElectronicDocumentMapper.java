@@ -56,6 +56,7 @@ final class ElectronicDocumentMapper {
                         s.taxableAmount(), s.taxAmount())).toList(),
                 calc.lineExtensionAmount(),
                 calc.taxTotal(),
-                calc.payableAmount());
+                calc.payableAmount(),
+                invoice.creditNote().map(cn -> cn.correction()).orElse(null));
     }
 }

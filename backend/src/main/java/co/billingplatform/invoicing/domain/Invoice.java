@@ -60,16 +60,37 @@ public final class Invoice {
     private boolean outcomeUncertain;
     private int providerInteractions;
     private String lastError;
+    private CreditNoteDetails creditNote;
     private final List<StatusChange> history = new ArrayList<>();
 
     private Invoice(UUID id, TenantId tenantId, DocumentKind kind, String currency) {
         this.id = Objects.requireNonNull(id);
         this.tenantId = Objects.requireNonNull(tenantId);
         this.kind = Objects.requireNonNull(kind);
-        if (kind != DocumentKind.INVOICE && kind != DocumentKind.POS_EQUIVALENT) {
-            throw new DomainException("INVALID_DOCUMENT_KIND", "Sales documents are invoices or POS equivalents");
+        if (kind == DocumentKind.DEBIT_NOTE) {
+            throw new DomainException("INVALID_DOCUMENT_KIND", "Debit notes are not supported yet");
         }
         this.currency = Objects.requireNonNull(currency);
+    }
+
+    /**
+     * Nota crédito sobre una factura validada. El comprador es el de la factura; las líneas las
+     * arma {@code CreditNoteService} a partir de las de la factura (nunca montos libres).
+     */
+    public static Invoice creditNote(UUID id, Invoice credited, CreditNoteDetails details, List<InvoiceLine> lines,
+                                     LocalDate today, TaxCatalog taxes, DocumentCalculator calculator, Instant now) {
+        if (credited.kind != DocumentKind.INVOICE || credited.status != InvoiceStatus.ACCEPTED || credited.evidence == null) {
+            throw new DomainException("INVOICE_NOT_CREDITABLE", "Only validated invoices can be corrected with a credit note");
+        }
+        if (!details.creditedInvoiceId().equals(credited.id) || details.lineOrigins().size() != lines.size()) {
+            throw new IllegalArgumentException("Credit note details do not match the credited invoice");
+        }
+        Invoice note = new Invoice(id, credited.tenantId, DocumentKind.CREDIT_NOTE, credited.currency);
+        note.status = InvoiceStatus.DRAFT;
+        note.creditNote = details;
+        note.applyContent(credited.customer, lines, today, taxes, calculator);
+        note.history.add(new StatusChange(null, InvoiceStatus.DRAFT, now, "credit note for " + details.creditedNumber()));
+        return note;
     }
 
     public static Invoice draft(UUID id, TenantId tenantId, Party customer, List<InvoiceLine> lines,
@@ -93,7 +114,7 @@ public final class Invoice {
                            UUID numberingRangeId, UUID providerAccountId, ProviderEnvironment environment, ExternalReference externalReference,
                            ValidationEvidence evidence, List<String> rejectionReasons, boolean outcomeUncertain,
                            int providerInteractions, String lastError, List<StatusChange> history,
-                           java.math.BigDecimal storedPayableAmount, DocumentKind kind) {}
+                           java.math.BigDecimal storedPayableAmount, DocumentKind kind, CreditNoteDetails creditNote) {}
 
     /**
      * Reconstruye una factura persistida. Los totales se recalculan con el motor y se comparan
@@ -120,12 +141,19 @@ public final class Invoice {
         invoice.providerInteractions = s.providerInteractions();
         invoice.lastError = s.lastError();
         invoice.history.addAll(s.history() == null ? List.of() : s.history());
+        invoice.creditNote = s.creditNote();
+        if ((invoice.kind == DocumentKind.CREDIT_NOTE) != (invoice.creditNote != null)) {
+            throw new IllegalStateException("Credit note " + s.id() + " is missing its reference");
+        }
         return invoice;
     }
 
     public void replaceContent(Party customer, List<InvoiceLine> lines, LocalDate today,
                                TaxCatalog taxes, DocumentCalculator calculator) {
         requireStatus(InvoiceStatus.DRAFT);
+        if (kind == DocumentKind.CREDIT_NOTE) {
+            throw new DomainException("CREDIT_NOTE_NOT_EDITABLE", "A credit note draft cannot be edited; delete it and create another");
+        }
         applyContent(customer, lines, today, taxes, calculator);
     }
 
@@ -297,4 +325,6 @@ public final class Invoice {
     public int providerInteractions() { return providerInteractions; }
     public Optional<String> lastError() { return Optional.ofNullable(lastError); }
     public List<StatusChange> history() { return List.copyOf(history); }
+    /** Solo en notas crédito: la factura que corrige y el motivo. */
+    public Optional<CreditNoteDetails> creditNote() { return Optional.ofNullable(creditNote); }
 }

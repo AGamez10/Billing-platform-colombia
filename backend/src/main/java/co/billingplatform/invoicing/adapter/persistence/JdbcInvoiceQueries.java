@@ -24,6 +24,21 @@ public class JdbcInvoiceQueries {
         this.jdbc = jdbc;
     }
 
+    /** Notas crédito de una factura, más recientes primero. */
+    public java.util.List<InvoiceSummary> creditNotesOf(TenantId tenantId, UUID invoiceId) {
+        return jdbc.sql("""
+                        SELECT id, document_kind, status, prefix, number, issue_date, environment, payable_amount, validation_environment,
+                               customer_snapshot->>'name' AS customer_name, customer_snapshot->>'idNumber' AS customer_id_number
+                        FROM invoices
+                        WHERE tenant_id = :t AND credited_invoice_id = :id
+                        ORDER BY created_at DESC, id
+                        """)
+                .param("t", tenantId.value())
+                .param("id", invoiceId)
+                .query(JdbcInvoiceQueries::summary)
+                .list();
+    }
+
     public Page<InvoiceSummary> list(TenantId tenantId, InvoiceStatus status, Integer limit, Integer offset) {
         return list(tenantId, null, status, limit, offset);
     }
@@ -51,20 +66,22 @@ public class JdbcInvoiceQueries {
         if (kind != null) {
             spec = spec.param("kind", kind);
         }
-        var rows = spec.query((rs, n) -> {
-            long number = rs.getLong("number");
-            boolean numbered = !rs.wasNull();
-            String st = rs.getString("status");
-            return new InvoiceSummary(
-                    rs.getObject("id", UUID.class), rs.getString("document_kind"), st,
-                    numbered ? rs.getString("prefix") + number : null,
-                    rs.getDate("issue_date").toLocalDate(),
-                    rs.getString("environment"),
-                    rs.getString("customer_name"),
-                    rs.getString("customer_id_number"),
-                    rs.getBigDecimal("payable_amount"),
-                    "ACCEPTED".equals(st) && "PRODUCTION".equals(rs.getString("validation_environment")));
-        }).list();
+        var rows = spec.query(JdbcInvoiceQueries::summary).list();
         return Page.of(rows, l, o);
+    }
+
+    private static InvoiceSummary summary(java.sql.ResultSet rs, int n) throws java.sql.SQLException {
+        long number = rs.getLong("number");
+        boolean numbered = !rs.wasNull();
+        String st = rs.getString("status");
+        return new InvoiceSummary(
+                rs.getObject("id", UUID.class), rs.getString("document_kind"), st,
+                numbered ? rs.getString("prefix") + number : null,
+                rs.getDate("issue_date").toLocalDate(),
+                rs.getString("environment"),
+                rs.getString("customer_name"),
+                rs.getString("customer_id_number"),
+                rs.getBigDecimal("payable_amount"),
+                "ACCEPTED".equals(st) && "PRODUCTION".equals(rs.getString("validation_environment")));
     }
 }

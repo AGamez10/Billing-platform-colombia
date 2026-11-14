@@ -46,7 +46,7 @@ public final class NumberingRange {
         this.id = Objects.requireNonNull(id);
         this.tenantId = Objects.requireNonNull(tenantId);
         this.documentKind = Objects.requireNonNull(documentKind);
-        if (documentKind != DocumentKind.INVOICE && documentKind != DocumentKind.POS_EQUIVALENT) {
+        if (documentKind == DocumentKind.DEBIT_NOTE) {
             throw new DomainException("INVALID_NUMBERING_RANGE", "Unsupported document kind for numbering: " + documentKind);
         }
         this.environment = Objects.requireNonNull(environment);
