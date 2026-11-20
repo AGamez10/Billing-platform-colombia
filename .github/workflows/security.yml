@@ -50,6 +50,22 @@ jobs:
       - uses: github/codeql-action/analyze@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
         with:
           category: /language:${{ matrix.language }}
+          output: sarif-results
+      # Resumen legible de los hallazgos (también quedan en Security → Code scanning).
+      - name: Resumen de hallazgos
+        if: always()
+        run: |
+          {
+            echo "### CodeQL (${{ matrix.language }})"
+            jq -r '[.runs[].results[]] | "Hallazgos: \(length)"' sarif-results/*.sarif
+            jq -r '.runs[] as $r | $r.results[] | "- \(.ruleId) — \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"' sarif-results/*.sarif
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: codeql-${{ matrix.language }}
+          path: sarif-results
+          retention-days: 30
 
   secrets:
     name: Secretos en el historial (gitleaks)
