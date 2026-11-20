@@ -19,7 +19,8 @@ export function TwoFactorStep({ challenge, onDone, onRestart }: { challenge: str
     setBusy(true);
     setError(null);
     try {
-      await completeTwoFactor(challenge, code.trim());
+      // La app muestra el código como "123 456": se envía sin espacios.
+      await completeTwoFactor(challenge, recovery ? code.trim() : code.replace(/\s/g, ''));
       onDone();
     } catch (err) {
       setError(messageFor(err));
