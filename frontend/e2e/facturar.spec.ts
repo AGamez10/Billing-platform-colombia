@@ -58,6 +58,7 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   // 5. Emitir y ver la respuesta del proveedor simulado, sin validez tributaria
   await page.getByRole('button', { name: 'Emitir factura' }).click();
   await expect(page.getByRole('heading', { name: 'Factura SETT1' })).toBeVisible();
+  const invoiceUrl = page.url();
   await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/sin validez tributaria/).first()).toBeVisible();
   await expect(page.getByText(/^SIMULATED-/)).toBeVisible();
@@ -82,6 +83,28 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await expect(buyerPage.getByText(/no tiene validez tributaria/).first()).toBeVisible();
   await expect(buyerPage).toHaveURL(/\/documento$/); // el token sale de la barra de direcciones
   await guest.close();
+
+  // 8. Corregir con nota crédito: devolución parcial, con su propia numeración
+  await page.getByRole('link', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Registrar resolución' }).click();
+  await page.getByLabel('Tipo de documento').selectOption('CREDIT_NOTE');
+  await page.getByLabel('Número de resolución').fill('18760000009');
+  await page.getByLabel('Prefijo').fill('NC');
+  await page.getByLabel('Hasta', { exact: true }).fill('1000');
+  await page.getByLabel('Vigente hasta').fill(`${new Date().getFullYear() + 1}-12-31`);
+  await page.getByRole('button', { name: 'Guardar resolución' }).click();
+  await expect(page.getByRole('cell', { name: '18760000009' })).toBeVisible();
+  await page.goto(invoiceUrl);
+  await expect(page.getByRole('heading', { name: 'Factura SETT1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Devolución parcial' }).click();
+  await page.getByRole('textbox', { name: /Cantidad a devolver/ }).first().fill('1');
+  await page.getByLabel('Motivo').fill('El cliente devolvió una unidad');
+  await page.getByRole('button', { name: 'Crear nota crédito' }).click();
+  await expect(page.getByRole('heading', { name: 'Borrador de nota crédito' })).toBeVisible();
+  await expect(page.getByText(/Devolución parcial de la/)).toBeVisible();
+  await page.getByRole('button', { name: 'Emitir nota crédito' }).click();
+  await expect(page.getByRole('heading', { name: 'Nota crédito NC1' })).toBeVisible();
+  await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
 });
 
 test('comercio: venta rápida a consumidor final emite el POS en simulación', async ({ page }) => {

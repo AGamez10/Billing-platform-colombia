@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { http } from '../api/client';
-import type { InvoiceSummary, NumberingRange, OrganizationProfile, Page, PaymentAccount, ProviderAccount } from '../api/types';
+import type { DocumentKind, InvoiceSummary, NumberingRange, OrganizationProfile, Page, PaymentAccount, ProviderAccount } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, Loading, PageHead } from '../components/ui';
 import { messageFor } from '../lib/errors';
@@ -48,7 +48,7 @@ export function Setup() {
   const environment = active?.environment;
   const wantsPos = mode === 'COUNTER' || mode === 'BOTH';
   const wantsInvoice = mode === 'COMPANIES' || mode === 'BOTH';
-  const hasRange = (kind: 'INVOICE' | 'POS_EQUIVALENT') =>
+  const hasRange = (kind: DocumentKind) =>
     !!ranges.data?.some((r) => r.kind === kind && r.environment === environment && r.remaining > 0);
   const numberingDone = !!mode && !!environment && (!wantsPos || hasRange('POS_EQUIVALENT')) && (!wantsInvoice || hasRange('INVOICE'));
   const firstDone = (invoices.data?.items.length ?? 0) > 0;
@@ -80,8 +80,9 @@ export function Setup() {
   }
 
   function createPracticeNumbering() {
-    const kinds: { kind: 'INVOICE' | 'POS_EQUIVALENT'; prefix: string; resolution: string }[] = [];
+    const kinds: { kind: DocumentKind; prefix: string; resolution: string }[] = [];
     if (wantsInvoice && !hasRange('INVOICE')) kinds.push({ kind: 'INVOICE', prefix: 'PRAC', resolution: '18760000001' });
+    if (wantsInvoice && !hasRange('CREDIT_NOTE')) kinds.push({ kind: 'CREDIT_NOTE', prefix: 'NCP', resolution: '18760000003' });
     if (wantsPos && !hasRange('POS_EQUIVALENT')) kinds.push({ kind: 'POS_EQUIVALENT', prefix: 'CAJA', resolution: '18760000002' });
     void run('ranges', async () => {
       for (const k of kinds) {

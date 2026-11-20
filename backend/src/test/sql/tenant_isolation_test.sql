@@ -384,6 +384,30 @@ SELECT t.expect_eq((SELECT count(*) FROM invoice_share_find(sha256('vencido'::by
 SELECT t.expect_eq((SELECT count(*) FROM invoice_share_find(sha256('otro'::bytea))), 0, 'un token desconocido no abre nada');
 SELECT t.expect_eq((SELECT count(*) FROM invoice_share_links), 0, 'sin tenant no se listan enlaces');
 
+-- 17. Notas crédito (V18): referencia obligatoria, de la misma organización e inmutable al numerarse.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invoices (tenant_id, id, status, document_kind, customer_snapshot, issue_date, line_extension_amount, tax_total, payable_amount)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'DRAFT', 'CREDIT_NOTE', '{}', '2026-11-05', 1, 0, 1)$$,
+    '23514', 'una nota crédito sin factura referenciada no se guarda');
+SELECT t.expect_sqlstate(
+    $$INSERT INTO invoices (tenant_id, id, status, document_kind, customer_snapshot, issue_date, line_extension_amount, tax_total,
+                            payable_amount, credited_invoice_id, correction_concept, correction_description, credited_number,
+                            credited_document_key, credited_issue_date)
+      VALUES ('aaaaaaaa-0000-0000-0000-000000000001', gen_random_uuid(), 'DRAFT', 'CREDIT_NOTE', '{}', '2026-11-05', 1, 0, 1,
+              'f0000000-0000-0000-0000-0000000000b1', 'RETURN', 'x', 'B1', 'cufe', '2026-11-05')$$,
+    '23503', 'una nota no puede referenciar la factura de otra organización');
+SELECT t.expect_sqlstate(
+    $$UPDATE invoices SET credited_invoice_id = 'f0000000-0000-0000-0000-0000000000a2' WHERE id = 'f0000000-0000-0000-0000-0000000000a2'$$,
+    '23514', 'una factura no se convierte en nota crédito');
+INSERT INTO invoices (tenant_id, id, status, document_kind, customer_snapshot, issue_date, line_extension_amount, tax_total,
+                      payable_amount, credited_invoice_id, correction_concept, correction_description, credited_number,
+                      credited_document_key, credited_issue_date)
+VALUES (:tenant_a, 'f0000000-0000-0000-0000-0000000000c1', 'DRAFT', 'CREDIT_NOTE', '{}', '2026-11-05', 1, 0, 1,
+        'f0000000-0000-0000-0000-0000000000a2', 'ANNULMENT', 'Anulación', 'SETT2', 'cufe-a2', '2026-11-05');
+SELECT t.expect_eq((SELECT count(*) FROM invoices WHERE credited_invoice_id = 'f0000000-0000-0000-0000-0000000000a2'), 1,
+       'la nota de la misma organización se guarda');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

@@ -205,10 +205,15 @@ function RangesSection(props: {
             label="Tipo de documento"
             value={form.kind}
             onChange={(e) => setForm({ ...form, kind: e.target.value as DocumentKind })}
-            hint="La DIAN da una resolución para facturas y otra para el POS de tu caja."
+            hint={
+              form.kind === 'CREDIT_NOTE'
+                ? 'Las notas crédito llevan su propio prefijo y consecutivo. Confirma con tu proveedor tecnológico qué identificador usar.'
+                : 'La DIAN da una resolución para facturas y otra para el POS de tu caja.'
+            }
           >
             <option value="INVOICE">Factura de venta</option>
             <option value="POS_EQUIVALENT">POS (tiquete de venta electrónico)</option>
+            <option value="CREDIT_NOTE">Notas crédito</option>
           </SelectField>
           <div className="grid-2">
             <SelectField label="Ambiente" value={form.environment} onChange={(e) => setForm({ ...form, environment: e.target.value as Environment })}>

@@ -34,7 +34,12 @@ public record DocumentSheet(
         List<InvoiceView.TaxSubtotal> taxSubtotals,
         InvoiceView.Totals totals,
         String documentKey,
-        String qrPayload) {
+        String qrPayload,
+        Correction correction) {
+
+    /** Notas crédito: la factura corregida (número, CUFE y fecha) y el motivo. */
+    public record Correction(String concept, String description, String creditedNumber, String creditedDocumentKey,
+                             LocalDate creditedIssueDate) {}
 
     public record PartyView(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
                             String email, String address, String cityCode, String cityName, String departmentName,
@@ -68,6 +73,8 @@ public record DocumentSheet(
                 invoice.customer().isFinalConsumer(),
                 new Authorization(auth.resolutionNumber(), invoice.number().map(DocumentNumber::prefix).orElse(null),
                         auth.rangeFrom(), auth.rangeTo(), auth.validFrom(), auth.validTo()),
-                view.lines(), view.taxSubtotals(), view.totals(), evidence.documentKey(), evidence.qrPayload());
+                view.lines(), view.taxSubtotals(), view.totals(), evidence.documentKey(), evidence.qrPayload(),
+                invoice.creditNote().map(cn -> new Correction(cn.concept().name(), cn.description(), cn.creditedNumber(),
+                        cn.creditedDocumentKey(), cn.creditedIssueDate())).orElse(null));
     }
 }

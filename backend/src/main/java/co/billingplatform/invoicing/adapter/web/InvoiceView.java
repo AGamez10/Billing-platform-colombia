@@ -39,7 +39,12 @@ public record InvoiceView(
         List<String> rejectionReasons,
         boolean outcomeUncertain,
         String lastError,
-        List<HistoryEntry> history) {
+        List<HistoryEntry> history,
+        CorrectionView correction) {
+
+    /** Solo en notas crédito: qué factura corrige y por qué. */
+    public record CorrectionView(UUID creditedInvoiceId, String creditedNumber, String concept, String description,
+                                 List<Integer> lineOrigins) {}
 
     public record Customer(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
                     String email, boolean finalConsumer) {}
@@ -92,6 +97,8 @@ public record InvoiceView(
                 i.outcomeUncertain(),
                 i.lastError().orElse(null),
                 i.history().stream().map(h -> new HistoryEntry(h.from() == null ? null : h.from().name(),
-                        h.to().name(), h.at(), h.detail())).toList());
+                        h.to().name(), h.at(), h.detail())).toList(),
+                i.creditNote().map(cn -> new CorrectionView(cn.creditedInvoiceId(), cn.creditedNumber(), cn.concept().name(),
+                        cn.description(), cn.lineOrigins())).orElse(null));
     }
 }

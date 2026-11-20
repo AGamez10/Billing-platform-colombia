@@ -32,7 +32,7 @@ export function InvoiceList() {
         }
       />
       <div className="checks" role="group" aria-label="Filtrar por tipo">
-        {(['', 'INVOICE', 'POS_EQUIVALENT'] as const).map((k) => (
+        {(['', 'INVOICE', 'POS_EQUIVALENT', 'CREDIT_NOTE'] as const).map((k) => (
           <label key={k || 'all-kinds'} className="check">
             <input
               type="radio"
@@ -43,7 +43,7 @@ export function InvoiceList() {
                 setOffset(0);
               }}
             />
-            {k ? (k === 'INVOICE' ? 'Facturas' : 'POS') : 'Todos'}
+            {k ? (k === 'INVOICE' ? 'Facturas' : k === 'POS_EQUIVALENT' ? 'POS' : 'Notas crédito') : 'Todos'}
           </label>
         ))}
       </div>

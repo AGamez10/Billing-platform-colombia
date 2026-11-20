@@ -29,6 +29,8 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente. Fuera de simulación exige perfil tributario del emisor y del cliente (`409 ISSUER_PROFILE_INCOMPLETE` / `CUSTOMER_PROFILE_INCOMPLETE`, ADR-0025) |
 | `GET /invoices/{id}` | INVOICE_READ | Devuelve estado, número, ambiente, totales, subtotales por tarifa, evidencia del proveedor e historial |
 | `GET /invoices?status=` | INVOICE_READ | Listado, más recientes primero |
+| `POST /invoices/{id}/credit-notes` | INVOICE_WRITE | Borrador de nota crédito sobre una factura validada: `{concept: ANNULMENT\|RETURN, description, lines?: [{lineNumber, quantity}]}`. Se emite con `/finalize` (numeración `CREDIT_NOTE`). `409 CREDIT_ALREADY_APPLIED`, `422 CREDIT_EXCEEDS_INVOICED` (ADR-0028) |
+| `GET /invoices/{id}/credit-notes` | INVOICE_READ | Notas crédito de una factura |
 | `GET /invoices/{id}/sheet` | INVOICE_READ | Representación gráfica de un documento validado: emisor y comprador (con municipio y perfil tributario), resolución, líneas, totales, CUFE/CUDE y `qrPayload` del proveedor (ADR-0027) |
 | `POST /invoices/{id}/share-links` | INVOICE_WRITE | Enlace de solo lectura para el comprador (`link` con el token en el fragmento; 180 días). Máx. 20 por documento al día |
 | `POST /invoices/{id}/send` | INVOICE_WRITE | `{email?}`: envía el enlace por correo al comprador o al correo indicado. `409 INVOICE_NOT_VALIDATED` si no está validado |

@@ -101,12 +101,15 @@ export function parseDecimalInput(raw: string): string | null {
 export const KIND_LABEL: Record<DocumentKind, string> = {
   INVOICE: 'Factura',
   POS_EQUIVALENT: 'POS',
+  CREDIT_NOTE: 'Nota crédito',
 };
 
-/** "Factura FEV12" / "POS POS7" / "Borrador de factura". */
+export const CORRECTION_LABEL = { RETURN: 'Devolución parcial', ANNULMENT: 'Anulación' } as const;
+
+/** "Factura FEV12" / "POS POS7" / "Nota crédito NC3" / "Borrador de factura". */
 export function documentTitle(kind: DocumentKind, number?: string): string {
-  if (!number) return kind === 'POS_EQUIVALENT' ? 'Borrador POS' : 'Borrador de factura';
-  return kind === 'POS_EQUIVALENT' ? `POS ${number}` : `Factura ${number}`;
+  if (!number) return kind === 'POS_EQUIVALENT' ? 'Borrador POS' : kind === 'CREDIT_NOTE' ? 'Borrador de nota crédito' : 'Borrador de factura';
+  return `${KIND_LABEL[kind]} ${number}`;
 }
 
 export const ROLE_LABEL: Record<Role, string> = {

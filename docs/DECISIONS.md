@@ -325,6 +325,25 @@ Fuentes: [Bold — webhooks](https://www.developers.bold.co/webhook), [integraci
 
 **Pendiente y explícito:** la entrega del XML/AttachedDocument al adquiriente que exige la DIAN para la factura electrónica depende del proveedor (Muisca); hasta tenerlo, este envío es una cortesía, no la entrega formal. Revocar enlaces desde la interfaz.
 
+## ADR-0028 — Notas crédito construidas desde la factura validada
+*2026-11-19 — aceptada*
+
+**Decisión:** una factura validada no se edita: se corrige con una nota crédito (`document_kind = 'CREDIT_NOTE'`, V18) que se arma desde la factura, nunca con montos libres. Dos conceptos en el piloto:
+- **Anulación** (`ANNULMENT`): acredita todas las líneas; solo si la factura no tiene otras notas vigentes.
+- **Devolución parcial** (`RETURN`): líneas y cantidades hasta lo que falte por acreditar. Se cuentan también los borradores, y la factura se bloquea (`FOR UPDATE`) mientras se calcula, para que dos notas simultáneas no acrediten dos veces lo mismo.
+
+Reglas:
+- La nota copia número, CUFE y fecha de la factura. La base exige la referencia, que sea de la misma organización y que no cambie una vez numerada.
+- La nota no se edita (se borra el borrador y se crea otra), lleva **numeración propia** (`CREDIT_NOTE`) y cuenta en la cuota del plan como cualquier documento, porque el proveedor también la cobra.
+- Un descuento por valor fijo solo se devuelve con la línea completa, para no repartir centavos de forma ambigua.
+
+**Modelo neutral:** el dominio usa `Correction.Concept`; el código DIAN del concepto de corrección lo pone cada adaptador. La tabla oficial está en la "Caja de herramientas" de la DIAN y no se pudo leer desde aquí. Una fuente secundaria lista: 1 devolución parcial, 2 anulación, 3 rebaja o descuento, 4 ajuste de precio. **Se confirma con el Anexo y con Muisca antes de producción.** También se confirma si la numeración de notas exige resolución.
+
+**Pendiente:**
+- Rebaja, descuento y ajuste de precio.
+- Notas débito.
+- Notas de ajuste del documento equivalente POS.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

@@ -29,9 +29,22 @@ public record ElectronicDocument(
         List<TaxSubtotal> taxSubtotals,
         BigDecimal lineExtensionAmount,
         BigDecimal taxTotal,
-        BigDecimal payableAmount) {
+        BigDecimal payableAmount,
+        Correction correction) {
+
+    /** Factura o POS: sin corrección. */
+    public ElectronicDocument(UUID documentId, TenantId tenantId, DocumentKind kind, String prefix, long number,
+                              LocalDate issueDate, String currency, Party issuer, Party customer,
+                              NumberingAuthorization authorization, List<Line> lines, List<TaxSubtotal> taxSubtotals,
+                              BigDecimal lineExtensionAmount, BigDecimal taxTotal, BigDecimal payableAmount) {
+        this(documentId, tenantId, kind, prefix, number, issueDate, currency, issuer, customer, authorization, lines,
+                taxSubtotals, lineExtensionAmount, taxTotal, payableAmount, null);
+    }
 
     public ElectronicDocument {
+        if ((kind == DocumentKind.CREDIT_NOTE) != (correction != null)) {
+            throw new IllegalArgumentException("A credit note, and only a credit note, carries a correction");
+        }
         Objects.requireNonNull(documentId);
         Objects.requireNonNull(tenantId);
         Objects.requireNonNull(kind);

@@ -95,7 +95,8 @@ export interface TaxRate {
   legalReference: string;
 }
 
-export type DocumentKind = 'INVOICE' | 'POS_EQUIVALENT';
+export type DocumentKind = 'INVOICE' | 'POS_EQUIVALENT' | 'CREDIT_NOTE';
+export type CorrectionConcept = 'RETURN' | 'ANNULMENT';
 
 export type InvoiceStatus = 'DRAFT' | 'PENDING_SUBMISSION' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'FAILED';
 export type Environment = 'SIMULATION' | 'HABILITATION' | 'PRODUCTION';
@@ -119,6 +120,8 @@ export interface InvoiceLine {
 export interface Invoice {
   id: string;
   kind: DocumentKind;
+  /** Solo en notas crédito: la factura que corrige. */
+  correction?: { creditedInvoiceId: string; creditedNumber: string; concept: CorrectionConcept; description: string; lineOrigins: number[] } | null;
   status: InvoiceStatus;
   number?: string;
   issueDate: string;
@@ -340,4 +343,5 @@ export interface DocumentSheet {
   totals: Invoice['totals'];
   documentKey: string;
   qrPayload?: string | null;
+  correction?: { concept: CorrectionConcept; description: string; creditedNumber: string; creditedDocumentKey: string; creditedIssueDate: string } | null;
 }

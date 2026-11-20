@@ -5,6 +5,7 @@ import co.billingplatform.electronicinvoicing.application.ProviderAccountService
 import co.billingplatform.electronicinvoicing.application.ProviderRegistry;
 import co.billingplatform.electronicinvoicing.port.ElectronicInvoicingProvider;
 import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
+import co.billingplatform.invoicing.application.CreditNoteService;
 import co.billingplatform.invoicing.application.DocumentSharingService;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
@@ -84,6 +85,12 @@ class InvoicingConfiguration {
     InvoiceDraftService invoiceDraftService(InvoiceRepository invoices, CustomerService customers, TaxCatalog taxes,
                                             DocumentCalculator calculator, AuditTrail audit, Clock clock) {
         return new InvoiceDraftService(invoices, customers, taxes, calculator, audit, clock);
+    }
+
+    @Bean
+    CreditNoteService creditNoteService(InvoiceRepository invoices, CreditNoteService.CreditedQuantities credited,
+                                        TaxCatalog taxes, DocumentCalculator calculator, AuditTrail audit, Clock clock) {
+        return new CreditNoteService(invoices, credited, taxes, calculator, audit, clock);
     }
 
     @Bean

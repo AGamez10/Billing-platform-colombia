@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { http } from '../api/client';
-import type { Invoice } from '../api/types';
+import type { CorrectionConcept, Invoice, InvoiceSummary } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, EnvironmentBadge, Field, Loading, PageHead, Spinner, StatusBadge } from '../components/ui';
 import { isQuotaError, messageFor } from '../lib/errors';
 import { QuotaBlocked } from '../components/UpgradeOffer';
-import { documentTitle, formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
+import { CORRECTION_LABEL, documentTitle, formatCop, formatDate, formatDateTime, formatIdentification, isTerminal, STATUS_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
 const POLL_MS = 2500;
@@ -34,7 +34,8 @@ export function InvoiceDetail() {
   if (!inv) return null;
 
   async function emit() {
-    if (!window.confirm('Al emitir se asigna el número y la factura se envía. Después no se puede modificar. ¿Emitir?')) return;
+    const what = inv?.kind === 'CREDIT_NOTE' ? 'la nota crédito' : 'la factura';
+    if (!window.confirm(`Al emitir se asigna el número y ${what} se envía. Después no se puede modificar. ¿Emitir?`)) return;
     setBusy(true);
     setError(null);
     try {
@@ -75,19 +76,28 @@ export function InvoiceDetail() {
 
       {error && <Alert tone="error">{error}</Alert>}
       {quotaBlocked && <QuotaBlocked canSeePlans={can('usage')} onResolved={() => setQuotaBlocked(false)} />}
+      {inv.correction && (
+        <Alert tone="info">
+          {CORRECTION_LABEL[inv.correction.concept]} de la{' '}
+          <Link to={`/facturas/${inv.correction.creditedInvoiceId}`}>factura {inv.correction.creditedNumber}</Link>: {inv.correction.description}
+        </Alert>
+      )}
       <StatusExplanation invoice={inv} />
       {inv.status === 'ACCEPTED' && <ShareActions invoiceId={inv.id} customerEmail={inv.customer.email} canSend={can('write')} />}
+      {inv.status === 'ACCEPTED' && inv.kind === 'INVOICE' && <CreditNotes invoice={inv} canWrite={can('write')} />}
 
       {isDraft && can('write') && (
         <div className="row">
           {can('finalize') && (
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void emit()}>
-              {busy ? 'Emitiendo…' : 'Emitir factura'}
+              {busy ? 'Emitiendo…' : inv.kind === 'CREDIT_NOTE' ? 'Emitir nota crédito' : 'Emitir factura'}
             </button>
           )}
-          <Link to={`/facturas/${inv.id}/editar`} className="btn btn-secondary">
-            Editar
-          </Link>
+          {inv.kind !== 'CREDIT_NOTE' && (
+            <Link to={`/facturas/${inv.id}/editar`} className="btn btn-secondary">
+              Editar
+            </Link>
+          )}
           <button type="button" className="btn btn-danger right" onClick={() => void remove()}>
             Borrar borrador
           </button>
@@ -148,7 +158,7 @@ export function InvoiceDetail() {
       {inv.documentKey && (
         <section className="card stack" aria-labelledby="evidencia-h">
           <h2 id="evidencia-h">Evidencia del proveedor</h2>
-          <p className="small muted">{inv.simulated ? 'Clave simulada: no es un código DIAN real.' : inv.kind === 'POS_EQUIVALENT' ? 'CUDE' : 'CUFE'}</p>
+          <p className="small muted">{inv.simulated ? 'Clave simulada: no es un código DIAN real.' : inv.kind === 'INVOICE' ? 'CUFE' : 'CUDE'}</p>
           <p className="mono">{inv.documentKey}</p>
           <p className="small muted">Validada: {formatDateTime(inv.validatedAt)}</p>
         </section>
@@ -314,6 +324,122 @@ function ShareActions({ invoiceId, customerEmail, canSend }: { invoiceId: string
         </>
       ) : (
         <p className="small muted">Pide a quien factura que lo envíe.</p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Corregir una factura validada: anularla o registrar una devolución parcial. Una factura
+ * validada nunca se edita; se corrige con una nota crédito que también va a la DIAN.
+ */
+function CreditNotes({ invoice, canWrite }: { invoice: Invoice; canWrite: boolean }) {
+  const navigate = useNavigate();
+  const notes = useApi<InvoiceSummary[]>(`/api/v1/invoices/${invoice.id}/credit-notes`);
+  const [mode, setMode] = useState<CorrectionConcept | null>(null);
+  const [description, setDescription] = useState('');
+  const [quantities, setQuantities] = useState<Record<number, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const active = (notes.data ?? []).filter((n) => n.status !== 'REJECTED' && n.status !== 'FAILED');
+
+  async function create(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const lines =
+        mode === 'RETURN'
+          ? Object.entries(quantities)
+              .filter(([, q]) => q.trim() !== '' && Number(q.replace(',', '.')) > 0)
+              .map(([n, q]) => ({ lineNumber: Number(n), quantity: q.replace(',', '.').trim() }))
+          : undefined;
+      const note = await http.post<Invoice>(`/api/v1/invoices/${invoice.id}/credit-notes`, { concept: mode, description, lines });
+      navigate(`/facturas/${note.id}`);
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card stack" aria-labelledby="corregir-h">
+      <h2 id="corregir-h">Corregir o anular</h2>
+      {active.length > 0 && (
+        <ul className="plain-list">
+          {active.map((n) => (
+            <li key={n.id}>
+              <Link to={`/facturas/${n.id}`}>{documentTitle('CREDIT_NOTE', n.number)}</Link> · {formatCop(n.payableAmount)} ·{' '}
+              {STATUS_LABEL[n.status]}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!canWrite ? (
+        <p className="small muted">Pide a quien factura que haga la corrección.</p>
+      ) : mode === null ? (
+        <>
+          <p className="small muted">Una factura validada no se edita: se corrige con una nota crédito, que también se envía a la DIAN.</p>
+          <div className="row">
+            <button type="button" className="btn btn-secondary" onClick={() => setMode('RETURN')}>
+              Devolución parcial
+            </button>
+            {active.length === 0 && (
+              <button type="button" className="btn btn-ghost danger-text" onClick={() => setMode('ANNULMENT')}>
+                Anular la factura
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <form className="stack" onSubmit={(e) => void create(e)}>
+          {error && <Alert tone="error">{error}</Alert>}
+          {mode === 'RETURN' ? (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto o servicio</th>
+                    <th className="num">Facturado</th>
+                    <th className="num">Devolver</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.lines.map((l) => (
+                    <tr key={l.lineNumber}>
+                      <td>{l.description}</td>
+                      <td className="num">{l.quantity}</td>
+                      <td className="num">
+                        <input
+                          className="qty-input"
+                          inputMode="decimal"
+                          aria-label={`Cantidad a devolver de ${l.description}`}
+                          value={quantities[l.lineNumber] ?? ''}
+                          onChange={(e) => setQuantities({ ...quantities, [l.lineNumber]: e.target.value })}
+                          placeholder="0"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Alert tone="warn">Se acredita el total de la factura ({formatCop(invoice.totals.payableAmount)}).</Alert>
+          )}
+          <Field label="Motivo" required value={description} onChange={(e) => setDescription(e.target.value)}
+            placeholder={mode === 'RETURN' ? 'El cliente devolvió un producto' : 'Factura emitida con datos errados'} />
+          <div className="row">
+            <button type="submit" className="btn btn-primary" disabled={busy || description.trim().length < 3}>
+              {busy ? 'Creando…' : 'Crear nota crédito'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setMode(null)}>
+              Cancelar
+            </button>
+          </div>
+          <p className="small muted">La nota queda en borrador; la revisas y la emites.</p>
+        </form>
       )}
     </section>
   );

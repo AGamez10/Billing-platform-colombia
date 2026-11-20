@@ -9,8 +9,13 @@ import { QrCode } from './QrCode';
  */
 export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
   const pos = sheet.kind === 'POS_EQUIVALENT';
-  const title = pos ? 'Documento equivalente electrónico — tiquete de máquina registradora con sistema POS' : 'Factura electrónica de venta';
-  const keyLabel = pos ? 'CUDE' : 'CUFE';
+  const note = sheet.kind === 'CREDIT_NOTE';
+  const title = pos
+    ? 'Documento equivalente electrónico — tiquete de máquina registradora con sistema POS'
+    : note
+      ? 'Nota crédito electrónica'
+      : 'Factura electrónica de venta';
+  const keyLabel = pos || note ? 'CUDE' : 'CUFE';
   const warning = sheet.legallyValid
     ? null
     : sheet.simulated
@@ -33,6 +38,21 @@ export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
           <span>Validación: {formatDateTime(sheet.validatedAt)}</span>
         </div>
       </header>
+
+      {sheet.correction && (
+        <section className="doc-block">
+          <h2>Factura que corrige</h2>
+          <p>
+            {sheet.correction.concept === 'ANNULMENT' ? 'Anulación' : 'Devolución parcial'} de la factura{' '}
+            <strong>{sheet.correction.creditedNumber}</strong> del {formatDate(sheet.correction.creditedIssueDate)}. Motivo:{' '}
+            {sheet.correction.description}
+            <br />
+            <span className="small">
+              CUFE: <span className="mono">{sheet.correction.creditedDocumentKey}</span>
+            </span>
+          </p>
+        </section>
+      )}
 
       <section className="doc-block">
         <h2>Adquiriente</h2>

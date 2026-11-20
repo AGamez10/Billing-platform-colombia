@@ -132,7 +132,11 @@ public final class DocumentSharingService {
 
     Mailer.Email email(Invoice invoice, Party issuer, String to, String link) {
         boolean practice = invoice.environment().orElseThrow() != ProviderEnvironment.PRODUCTION;
-        String kind = invoice.kind() == DocumentKind.POS_EQUIVALENT ? "Documento equivalente POS" : "Factura electrónica";
+        String kind = switch (invoice.kind()) {
+            case POS_EQUIVALENT -> "Documento equivalente POS";
+            case CREDIT_NOTE -> "Nota crédito electrónica";
+            default -> "Factura electrónica";
+        };
         String number = invoice.number().orElseThrow().formatted();
         String total = cop(invoice.calculation().payableAmount());
         String issuerName = EmailHtml.oneLine(issuer.legalName());

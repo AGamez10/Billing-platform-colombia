@@ -1,11 +1,13 @@
 package co.billingplatform.invoicing.adapter.persistence;
 
+import co.billingplatform.electronicinvoicing.domain.Correction;
 import co.billingplatform.electronicinvoicing.domain.DocumentKind;
 import co.billingplatform.electronicinvoicing.domain.ElectronicDocument.NumberingAuthorization;
 import co.billingplatform.electronicinvoicing.domain.ExternalReference;
 import co.billingplatform.electronicinvoicing.domain.ProviderEnvironment;
 import co.billingplatform.electronicinvoicing.domain.ValidationEvidence;
 import co.billingplatform.invoicing.application.InvoiceRepository;
+import co.billingplatform.invoicing.domain.CreditNoteDetails;
 import co.billingplatform.invoicing.domain.DocumentNumber;
 import co.billingplatform.invoicing.domain.Invoice;
 import co.billingplatform.invoicing.domain.InvoiceLine;
@@ -160,7 +162,24 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 (String) r.get("last_error"),
                 history,
                 (BigDecimal) r.get("payable_amount"),
-                DocumentKind.valueOf((String) r.get("document_kind"))), taxes, calculator);
+                DocumentKind.valueOf((String) r.get("document_kind")),
+                creditNote(r, tenant, id)), taxes, calculator);
+    }
+
+    private CreditNoteDetails creditNote(Map<String, Object> r, TenantId tenant, UUID id) {
+        if (r.get("credited_invoice_id") == null) {
+            return null;
+        }
+        List<Integer> origins = jdbc.sql("""
+                        SELECT credited_line_number FROM invoice_lines WHERE tenant_id = :t AND invoice_id = :id ORDER BY line_number
+                        """)
+                .param("t", tenant.value()).param("id", id)
+                .query(Integer.class)
+                .list();
+        return new CreditNoteDetails((UUID) r.get("credited_invoice_id"),
+                Correction.Concept.valueOf((String) r.get("correction_concept")),
+                (String) r.get("correction_description"), (String) r.get("credited_number"),
+                (String) r.get("credited_document_key"), ((Date) r.get("credited_issue_date")).toLocalDate(), origins);
     }
 
     private static Discount discount(String kind, BigDecimal value) {
@@ -220,9 +239,12 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         jdbc.sql("""
                         INSERT INTO invoices (tenant_id, id, document_kind, status, customer_snapshot, currency, issue_date,
                                               numbering_range_id, prefix, number, line_extension_amount, tax_total,
-                                              payable_amount, provider_account_id, environment)
+                                              payable_amount, provider_account_id, environment, credited_invoice_id,
+                                              correction_concept, correction_description, credited_number,
+                                              credited_document_key, credited_issue_date)
                         VALUES (:t, :id, :kind, :status, CAST(:customer AS jsonb), :currency, :issueDate,
-                                NULL, :prefix, :number, :lineExt, :taxTotal, :payable, :account, :env)
+                                NULL, :prefix, :number, :lineExt, :taxTotal, :payable, :account, :env, :creditedId,
+                                :concept, :correction, :creditedNumber, :creditedKey, :creditedDate)
                         """)
                 .params(headerParams(inv))
                 .update();
@@ -282,6 +304,13 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         p.put("ref", inv.externalReference().map(ExternalReference::value).orElse(null));
         p.put("docKey", inv.evidence().map(ValidationEvidence::documentKey).orElse(null));
         p.put("qr", inv.evidence().map(ValidationEvidence::qrPayload).orElse(null));
+        CreditNoteDetails cn = inv.creditNote().orElse(null);
+        p.put("creditedId", cn == null ? null : cn.creditedInvoiceId());
+        p.put("concept", cn == null ? null : cn.concept().name());
+        p.put("correction", cn == null ? null : cn.description());
+        p.put("creditedNumber", cn == null ? null : cn.creditedNumber());
+        p.put("creditedKey", cn == null ? null : cn.creditedDocumentKey());
+        p.put("creditedDate", cn == null ? null : Date.valueOf(cn.creditedIssueDate()));
         p.put("valEnv", inv.evidence().map(e -> e.environment().name()).orElse(null));
         p.put("validatedAt", inv.evidence().map(e -> Timestamp.from(e.validatedAt())).orElse(null));
         p.put("uncertain", inv.outcomeUncertain());
@@ -289,6 +318,10 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         p.put("lastError", inv.lastError().map(s -> s.length() > 1000 ? s.substring(0, 1000) : s).orElse(null));
         p.put("reasons", JsonText.stringArray(inv.rejectionReasons()));
         return p;
+    }
+
+    private static Integer origin(Invoice inv, int index) {
+        return inv.creditNote().map(cn -> cn.lineOrigins().get(index)).orElse(null);
     }
 
     private void writeLines(Invoice inv) {
@@ -319,15 +352,17 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
             jdbc.sql("""
                             INSERT INTO invoice_lines (tenant_id, invoice_id, line_number, product_id, description, unit_code,
                                                        quantity, unit_price, gross_amount, discount_amount, taxable_amount,
-                                                       tax_total, line_total, taxes, discount_kind, discount_value, tax_rate_codes)
+                                                       tax_total, line_total, taxes, discount_kind, discount_value, tax_rate_codes,
+                                                       credited_line_number)
                             VALUES (:t, :inv, :n, :product, :description, :unit, :qty, :price, :gross, :discount, :taxable,
                                     :taxTotal, :lineTotal, CAST(:taxes AS jsonb), :kind, :dvalue,
-                                    ARRAY(SELECT jsonb_array_elements_text(CAST(:codes AS jsonb))))
+                                    ARRAY(SELECT jsonb_array_elements_text(CAST(:codes AS jsonb))), :origin)
                             """)
                     .param("t", inv.tenantId().value())
                     .param("inv", inv.id())
                     .param("n", i + 1)
                     .param("product", line.productId())
+                    .param("origin", origin(inv, i))
                     .param("description", line.description())
                     .param("unit", line.unitCode())
                     .param("qty", line.quantity())
