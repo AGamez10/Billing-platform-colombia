@@ -189,13 +189,13 @@ td.num, th.num { text-align: right; }
 .pos-tile:active { background: var(--green-soft); }
 .pos-tile-name { font-weight: 600; line-height: 1.25; }
 .pos-manual { flex-wrap: nowrap; }
+.pos-manual input:first-of-type { flex: 2 1 0; min-width: 0; }
+.pos-manual input:last-of-type { flex: 1 1 0; min-width: 0; }
 @media (max-width: 560px) {
   .pos-manual { flex-wrap: wrap; }
   .pos-manual input:first-of-type { flex: 1 1 100%; }
   .pos-manual input:last-of-type { flex: 1 1 0; }
 }
-.pos-manual input:first-of-type { flex: 2 1 0; min-width: 0; }
-.pos-manual input:last-of-type { flex: 1 1 0; min-width: 0; }
 .qty { display: inline-flex; align-items: center; gap: 4px; }
 .qty .icon-btn { font-size: 22px; font-weight: 700; color: var(--ink); border: 1px solid var(--line); }
 .qty .num { min-width: 28px; text-align: center; font-weight: 700; }
