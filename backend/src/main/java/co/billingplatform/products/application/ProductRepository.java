@@ -18,5 +18,8 @@ public interface ProductRepository {
 
     Optional<Product> findById(TenantId tenantId, UUID id);
 
+    /** De los SKU dados, los que ya existen en la organización. */
+    java.util.Set<String> existingSkus(TenantId tenantId, java.util.Collection<String> skus);
+
     Page<Product> search(TenantId tenantId, String query, boolean includeInactive, int limit, int offset);
 }

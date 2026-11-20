@@ -124,6 +124,28 @@ export async function api<T>(method: Method, path: string, body?: unknown, extra
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/** Petición con sesión que no es JSON (CSV de entrada o de salida), con la misma renovación ante 401. */
+async function authorizedFetch(method: Method, path: string, init: { body?: string; contentType?: string; accept?: string }): Promise<Response> {
+  const go = () =>
+    fetch(path, {
+      method,
+      credentials: 'same-origin',
+      headers: {
+        Accept: init.accept ?? 'application/json',
+        ...(init.contentType ? { 'Content-Type': init.contentType } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: init.body,
+    });
+  let res = await go();
+  if (res.status === 401) {
+    if (await refreshSession()) res = await go();
+    else onExpired();
+  }
+  if (!res.ok) throw await toError(res);
+  return res;
+}
+
 export const http = {
   get: <T>(path: string) => api<T>('GET', path),
   post: <T>(path: string, body?: unknown) => api<T>('POST', path, body),
@@ -132,4 +154,19 @@ export const http = {
   put: <T>(path: string, body: unknown) => api<T>('PUT', path, body),
   patch: <T>(path: string, body: unknown) => api<T>('PATCH', path, body),
   del: (path: string) => api<void>('DELETE', path),
+  /** Envía un archivo CSV como texto y recibe JSON. */
+  postCsv: async <T>(path: string, csv: string): Promise<T> =>
+    (await (await authorizedFetch('POST', path, { body: csv, contentType: 'text/csv; charset=utf-8' })).json()) as T,
+  /** Descarga un archivo autenticado y lo guarda con el nombre dado. */
+  download: async (path: string, filename: string): Promise<void> => {
+    const res = await authorizedFetch('GET', path, { accept: 'text/csv' });
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
 };

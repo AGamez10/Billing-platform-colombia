@@ -64,6 +64,14 @@ class JdbcCustomerRepository implements CustomerRepository {
     }
 
     @Override
+    public java.util.Set<String> existingIdentifications(TenantId tenantId, java.util.Collection<String> keys) {
+        if (keys.isEmpty()) return java.util.Set.of();
+        return new java.util.HashSet<>(jdbc.sql(
+                        "SELECT id_type || ':' || id_number FROM customers WHERE tenant_id = :t AND id_type || ':' || id_number IN (:keys)")
+                .param("t", tenantId.value()).param("keys", keys).query(String.class).list());
+    }
+
+    @Override
     public Optional<Customer> findById(TenantId tenantId, UUID id) {
         return jdbc.sql("SELECT * FROM customers WHERE tenant_id = :t AND id = :id")
                 .param("t", tenantId.value())

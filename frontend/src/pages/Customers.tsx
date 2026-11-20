@@ -29,9 +29,14 @@ export function CustomerList() {
         subtitle="A quienes les facturas."
         action={
           can('write') && (
-            <Link to="/clientes/nuevo" className="btn btn-primary">
-              {Icon.plus} Nuevo cliente
-            </Link>
+            <div className="row">
+              <Link to="/importar?tipo=clientes" className="btn btn-secondary">
+                Importar
+              </Link>
+              <Link to="/clientes/nuevo" className="btn btn-primary">
+                {Icon.plus} Nuevo cliente
+              </Link>
+            </div>
           )
         }
       />

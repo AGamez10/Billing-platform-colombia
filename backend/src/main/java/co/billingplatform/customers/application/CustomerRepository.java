@@ -23,6 +23,9 @@ public interface CustomerRepository {
 
     Optional<Customer> findById(TenantId tenantId, UUID id);
 
+    /** De las identificaciones dadas ({@code TIPO:NUMERO}), las que ya existen en la organización. */
+    java.util.Set<String> existingIdentifications(TenantId tenantId, java.util.Collection<String> keys);
+
     /** Búsqueda por nombre o número de identificación; {@code query} vacío lista todos. */
     Page<Customer> search(TenantId tenantId, String query, boolean includeInactive, int limit, int offset);
 }

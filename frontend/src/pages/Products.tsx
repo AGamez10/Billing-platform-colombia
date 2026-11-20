@@ -42,9 +42,14 @@ export function ProductList() {
         subtitle="Lo que vendes, con su precio e impuestos."
         action={
           can('write') && (
-            <Link to="/productos/nuevo" className="btn btn-primary">
-              {Icon.plus} Nuevo
-            </Link>
+            <div className="row">
+              <Link to="/importar?tipo=productos" className="btn btn-secondary">
+                Importar
+              </Link>
+              <Link to="/productos/nuevo" className="btn btn-primary">
+                {Icon.plus} Nuevo
+              </Link>
+            </div>
           )
         }
       />

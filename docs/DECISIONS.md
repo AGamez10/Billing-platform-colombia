@@ -376,6 +376,20 @@ Cómo está construido:
 - **Apagable por organización:** `PUT /organization/email-alerts`, interruptor en Datos de tu empresa. La lista de organizaciones sale de una función acotada que solo devuelve ids.
 - Un fallo en una organización no detiene a las demás.
 
+## ADR-0031 — Importar desde CSV con vista previa y reportes para el contador
+*2026-11-19 — aceptada*
+
+**Importar** (`POST /customers/import`, `POST /products/import`): el archivo CSV va como texto, con un máximo de 1 MB y 2.000 filas. Caddy ya corta cualquier cuerpo de más de 2 MB.
+- **Vista previa:** por defecto no guarda nada.
+- **Mismas reglas que a mano:** cada fila pasa por las validaciones del dominio (DV del NIT, correo, municipio DANE, perfil tributario, tarifas vigentes).
+- **Errores por línea:** las filas inválidas, repetidas en el archivo o ya existentes se informan y no se guardan; al confirmar se guardan las válidas.
+- **Sin suponer impuestos:** un producto sin impuestos es un error.
+- **Formatos de Excel en español:** detecta punto y coma, coma o tabulador, y normaliza los encabezados.
+
+**Reportes** (`GET /reports/sales` y `/reports/sales.csv`): documentos aceptados de un periodo (máx. 366 días) en el ambiente activo, con las notas crédito restadas e impuestos por tipo y tarifa, desde lo que se guardó al calcular cada línea.
+
+**Seguridad del CSV:** el CSV sale con punto y coma, decimales con coma y BOM UTF-8. Toda celda que empiece como fórmula (`=`, `+`, `-`, `@`) se neutraliza con un apóstrofo, salvo los números negativos (inyección CSV, OWASP).
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

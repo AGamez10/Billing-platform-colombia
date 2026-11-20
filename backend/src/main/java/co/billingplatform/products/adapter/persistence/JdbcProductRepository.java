@@ -61,6 +61,13 @@ class JdbcProductRepository implements ProductRepository {
     }
 
     @Override
+    public java.util.Set<String> existingSkus(TenantId tenantId, java.util.Collection<String> skus) {
+        if (skus.isEmpty()) return java.util.Set.of();
+        return new java.util.HashSet<>(jdbc.sql("SELECT sku FROM products WHERE tenant_id = :t AND sku IN (:skus)")
+                .param("t", tenantId.value()).param("skus", skus).query(String.class).list());
+    }
+
+    @Override
     public Optional<Product> findById(TenantId tenantId, UUID id) {
         return jdbc.sql("SELECT * FROM products WHERE tenant_id = :t AND id = :id")
                 .param("t", tenantId.value())

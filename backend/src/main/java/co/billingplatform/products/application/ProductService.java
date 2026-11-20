@@ -88,7 +88,8 @@ public final class ProductService {
     }
 
     /** Cada código debe existir y estar vigente hoy, y no puede haber dos tarifas del mismo tributo. */
-    private void validateTaxCodes(List<String> codes) {
+    /** Tarifas vigentes hoy y a lo sumo una por tipo de impuesto (la usa también la importación). */
+    public void validateTaxCodes(List<String> codes) {
         if (codes == null) {
             return;
         }

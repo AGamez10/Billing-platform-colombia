@@ -14,6 +14,7 @@ const NAV = [
 
 /** En pantallas anchas, debajo de lo diario: lo de la cuenta. En el celular se llega desde Ajustes. */
 const ACCOUNT_NAV = [
+  { to: '/reportes', label: 'Reportes', perm: null },
   { to: '/equipo', label: 'Equipo', perm: 'manage' as const },
   { to: '/plan', label: 'Mi plan', perm: 'usage' as const },
 ];
@@ -38,7 +39,7 @@ export function Layout() {
           ))}
         </nav>
         <nav className="sidenav sidenav-account" aria-label="Cuenta">
-          {ACCOUNT_NAV.filter((i) => can(i.perm)).map((item) => (
+          {ACCOUNT_NAV.filter((i) => !i.perm || can(i.perm)).map((item) => (
             <NavLink key={item.to} to={item.to}>
               {item.label}
             </NavLink>

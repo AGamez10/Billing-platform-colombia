@@ -10,8 +10,10 @@ import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.RegistrationService;
 import co.billingplatform.customers.application.CustomerRepository;
+import co.billingplatform.customers.application.CustomerImportService;
 import co.billingplatform.customers.application.CustomerService;
 import co.billingplatform.products.application.ProductRepository;
+import co.billingplatform.products.application.ProductImportService;
 import co.billingplatform.products.application.ProductService;
 import co.billingplatform.shared.application.AuditTrail;
 import co.billingplatform.shared.application.Municipalities;
@@ -53,6 +55,16 @@ class CoreConfiguration {
     @Bean
     CustomerService customerService(CustomerRepository customers, AuditTrail audit, Municipalities municipalities) {
         return new CustomerService(customers, audit, municipalities);
+    }
+
+    @Bean
+    CustomerImportService customerImportService(CustomerRepository customers, Municipalities municipalities, AuditTrail audit) {
+        return new CustomerImportService(customers, municipalities, audit);
+    }
+
+    @Bean
+    ProductImportService productImportService(ProductRepository products, ProductService service, AuditTrail audit) {
+        return new ProductImportService(products, service, audit);
     }
 
     @Bean

@@ -365,3 +365,23 @@ export interface Dashboard {
   daily: { date: string; total: number }[];
   attention: AttentionItem[];
 }
+
+export interface ImportResult {
+  committed: boolean;
+  rows: number;
+  valid: number;
+  created: number;
+  errors: { line: number; message: string }[];
+}
+
+export interface SalesReport {
+  environment: Environment;
+  from: string;
+  to: string;
+  documents: number;
+  creditNotes: number;
+  subtotal: number;
+  taxTotal: number;
+  total: number;
+  taxes: { type: string; percentage: string; taxable: number; amount: number }[];
+}

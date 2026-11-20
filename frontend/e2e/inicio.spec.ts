@@ -50,3 +50,30 @@ test('el inicio dice qué falta y la factura se arma sin salir del editor', asyn
   await expect(page.getByText('Conecta la facturación electrónica')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /^Ventas de / })).toBeVisible();
 });
+
+test('importar clientes desde CSV y ver el reporte del mes', async ({ page }) => {
+  const s = suffix();
+  await registerOrganization(page, `Importa ${s}`, `importa-${s}@example.com`);
+  await page.goto('/clientes');
+  await page.getByRole('link', { name: 'Importar' }).click();
+  await expect(page.getByRole('heading', { name: 'Importar clientes' })).toBeVisible();
+  const nit = randomNit();
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'clientes.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`tipo_documento;numero;nombre;correo\nNIT;${nit};Importado ${s};imp@example.com\nXX;1;Malo;\n`),
+  });
+  await expect(page.getByText(/1\s*de 2 filas se pueden importar/)).toBeVisible();
+  await expect(page.getByRole('cell', { name: /tipo_documento debe ser/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Importar 1 clientes' }).click();
+  await expect(page.getByText('Se crearon 1 clientes.')).toBeVisible();
+  await page.getByRole('link', { name: 'Ver clientes' }).click();
+  await expect(page.getByText(`Importado ${s}`)).toBeVisible();
+
+  await page.goto('/reportes');
+  await expect(page.getByRole('heading', { name: 'Reportes' })).toBeVisible();
+  await expect(page.getByText('Documentos validados')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar para Excel (CSV)' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^ventas-.*\.csv$/);
+});

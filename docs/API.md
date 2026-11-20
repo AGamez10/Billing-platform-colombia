@@ -19,6 +19,10 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. `fiscal` opcional: `{personType: LEGAL\|NATURAL, vatRegime: RESPONSIBLE\|NOT_RESPONSIBLE, responsibilities: ["O-13"…] o ["R-99-PN"]}`; `cityCode` debe existir en la DIVIPOLA. Bloqueo optimista con `version`; DELETE desactiva |
 | `GET/POST /products`, `GET/PUT/DELETE /products/{id}` | PRODUCT_* | Productos y servicios con códigos de tarifa vigentes |
 | `GET /public/plans`, `GET /public/tax-rates` | público | Catálogo comercial y tarifas con fundamento legal |
+| `POST /customers/import?commit=` | CUSTOMER_WRITE | CSV (`text/csv`) de clientes; vista previa por defecto; errores por línea (ADR-0031). Plantilla: `GET /public/import-templates/customers.csv` |
+| `POST /products/import?commit=` | PRODUCT_WRITE | CSV de productos; impuestos obligatorios. Plantilla: `GET /public/import-templates/products.csv` |
+| `GET /reports/sales?from=&to=` | INVOICE_READ | Resumen del periodo: documentos, subtotal, impuestos por tarifa, total (notas restadas) |
+| `GET /reports/sales.csv?from=&to=` | INVOICE_READ | Documentos del periodo en CSV para Excel (protegido contra inyección de fórmulas) |
 | `GET /dashboard` | INVOICE_READ | Ventas del mes en el ambiente activo (por día, total, promedio, notas crédito) y pendientes con su acción. Los del plan solo con USAGE_READ (ADR-0029) |
 | `GET /public/municipalities` | público (caché 1 día) | Municipios DIVIPOLA del DANE: `code` (5 dígitos), `name`, `departmentCode`, `departmentName` |
 | `GET /organization` | cualquier miembro | Datos del emisor: identificación, razón social, contacto, `fiscal`, `address` (con nombre del municipio) y `readyToIssue` |

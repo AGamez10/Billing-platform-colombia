@@ -36,6 +36,7 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("NO_PROVIDER_CONFIGURED", HttpStatus.CONFLICT),
             Map.entry("ISSUER_PROFILE_INCOMPLETE", HttpStatus.CONFLICT),
             Map.entry("INVOICE_NOT_VALIDATED", HttpStatus.CONFLICT),
+            Map.entry("IMPORT_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE),
             Map.entry("INVOICE_NOT_CREDITABLE", HttpStatus.CONFLICT),
             Map.entry("CREDIT_ALREADY_APPLIED", HttpStatus.CONFLICT),
             Map.entry("CREDIT_NOTE_NOT_EDITABLE", HttpStatus.CONFLICT),
