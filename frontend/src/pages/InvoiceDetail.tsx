@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { http } from '../api/client';
 import type { CorrectionConcept, Invoice, InvoiceSummary } from '../api/types';
@@ -124,7 +124,7 @@ export function InvoiceDetail() {
       <section className="card stack" aria-labelledby="detalle-h">
         <h2 id="detalle-h">Detalle</h2>
         <div className="table-wrap">
-          <table>
+          <table className="table-stack">
             <thead>
               <tr>
                 <th>Descripción</th>
@@ -138,12 +138,12 @@ export function InvoiceDetail() {
             <tbody>
               {inv.lines.map((l) => (
                 <tr key={l.lineNumber}>
-                  <td>{l.description}</td>
-                  <td className="num">{l.quantity}</td>
-                  <td className="num">{formatCop(l.unitPrice)}</td>
-                  <td className="num">{l.discountAmount ? `−${formatCop(l.discountAmount)}` : '—'}</td>
-                  <td className="num">{formatCop(l.taxTotal)}</td>
-                  <td className="num">{formatCop(l.lineTotal)}</td>
+                  <td className="stack-title">{l.description}</td>
+                  <td className="num" data-label="Cantidad">{l.quantity}</td>
+                  <td className="num" data-label="Precio">{formatCop(l.unitPrice)}</td>
+                  <td className="num" data-label="Descuento">{l.discountAmount ? `−${formatCop(l.discountAmount)}` : '—'}</td>
+                  <td className="num" data-label="Impuestos">{formatCop(l.taxTotal)}</td>
+                  <td className="num stack-total" data-label="Total">{formatCop(l.lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
@@ -153,7 +153,15 @@ export function InvoiceDetail() {
           <dt>Subtotal</dt>
           <dd className="num">{formatCop(inv.totals.lineExtensionAmount)}</dd>
           {inv.taxSubtotals.map((t) => (
-            <FragmentRow key={`${t.code}`} label={`${t.type} ${t.percentage} % sobre ${formatCop(t.taxableAmount)}`} value={formatCop(t.taxAmount)} />
+            <FragmentRow
+              key={`${t.code}`}
+              label={
+                <>
+                  {t.type} {t.percentage} %<span className="totals-base">sobre {formatCop(t.taxableAmount)}</span>
+                </>
+              }
+              value={formatCop(t.taxAmount)}
+            />
           ))}
           <dt className="grand">Total</dt>
           <dd className="grand num">{formatCop(inv.totals.payableAmount)}</dd>
@@ -186,7 +194,7 @@ export function InvoiceDetail() {
   );
 }
 
-function FragmentRow({ label, value }: { label: string; value: string }) {
+function FragmentRow({ label, value }: { label: ReactNode; value: string }) {
   return (
     <>
       <dt className="muted">{label}</dt>

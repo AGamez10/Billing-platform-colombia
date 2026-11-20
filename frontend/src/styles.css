@@ -445,3 +445,17 @@ td.num, th.num { text-align: right; }
 @media (min-width: 900px) { .pos-sticky { display: none; } }
 .handoff { padding-top: 4px; }
 .handoff-qr { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+
+/* Totales: la base del impuesto en una segunda línea, sin partir la etiqueta */
+.totals-base { display: block; font-size: 13px; }
+
+/* Líneas de un documento en el celular: cada línea es una tarjeta con sus valores rotulados */
+@media (max-width: 640px) {
+  .table-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .table-stack, .table-stack tbody { display: block; }
+  .table-stack tr { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .table-stack td { display: flex; justify-content: space-between; gap: 8px; padding: 0; border: 0; }
+  .table-stack td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: 13px; font-family: var(--font-body, inherit); }
+  .table-stack td.stack-title { grid-column: 1 / -1; font-weight: 600; }
+  .table-stack td.stack-total { grid-column: 1 / -1; font-weight: 700; }
+}
