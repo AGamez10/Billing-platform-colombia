@@ -56,6 +56,13 @@ public class ProblemDetailsHandler extends ResponseEntityExceptionHandler {
             Map.entry("SUBSCRIPTION_INACTIVE", HttpStatus.PAYMENT_REQUIRED),
             Map.entry("DOCUMENT_QUOTA_EXCEEDED", HttpStatus.PAYMENT_REQUIRED),
             Map.entry("INVALID_CREDENTIALS", HttpStatus.UNAUTHORIZED),
+            // INVALID_TWO_FACTOR_CODE e INVALID_PASSWORD quedan en 422: un 401 haría que el cliente
+            // renueve la sesión y repita la petición, gastando un intento más.
+            Map.entry("TWO_FACTOR_CHALLENGE_EXPIRED", HttpStatus.UNAUTHORIZED),
+            Map.entry("TWO_FACTOR_LOCKED", HttpStatus.TOO_MANY_REQUESTS),
+            Map.entry("TWO_FACTOR_ALREADY_ENABLED", HttpStatus.CONFLICT),
+            Map.entry("TWO_FACTOR_SETUP_REQUIRED", HttpStatus.CONFLICT),
+            Map.entry("TWO_FACTOR_NOT_ENABLED", HttpStatus.CONFLICT),
             Map.entry("INVALID_REFRESH_TOKEN", HttpStatus.UNAUTHORIZED),
             Map.entry("REFRESH_TOKEN_REUSED", HttpStatus.UNAUTHORIZED),
             Map.entry("INVALID_API_KEY", HttpStatus.UNAUTHORIZED),

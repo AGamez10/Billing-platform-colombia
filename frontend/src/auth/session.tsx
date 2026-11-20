@@ -32,8 +32,10 @@ interface SessionApi {
   state: SessionState;
   login(email: string, password: string, organizationId?: string): Promise<SessionPayload>;
   register(input: RegisterInput): Promise<void>;
-  /** Acepta una invitación y entra a esa organización. */
-  acceptInvitation(input: AcceptInvitationInput): Promise<void>;
+  /** Acepta una invitación y entra a esa organización (o pide el código si la cuenta tiene dos pasos). */
+  acceptInvitation(input: AcceptInvitationInput): Promise<SessionPayload>;
+  /** Segundo paso del inicio de sesión: código de la app o de recuperación. */
+  completeTwoFactor(challenge: string, code: string): Promise<void>;
   logout(): Promise<void>;
   can(permission: Permission): boolean;
 }
@@ -101,6 +103,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       async acceptInvitation(input) {
         const session = await http.post<SessionPayload>('/api/v1/auth/invitations/accept', input);
+        await adopt(session);
+        return session;
+      },
+      async completeTwoFactor(challenge, code) {
+        const session = await http.post<SessionPayload>('/api/v1/auth/login/two-factor', { challenge, code });
         await adopt(session);
       },
       async logout() {

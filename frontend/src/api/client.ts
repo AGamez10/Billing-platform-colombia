@@ -30,7 +30,9 @@ export class ApiError extends Error {
 }
 
 export interface SessionPayload {
-  status: 'SIGNED_IN' | 'ORGANIZATION_REQUIRED';
+  status: 'SIGNED_IN' | 'ORGANIZATION_REQUIRED' | 'TWO_FACTOR_REQUIRED';
+  /** Con TWO_FACTOR_REQUIRED: se envía con el código a /api/v1/auth/login/two-factor. */
+  challenge?: string;
   accessToken?: string;
   expiresIn?: number;
   organization?: { id: string; name: string | null; role: string };

@@ -55,6 +55,26 @@ public final class IdentityEmails {
         return new Mailer.Email(to, "Tu contraseña de " + brand + " cambió", text, html);
     }
 
+    public Mailer.Email twoFactorChanged(String to, boolean enabled) {
+        String what = enabled ? "activaste la verificación en dos pasos" : "desactivaste la verificación en dos pasos";
+        String detail = enabled
+                ? "Desde ahora, al entrar te pediremos el código de tu app de autenticación. Guarda tus códigos de recuperación en un lugar seguro."
+                : "Desde ahora basta la contraseña para entrar. Te recomendamos volver a activarla.";
+        String text = """
+                Hola,
+
+                En tu cuenta de %s %s.
+                %s
+
+                Si no fuiste tú, cambia tu contraseña y escríbenos de inmediato respondiendo este correo.
+                """.formatted(brand, what, detail);
+        String title = enabled ? "Verificación en dos pasos activada" : "Verificación en dos pasos desactivada";
+        String html = layout(title,
+                "<p>En tu cuenta de " + esc(brand) + " " + what + ".</p><p>" + detail + "</p>"
+                        + "<p>Si no fuiste tú, cambia tu contraseña y escríbenos de inmediato respondiendo este correo.</p>");
+        return new Mailer.Email(to, title + " en " + brand, text, html);
+    }
+
     public Mailer.Email invitation(String to, String token, String organizationName, String inviterName, Role role,
                                    int daysValid) {
         String link = baseUrl + "/invitacion#t=" + token;

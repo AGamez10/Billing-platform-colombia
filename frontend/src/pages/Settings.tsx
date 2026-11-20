@@ -26,6 +26,10 @@ export function Settings() {
           <strong>Reportes</strong>
           <span>Ventas e impuestos por periodo, en Excel para tu contador.</span>
         </Link>
+        <Link to="/seguridad" className="hub-link">
+          <strong>Seguridad de tu cuenta</strong>
+          <span>Verificación en dos pasos con tu celular.</span>
+        </Link>
         <Link to="/empresa" className="hub-link">
           <strong>Datos de tu empresa</strong>
           <span>Razón social, dirección y datos tributarios del RUT.</span>

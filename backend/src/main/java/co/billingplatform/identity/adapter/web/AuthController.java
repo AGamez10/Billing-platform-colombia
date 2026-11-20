@@ -7,6 +7,7 @@ import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.PasswordRecoveryService;
 import co.billingplatform.identity.application.RegistrationService;
 import co.billingplatform.identity.application.TeamService;
+import co.billingplatform.identity.application.TwoFactorService;
 import co.billingplatform.platform.persistence.TenantTransactions;
 import co.billingplatform.platform.security.AccessTokens;
 import co.billingplatform.shared.domain.DomainException;
@@ -82,9 +83,24 @@ class AuthController {
 
     record OrganizationView(UUID id, String name, String role) {}
 
-    /** {@code status}: SIGNED_IN, o ORGANIZATION_REQUIRED si el usuario pertenece a varias y no eligió. */
+    /**
+     * {@code status}: SIGNED_IN; ORGANIZATION_REQUIRED si el usuario pertenece a varias y no eligió; o
+     * TWO_FACTOR_REQUIRED con {@code challenge}, que se envía con el código a {@code /login/two-factor}.
+     */
     record SessionResponse(String status, String accessToken, String tokenType, Long expiresIn,
-                           OrganizationView organization, List<OrganizationView> organizations) {}
+                           OrganizationView organization, List<OrganizationView> organizations, String challenge) {
+        @Override
+        public String toString() {
+            return "SessionResponse[status=%s]".formatted(status);
+        }
+    }
+
+    record TwoFactorLogin(@NotBlank @Size(max = 100) String challenge, @NotBlank @Size(max = 20) String code) {
+        @Override
+        public String toString() {
+            return "TwoFactorLogin[***]";
+        }
+    }
 
     /** {@code organizations}: todas las del usuario, para cambiar de organización sin volver a escribir la clave. */
     record MeResponse(UUID userId, UUID organizationId, String organizationName, String role,
@@ -120,10 +136,13 @@ class AuthController {
     private final Memberships memberships;
     private final PasswordRecoveryService recovery;
     private final TeamService team;
+    private final TwoFactorService twoFactor;
 
     AuthController(RegistrationService registration, AuthenticationService authentication,
                    RefreshTokenService refreshTokens, AccessTokens accessTokens, TenantTransactions tx,
-                   Memberships memberships, PasswordRecoveryService recovery, TeamService team) {
+                   Memberships memberships, PasswordRecoveryService recovery, TeamService team,
+                   TwoFactorService twoFactor) {
+        this.twoFactor = twoFactor;
         this.memberships = memberships;
         this.recovery = recovery;
         this.team = team;
@@ -164,9 +183,22 @@ class AuthController {
             chosen = user.memberships().getFirst();
         } else {
             return new SessionResponse("ORGANIZATION_REQUIRED", null, null, null, null,
-                    user.memberships().stream().map(AuthController::view).toList());
+                    user.memberships().stream().map(AuthController::view).toList(), null);
         }
-        return startSession(user.userId(), chosen, response);
+        return signIn(user.userId(), chosen, response);
+    }
+
+    @PostMapping("/login/two-factor")
+    @Operation(summary = "Completar el inicio de sesión con el código de la app de autenticación o uno de recuperación")
+    SessionResponse loginTwoFactor(@Valid @RequestBody TwoFactorLogin r, HttpServletResponse response) {
+        // Confirma intentos y fallos aunque el código no sirva (si no, el bloqueo nunca operaría).
+        TwoFactorService.Verified verified = tx.withoutTenantKeepingWritesOnDomainError(
+                () -> twoFactor.completeChallenge(r.challenge(), r.code()));
+        Membership membership = tx.withoutTenant(() -> memberships.activeFor(verified.userId())).stream()
+                .filter(m -> m.tenantId().equals(verified.tenantId()))
+                .findFirst()
+                .orElseThrow(() -> new DomainException("TENANT_ACCESS_DENIED", "No access to that organization"));
+        return startSession(verified.userId(), membership, response);
     }
 
     @PostMapping("/refresh")
@@ -189,7 +221,7 @@ class AuthController {
         setCookie(response, rotated.token(), rotated.expiresAt());
         AccessTokens.Issued access = accessTokens.issue(rotated.userId(), rotated.tenantId(), rotated.role());
         return new SessionResponse("SIGNED_IN", access.token(), "Bearer", AccessTokens.TTL.toSeconds(),
-                new OrganizationView(rotated.tenantId().value(), null, rotated.role().name()), null);
+                new OrganizationView(rotated.tenantId().value(), null, rotated.role().name()), null, null);
     }
 
     @PostMapping("/logout")
@@ -251,7 +283,7 @@ class AuthController {
             accepted = tx.inTenant(tenant, () -> team.acceptNew(tenant, r.token(), r.fullName(), r.password(),
                     r.acceptedTermsVersion(), r.acceptedPrivacyVersion()));
         }
-        return startSession(accepted.userId(), new Membership(accepted.tenantId(), accepted.role(),
+        return signIn(accepted.userId(), new Membership(accepted.tenantId(), accepted.role(),
                 accepted.organizationName()), response);
     }
 
@@ -267,12 +299,22 @@ class AuthController {
                 all.stream().map(AuthController::view).toList());
     }
 
+    /** Abre la sesión, o pide el código si el usuario tiene la verificación en dos pasos activa. */
+    private SessionResponse signIn(UUID userId, Membership membership, HttpServletResponse response) {
+        String challenge = tx.withoutTenant(() -> twoFactor.isEnabled(userId)
+                ? twoFactor.challenge(userId, membership.tenantId()) : null);
+        if (challenge != null) {
+            return new SessionResponse("TWO_FACTOR_REQUIRED", null, null, null, view(membership), null, challenge);
+        }
+        return startSession(userId, membership, response);
+    }
+
     private SessionResponse startSession(UUID userId, Membership membership, HttpServletResponse response) {
         RefreshTokenService.Issued refresh = tx.asUser(userId, () -> refreshTokens.issue(userId, membership.tenantId()));
         setCookie(response, refresh.token(), refresh.expiresAt());
         AccessTokens.Issued access = accessTokens.issue(userId, membership.tenantId(), refresh.role());
         return new SessionResponse("SIGNED_IN", access.token(), "Bearer", AccessTokens.TTL.toSeconds(),
-                view(membership), null);
+                view(membership), null, null);
     }
 
     private static OrganizationView view(Membership m) {

@@ -40,7 +40,7 @@ public class SecurityConfiguration {
                                 "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/v1/auth/register", "/api/v1/auth/login",
+                                "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/login/two-factor",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout",
                                 "/api/v1/auth/password-reset/request", "/api/v1/auth/password-reset/confirm",
                                 "/api/v1/auth/invitations/preview", "/api/v1/auth/invitations/accept",

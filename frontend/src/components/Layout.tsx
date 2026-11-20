@@ -17,6 +17,7 @@ const ACCOUNT_NAV = [
   { to: '/reportes', label: 'Reportes', perm: null },
   { to: '/equipo', label: 'Equipo', perm: 'manage' as const },
   { to: '/plan', label: 'Mi plan', perm: 'usage' as const },
+  { to: '/seguridad', label: 'Seguridad', perm: null },
 ];
 
 export function Layout() {

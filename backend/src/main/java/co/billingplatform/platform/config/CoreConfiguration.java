@@ -8,6 +8,9 @@ import co.billingplatform.identity.application.ApiKeyService;
 import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.OrganizationProfileService;
 import co.billingplatform.identity.application.TeamService;
+import co.billingplatform.identity.application.TwoFactorPorts;
+import co.billingplatform.identity.application.TwoFactorService;
+import co.billingplatform.identity.adapter.crypto.AesGcmSecretSealer;
 import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.RegistrationService;
 import co.billingplatform.customers.application.CustomerRepository;
@@ -88,6 +91,16 @@ class CoreConfiguration {
     @Bean
     IdentityEmails identityEmails(@Value("${billing.brand.name}") String brand, @Value("${billing.web.base-url}") String baseUrl) {
         return new IdentityEmails(brand, baseUrl);
+    }
+
+    @Bean
+    TwoFactorService twoFactorService(TwoFactorPorts.Store store, TwoFactorPorts.Challenges challenges,
+                                      @Value("${billing.security.secrets-key}") String masterKey,
+                                      AccountPorts.Accounts accounts, IdentityPorts.UserAccounts users,
+                                      IdentityPorts.PasswordHasher hasher, Mailer mailer, IdentityEmails emails,
+                                      @Value("${billing.brand.name}") String brand, Clock clock) {
+        return new TwoFactorService(store, challenges, new AesGcmSecretSealer(masterKey), accounts, users, hasher,
+                mailer, emails, brand, clock);
     }
 
     @Bean

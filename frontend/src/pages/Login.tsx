@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useSession } from '../auth/session';
 import { AuthShell } from '../components/AuthShell';
+import { TwoFactorStep } from '../components/TwoFactorStep';
 import { Alert, Field } from '../components/ui';
 import { messageFor } from '../lib/errors';
 
@@ -13,6 +14,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[] | null>(null);
+  const [challenge, setChallenge] = useState<string | null>(null);
 
   async function submit(e: FormEvent, organizationId?: string) {
     e.preventDefault();
@@ -22,6 +24,10 @@ export function Login() {
       const session = await login(email.trim(), password, organizationId);
       if (session.status === 'ORGANIZATION_REQUIRED') {
         setOrganizations(session.organizations ?? []);
+      } else if (session.status === 'TWO_FACTOR_REQUIRED' && session.challenge) {
+        setPassword('');
+        setOrganizations(null);
+        setChallenge(session.challenge);
       } else {
         navigate('/', { replace: true });
       }
@@ -30,6 +36,14 @@ export function Login() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (challenge) {
+    return (
+      <AuthShell>
+        <TwoFactorStep challenge={challenge} onDone={() => navigate('/', { replace: true })} onRestart={() => setChallenge(null)} />
+      </AuthShell>
+    );
   }
 
   return (

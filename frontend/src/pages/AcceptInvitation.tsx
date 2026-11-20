@@ -4,6 +4,7 @@ import { http } from '../api/client';
 import type { InvitationPreview } from '../api/types';
 import { useSession } from '../auth/session';
 import { AuthShell } from '../components/AuthShell';
+import { TwoFactorStep } from '../components/TwoFactorStep';
 import { Alert, Field, Spinner } from '../components/ui';
 import { messageFor } from '../lib/errors';
 import { ROLE_DESCRIPTION, ROLE_LABEL } from '../lib/format';
@@ -22,6 +23,7 @@ export function AcceptInvitation() {
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -37,7 +39,7 @@ export function AcceptInvitation() {
     setError(null);
     try {
       if (state.status === 'signed-in') await logout();
-      await acceptInvitation(
+      const session = await acceptInvitation(
         preview.existingAccount
           ? { token, password }
           : {
@@ -48,12 +50,24 @@ export function AcceptInvitation() {
               acceptedPrivacyVersion: legal.data?.privacyVersion,
             },
       );
+      if (session.status === 'TWO_FACTOR_REQUIRED' && session.challenge) {
+        setChallenge(session.challenge);
+        return;
+      }
       navigate('/', { replace: true });
     } catch (err) {
       setError(messageFor(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  if (challenge) {
+    return (
+      <AuthShell>
+        <TwoFactorStep challenge={challenge} onDone={() => navigate('/', { replace: true })} onRestart={() => navigate('/entrar')} />
+      </AuthShell>
+    );
   }
 
   if (!token || loadError) {

@@ -1,0 +1,7 @@
+# Excepciones de OSV-Scanner (workflow "Seguridad"). Cada una con motivo y fecha de revisión;
+# al vencer, OSV-Scanner vuelve a reportarla. Preferir siempre actualizar la dependencia.
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2027-01-31
+# reason = "Solo afecta X, que no usamos porque Y."

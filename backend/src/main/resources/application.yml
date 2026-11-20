@@ -92,3 +92,11 @@ management:
 logging:
   level:
     root: INFO
+
+# Documentación interactiva de la API (/swagger-ui.html, /v3/api-docs). Activa en desarrollo;
+# en producción el kit de despliegue la apaga salvo que BILLING_API_DOCS_ENABLED=true.
+springdoc:
+  api-docs:
+    enabled: ${BILLING_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${BILLING_API_DOCS_ENABLED:true}

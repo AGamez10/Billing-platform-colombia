@@ -8,6 +8,7 @@ import { AcceptInvitation } from './pages/AcceptInvitation';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Home } from './pages/Home';
 import { Plan } from './pages/Plan';
+import { Security } from './pages/Security';
 import { ResetPassword } from './pages/ResetPassword';
 import { Setup } from './pages/Setup';
 import { Team } from './pages/Team';
@@ -88,6 +89,7 @@ export function App() {
         <Route path="importar" element={<Import />} />
         <Route path="integraciones" element={<Integrations />} />
         <Route path="plan" element={<Plan />} />
+        <Route path="seguridad" element={<Security />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

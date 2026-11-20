@@ -1,0 +1,122 @@
+name: Seguridad
+
+# Análisis automáticos que bloquean la integración: código (CodeQL), secretos (gitleaks) y
+# dependencias con vulnerabilidades conocidas (OSV-Scanner). Las imágenes Docker se analizan
+# como informe (sus paquetes del sistema operativo suelen tener CVE sin corrección publicada).
+#
+# Cadena de suministro: los escáneres se descargan de su release oficial y se verifica el SHA-256
+# antes de ejecutarlos (en marzo de 2026 las etiquetas de trivy-action fueron reemplazadas por
+# código malicioso, GHSA-69fq-xp46-6x23; por eso no se usan acciones de terceros aquí).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 9 * * 1' # lunes 4:17 a. m. Bogotá: vulnerabilidades nuevas en dependencias que no cambiaron
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GITLEAKS_VERSION: 8.28.0
+  GITLEAKS_SHA256: a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb
+  OSV_VERSION: 2.3.0
+  OSV_SHA256: e774e5770c31d60745c067be5f69bf3b46641b6d0e0ed87fd65e569cda35dc50
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java-kotlin, javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: github/codeql-action/init@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          category: /language:${{ matrix.language }}
+
+  secrets:
+    name: Secretos en el historial (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 0
+      - name: Instalar gitleaks verificado
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar xzf gitleaks.tgz gitleaks
+      - name: Historial completo y árbol de trabajo
+        run: |
+          ./gitleaks git --redact --no-banner --exit-code 1 .
+          ./gitleaks dir --redact --no-banner --exit-code 1 .
+
+  dependencies:
+    name: Dependencias con vulnerabilidades (OSV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Instalar OSV-Scanner verificado
+        run: |
+          curl -sSfL -o osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SHA256}  osv-scanner" | sha256sum -c -
+          chmod +x osv-scanner
+      # Backend: resuelve las dependencias transitivas del pom.xml. Frontend: el lockfile exacto.
+      # Excepciones solo en osv-scanner.toml, cada una con motivo y fecha de revisión.
+      - name: Analizar backend y frontend
+        run: |
+          ./osv-scanner scan source --config osv-scanner.toml \
+            --lockfile backend/pom.xml --lockfile frontend/pnpm-lock.yaml \
+            --format table | tee osv.txt
+          exit "${PIPESTATUS[0]}"
+      - name: Resumen
+        if: always()
+        run: |
+          { echo '### Dependencias (OSV)'; echo '```'; cat osv.txt 2>/dev/null | tail -60; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  images:
+    name: Imágenes Docker (informe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Instalar OSV-Scanner verificado
+        run: |
+          curl -sSfL -o osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SHA256}  osv-scanner" | sha256sum -c -
+          chmod +x osv-scanner
+      - name: Construir imágenes
+        run: |
+          docker build -t billing-backend:scan backend
+          docker build -t billing-web:scan frontend
+      - name: Analizar imágenes
+        run: |
+          set +e
+          for image in billing-backend:scan billing-web:scan; do
+            echo "== $image"
+            ./osv-scanner scan image --config osv-scanner.toml --format table "$image"
+          done | tee images.txt
+          { echo '### Imágenes Docker (OSV, informativo)'; echo '```'; tail -80 images.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit 0

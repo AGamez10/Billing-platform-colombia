@@ -417,6 +417,41 @@ Cómo está construido:
 
 **Riesgo residual:** DNS rebinding entre la comprobación y la conexión. Queda en SECURITY.md; se cerraría conectando a la IP verificada.
 
+## ADR-0034 — Verificación en dos pasos con app de autenticación (TOTP)
+*2026-11-19 — aceptada*
+
+**Contexto:** la cuenta da acceso a datos tributarios de terceros y a emitir documentos con validez legal. Una contraseña filtrada no debería bastar.
+
+**Decisión:** TOTP de RFC 6238 (HMAC-SHA1, 6 dígitos, 30 s), opcional por persona y válido en todas sus organizaciones. Se descartó SMS (costo por mensaje, SIM swapping) y se dejó WebAuthn/passkeys para después (más fuerte, pero más complejo en el celular de los comercios).
+
+- **Activar:** el secreto (160 bits) se guarda cifrado con AES-256-GCM y datos asociados = usuario (`BILLING_SECRETS_KEY`). La configuración solo queda activa al confirmar un código. Entrega 10 códigos de recuperación de un solo uso (50 bits, sin caracteres ambiguos), guardados como SHA-256 con el usuario en el hash.
+- **Iniciar sesión:** tras la contraseña se responde `TWO_FACTOR_REQUIRED` con un reto de 256 bits (solo se guarda su hash), 5 minutos y 5 intentos. Sin cookie ni token antes del código. Aplica también al aceptar una invitación con una cuenta existente.
+- **Antirreplay:** se acepta ±1 paso de desfase, pero solo un paso posterior al último usado (fila bloqueada con `FOR UPDATE`).
+- **Fuerza bruta:** los fallos de código se cuentan por usuario, con el bloqueo progresivo del login (5 fallos → 15 min, duplicando hasta 24 h). Acertar la contraseña **no** reinicia ese contador. Además aplica el límite por IP.
+- **Desactivar** exige contraseña y código. Activar o desactivar avisa por correo. Las claves de API no pueden usar estas rutas.
+- **Errores:** código inválido responde 422 y no 401, para que el cliente no renueve la sesión y repita la petición gastando un intento.
+
+**Riesgos residuales:**
+- Perder la llave maestra obliga a reconfigurar la verificación en dos pasos.
+- Una persona que pierde el teléfono y los códigos depende de soporte para recuperar el acceso. El procedimiento está en DEPLOYMENT.md y exige verificar identidad.
+- Aún no se puede exigir a todo el equipo de una organización.
+
+## ADR-0035 — Análisis automáticos de seguridad en CI sin acciones de terceros
+*2026-11-19 — aceptada*
+
+**Decisión:** el flujo "Seguridad" corre en cada push, en cada PR y los lunes:
+- **CodeQL `security-extended`** para Java, TypeScript y los propios workflows.
+- **gitleaks** sobre todo el historial y el árbol de trabajo. Las excepciones van marcadas con `gitleaks:allow` en la línea.
+- **OSV-Scanner** sobre el `pom.xml` (con dependencias transitivas) y el `pnpm-lock.yaml`. Bloquea la integración; las excepciones van en `osv-scanner.toml` con motivo y fecha de vencimiento.
+- **OSV-Scanner sobre las imágenes Docker**, como informe.
+
+**Cadena de suministro:** en marzo de 2026 casi todas las etiquetas de `aquasecurity/trivy-action` y `setup-trivy`, y el binario 0.69.4 de Trivy, se reemplazaron por código malicioso (GHSA-69fq-xp46-6x23, CVE-2026-33634).
+- Por eso no se usan acciones de terceros para escanear. Los binarios se descargan del release oficial y se verifica su SHA-256 fijado en el workflow antes de ejecutarlos.
+- CodeQL es de GitHub.
+- Dependabot ya actualiza Maven, npm, Docker y las acciones cada semana.
+
+- Todas las acciones de los workflows quedan fijadas por SHA de commit, con la versión en un comentario. Dependabot propone las actualizaciones.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
