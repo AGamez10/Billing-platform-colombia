@@ -345,3 +345,22 @@ export interface DocumentSheet {
   qrPayload?: string | null;
   correction?: { concept: CorrectionConcept; description: string; creditedNumber: string; creditedDocumentKey: string; creditedIssueDate: string } | null;
 }
+
+export interface AttentionItem {
+  code: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  title: string;
+  detail: string;
+  actionLabel: string;
+  actionPath: string;
+  key: string;
+}
+
+export interface Dashboard {
+  environment?: Environment | null;
+  from: string;
+  to: string;
+  sales: { total: number; documents: number; averageTicket: number; credited: number };
+  daily: { date: string; total: number }[];
+  attention: AttentionItem[];
+}

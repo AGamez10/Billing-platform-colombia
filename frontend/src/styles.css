@@ -386,3 +386,35 @@ td.num, th.num { text-align: right; }
 .plain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .qty-input { width: 90px; text-align: right; min-height: 40px; }
 .danger-text { color: var(--red, #b42318); }
+
+/* Inicio */
+.quick-actions { flex-wrap: wrap; }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.all-good { margin: 0; color: var(--green-strong); font-weight: 600; }
+.attention-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.attention { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-left-width: 4px; border-radius: 12px; background: #fff; }
+.attention p { margin: 2px 0 0; }
+.attention-critical { border-left-color: var(--red); }
+.attention-warning { border-left-color: #c98a00; }
+.attention-info { border-left-color: var(--blue); }
+.attention-tag { flex: none; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 999px; }
+.attention-critical .attention-tag { background: var(--red-soft); color: var(--red); }
+.attention-warning .attention-tag { background: var(--amber-soft); color: var(--amber); }
+.attention-info .attention-tag { background: var(--blue-soft); color: var(--blue); }
+@media (max-width: 640px) {
+  .attention { flex-wrap: wrap; }
+  .attention .btn { width: 100%; }
+}
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { display: grid; gap: 4px; align-content: start; padding: 14px; border-radius: 12px; background: var(--bg); }
+.kpi-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+.kpi-value { font-family: var(--font-display); font-size: 24px; line-height: 1.15; }
+.kpi-hint { font-size: 12px; color: var(--muted); }
+.sales-chart { margin: 0; }
+.chart-box { position: relative; height: 200px; }
+.quick-customer { border: 1px dashed var(--green); border-radius: 12px; padding: 14px; background: var(--green-soft); }
+.nit-row { align-items: flex-end; flex-wrap: nowrap; }
+.nit-row .field:first-child { flex: 1; }
+.nit-row .field:last-child:not(:first-child) { width: 72px; }
+.estimate { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; justify-content: flex-end; padding: 12px 14px; border-radius: 12px; background: var(--bg); }
+.estimate strong { font-family: var(--font-display); font-size: 22px; }

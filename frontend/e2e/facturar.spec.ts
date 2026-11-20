@@ -47,7 +47,8 @@ test('una organización nueva factura en simulación de punta a punta', async ({
 
   // 4. Factura: el servidor calcula 2 × $50.000 + IVA 19 % = $119.000
   await page.goto('/facturas/nueva');
-  await page.getByLabel('¿A quién le facturas?').selectOption({ index: 1 });
+  await page.getByRole('combobox', { name: '¿A quién le facturas?' }).fill('Cliente E2E');
+  await page.getByRole('option', { name: /Cliente E2E S\.A\.S\./ }).click();
   await page.getByLabel('Descripción').fill('Consulta');
   await page.getByLabel('Cantidad').fill('2');
   await page.getByLabel('Precio unitario').fill('50.000');

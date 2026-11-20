@@ -19,6 +19,7 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. `fiscal` opcional: `{personType: LEGAL\|NATURAL, vatRegime: RESPONSIBLE\|NOT_RESPONSIBLE, responsibilities: ["O-13"…] o ["R-99-PN"]}`; `cityCode` debe existir en la DIVIPOLA. Bloqueo optimista con `version`; DELETE desactiva |
 | `GET/POST /products`, `GET/PUT/DELETE /products/{id}` | PRODUCT_* | Productos y servicios con códigos de tarifa vigentes |
 | `GET /public/plans`, `GET /public/tax-rates` | público | Catálogo comercial y tarifas con fundamento legal |
+| `GET /dashboard` | INVOICE_READ | Ventas del mes en el ambiente activo (por día, total, promedio, notas crédito) y pendientes con su acción. Los del plan solo con USAGE_READ (ADR-0029) |
 | `GET /public/municipalities` | público (caché 1 día) | Municipios DIVIPOLA del DANE: `code` (5 dígitos), `name`, `departmentCode`, `departmentName` |
 | `GET /organization` | cualquier miembro | Datos del emisor: identificación, razón social, contacto, `fiscal`, `address` (con nombre del municipio) y `readyToIssue` |
 | `PUT /organization` | ORGANIZATION_MANAGE (dueño/admin) | `{legalName, tradeName?, email, phone?, addressLine, cityCode, fiscal}`. La identificación no se cambia. `422 UNKNOWN_MUNICIPALITY` si el código no está en la DIVIPOLA |

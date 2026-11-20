@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { http } from '../api/client';
 import type { Customer, Invoice, LineInput, Page, Product, TaxRate } from '../api/types';
+import { CustomerPicker } from '../components/CustomerPicker';
 import { Alert, Field, Icon, Loading, PageHead, SelectField } from '../components/ui';
 import { messageFor } from '../lib/errors';
-import { formatIdentification, parseDecimalInput } from '../lib/format';
+import { formatCop, parseDecimalInput } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { taxLabel, UNITS } from './Products';
 
@@ -54,27 +55,55 @@ export function toLineInputs(lines: LineState[]): { lines: LineInput[]; problem:
   return { lines: out, problem: null };
 }
 
+/**
+ * Estimado en el navegador para ver el total mientras se escribe. Los impuestos son
+ * porcentuales; el valor oficial lo calcula el servidor al guardar (con su redondeo).
+ */
+export function estimateTotal(lines: LineState[], taxes: TaxRate[]): number | null {
+  let total = 0;
+  for (const l of lines) {
+    const q = Number(parseDecimalInput(l.quantity));
+    const p = Number(parseDecimalInput(l.unitPrice));
+    if (!Number.isFinite(q) || !Number.isFinite(p) || parseDecimalInput(l.quantity) === null || parseDecimalInput(l.unitPrice) === null) return null;
+    const gross = q * p;
+    const dv = Number(parseDecimalInput(l.discountValue) ?? 0);
+    const discount = l.discountKind === 'PERCENT' ? (gross * dv) / 100 : l.discountKind === 'AMOUNT' ? dv : 0;
+    const taxable = Math.max(0, gross - discount);
+    const pct = l.taxRateCodes.reduce((acc, code) => acc + Number(taxes.find((t) => t.code === code)?.percentage ?? 0), 0);
+    total += taxable + (taxable * pct) / 100;
+  }
+  return Math.round(total * 100) / 100;
+}
+
 export function InvoiceEditor() {
   const { id } = useParams();
   const isNew = !id;
+  const [params] = useSearchParams();
+  const copyFrom = isNew ? params.get('desde') : null;
   const navigate = useNavigate();
-  const existing = useApi<Invoice>(isNew ? null : `/api/v1/invoices/${id}`);
-  const customers = useApi<Page<Customer>>('/api/v1/customers?limit=100');
+  const existing = useApi<Invoice>(isNew ? (copyFrom ? `/api/v1/invoices/${copyFrom}` : null) : `/api/v1/invoices/${id}`);
   const products = useApi<Page<Product>>('/api/v1/products?limit=100');
   const taxes = useApi<TaxRate[]>('/api/v1/public/tax-rates');
-  const [customerId, setCustomerId] = useState('');
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [lines, setLines] = useState<LineState[]>([blankLine()]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Editar un borrador: el servidor no devuelve el id del cliente, se ubica por identificación.
+  // Editar un borrador o duplicar un documento: el servidor no devuelve el id del cliente, se busca por documento.
   useEffect(() => {
     const inv = existing.data;
-    if (!inv || !customers.data) return;
-    const match = customers.data.items.find(
-      (c) => c.identificationType === inv.customer.identificationType && c.identificationNumber === inv.customer.identificationNumber,
-    );
-    if (match) setCustomerId(match.id);
+    if (!inv) return;
+    if (!inv.customer.finalConsumer) {
+      void http
+        .get<Page<Customer>>(`/api/v1/customers?limit=5&q=${encodeURIComponent(inv.customer.identificationNumber)}`)
+        .then((page) => {
+          const match = page.items.find(
+            (c) => c.identificationType === inv.customer.identificationType && c.identificationNumber === inv.customer.identificationNumber,
+          );
+          if (match) setCustomer(match);
+        })
+        .catch(() => undefined);
+    }
     setLines(
       inv.lines.map((l) => ({
         key: nextKey++,
@@ -88,12 +117,12 @@ export function InvoiceEditor() {
         taxRateCodes: l.taxRateCodes,
       })),
     );
-  }, [existing.data, customers.data]);
+  }, [existing.data]);
 
-  const selectedCustomer = useMemo(() => customers.data?.items.find((c) => c.id === customerId), [customers.data, customerId]);
+  const estimate = useMemo(() => estimateTotal(lines, taxes.data ?? []), [lines, taxes.data]);
 
-  if (!isNew && existing.loading && !existing.data) return <Loading />;
-  if (existing.data && existing.data.status !== 'DRAFT') {
+  if (existing.loading && !existing.data) return <Loading />;
+  if (!isNew && existing.data && existing.data.status !== 'DRAFT') {
     return <Alert tone="info">Esta factura ya fue emitida y no se puede modificar.</Alert>;
   }
 
@@ -119,12 +148,12 @@ export function InvoiceEditor() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!customerId) return setError('Elige el cliente.');
+    if (!customer) return setError('Elige el cliente o créalo.');
     const { lines: payloadLines, problem } = toLineInputs(lines);
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      const body = { customerId, lines: payloadLines };
+      const body = { customerId: customer.id, lines: payloadLines };
       const saved = isNew ? await http.post<Invoice>('/api/v1/invoices', body) : await http.put<Invoice>(`/api/v1/invoices/${id}`, body);
       navigate(`/facturas/${saved.id}`, { replace: true });
     } catch (err) {
@@ -134,33 +163,18 @@ export function InvoiceEditor() {
     }
   }
 
-  const noCustomers = customers.data && customers.data.items.length === 0;
-
   return (
     <>
-      <PageHead title={isNew ? 'Nueva factura' : 'Editar borrador'} subtitle="Guardas un borrador, revisas los totales y luego la emites." />
+      <PageHead
+        title={isNew ? (copyFrom ? 'Nueva factura (copia)' : 'Nueva factura') : 'Editar borrador'}
+        subtitle="Guardas un borrador, revisas los totales y luego la emites."
+      />
       <form className="stack" onSubmit={(e) => void submit(e)} noValidate>
         {error && <Alert tone="error">{error}</Alert>}
 
         <section className="card stack" aria-labelledby="cliente-title">
           <h2 id="cliente-title">Cliente</h2>
-          {noCustomers ? (
-            <Alert tone="info">
-              Aún no tienes clientes. <Link to="/clientes/nuevo">Agrega uno</Link> y vuelve aquí.
-            </Alert>
-          ) : (
-            <SelectField label="¿A quién le facturas?" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required>
-              <option value="">Elige un cliente</option>
-              {(customers.data?.items ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.legalName} — {formatIdentification(c.identificationType, c.identificationNumber, c.checkDigit)}
-                </option>
-              ))}
-            </SelectField>
-          )}
-          {selectedCustomer && !selectedCustomer.email && (
-            <p className="small muted">Este cliente no tiene correo: no podremos enviarle la factura automáticamente.</p>
-          )}
+          <CustomerPicker value={customer} onChange={setCustomer} />
         </section>
 
         <section className="card stack" aria-labelledby="lineas-title">
@@ -236,8 +250,16 @@ export function InvoiceEditor() {
           </button>
         </section>
 
+        {estimate !== null && estimate > 0 && (
+          <div className="estimate" aria-live="polite">
+            <span className="muted small">Total estimado con impuestos</span>
+            <strong className="num">{formatCop(estimate)}</strong>
+            <span className="muted small">El valor exacto lo calcula el sistema al guardar.</span>
+          </div>
+        )}
+
         <div className="row">
-          <button type="submit" className="btn btn-primary" disabled={busy || !!noCustomers}>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? 'Guardando…' : 'Guardar y revisar totales'}
           </button>
           <Link to={isNew ? '/facturas' : `/facturas/${id}`} className="btn btn-secondary">

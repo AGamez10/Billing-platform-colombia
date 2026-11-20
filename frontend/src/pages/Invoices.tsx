@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import type { DocumentKind, InvoiceStatus, InvoiceSummary, Page } from '../api/types';
 import { useSession } from '../auth/session';
 import { Alert, Empty, EnvironmentBadge, Icon, PageHead, Spinner, StatusBadge } from '../components/ui';
@@ -7,12 +7,14 @@ import { messageFor } from '../lib/errors';
 import { formatCop, formatDate, KIND_LABEL, STATUS_LABEL } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
-const FILTERS: (InvoiceStatus | '')[] = ['', 'DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'];
+const FILTERS: (InvoiceStatus | '')[] = ['', 'DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'FAILED'];
 const PAGE_SIZE = 25;
 
 export function InvoiceList() {
   const { can } = useSession();
-  const [status, setStatus] = useState<InvoiceStatus | ''>('');
+  const [params] = useSearchParams();
+  const initial = params.get('estado') as InvoiceStatus | null;
+  const [status, setStatus] = useState<InvoiceStatus | ''>(initial && FILTERS.includes(initial) ? initial : '');
   const [kind, setKind] = useState<DocumentKind | ''>('');
   const [offset, setOffset] = useState(0);
   const list = useApi<Page<InvoiceSummary>>(

@@ -344,6 +344,28 @@ Reglas:
 - Notas débito.
 - Notas de ajuste del documento equivalente POS.
 
+## ADR-0029 — Inicio accionable: módulo de lectura `insights` con reglas puras
+*2026-11-19 — aceptada*
+
+**Decisión:** `GET /api/v1/dashboard` arma en un solo llamado las ventas del mes y la lista de **pendientes**, ordenados por gravedad y cada uno con su siguiente paso.
+- **Ventas:** documentos aceptados en el ambiente activo, menos las notas crédito.
+- **Pendientes:**
+  - plan vencido o por vencer;
+  - proveedor sin conectar;
+  - numeración faltante, por vencer (30 y 7 días) o casi agotada (≤ 10 %);
+  - datos de la empresa incompletos;
+  - cuota al 80 % o al límite;
+  - documentos rechazados, fallidos o por confirmar;
+  - borradores olvidados.
+
+Cómo está construido:
+- Las reglas viven en `insights/domain/AttentionRules`, son puras y se prueban sin base de datos.
+- Los hechos los lee un modelo de solo lectura (`JdbcInsightFacts`) con consultas agregadas dentro del tenant (RLS).
+- La cuota la entrega el módulo de suscripciones por un puerto (`QuotaReader`), sin duplicar su lógica.
+- Cada pendiente trae una `key` estable: los avisos por correo la usan para no repetirse.
+
+**Por qué un módulo de lectura y no llamadas a cada servicio:** el inicio se abre a cada rato; una consulta agregada por concepto es barata y no acopla los módulos de escritura entre sí.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

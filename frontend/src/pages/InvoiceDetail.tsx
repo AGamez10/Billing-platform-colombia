@@ -70,6 +70,11 @@ export function InvoiceDetail() {
           <div className="row">
             <StatusBadge status={inv.status} />
             <EnvironmentBadge environment={inv.environment} />
+            {inv.kind === 'INVOICE' && !isDraft && can('write') && (
+              <Link to={`/facturas/nueva?desde=${inv.id}`} className="btn btn-secondary btn-sm">
+                Duplicar
+              </Link>
+            )}
           </div>
         }
       />
@@ -217,7 +222,7 @@ function StatusExplanation({ invoice: inv }: { invoice: Invoice }) {
     case 'REJECTED':
       return (
         <Alert tone="error">
-          <strong>La DIAN o el proveedor rechazó la factura.</strong>
+          <strong>La DIAN o el proveedor rechazó este documento: no tiene validez.</strong>
           {inv.rejectionReasons.length > 0 && (
             <ul>
               {inv.rejectionReasons.map((r, i) => (
@@ -225,10 +230,19 @@ function StatusExplanation({ invoice: inv }: { invoice: Invoice }) {
               ))}
             </ul>
           )}
+          <p>
+            <strong>Qué hacer:</strong> revisa el motivo, corrige el dato que indica (cliente, productos, impuestos o datos de tu
+            empresa) y emite uno nuevo. {inv.kind === 'INVOICE' && <Link to={`/facturas/nueva?desde=${inv.id}`}>Duplicar y corregir</Link>}
+          </p>
         </Alert>
       );
     case 'FAILED':
-      return <Alert tone="error">No fue posible enviarla tras varios intentos. Nuestro equipo debe revisarla; escríbenos a soporte.</Alert>;
+      return (
+        <Alert tone="error">
+          <strong>No fue posible enviarla tras varios intentos.</strong> {inv.lastError ? `Detalle: ${inv.lastError}. ` : ''}No la
+          emitas de nuevo todavía: puede haber llegado al proveedor. Escríbenos a soporte con el número del documento y la revisamos.
+        </Alert>
+      );
   }
 }
 
