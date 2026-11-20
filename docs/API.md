@@ -9,6 +9,7 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 - El tenant **no** se envía: sale del token. Un id de otra organización responde `404`, igual que uno inexistente.
 - Errores: `application/problem+json` (RFC 9457) con `code` estable (`INVALID_NIT`, `NUMBERING_RANGE_NOT_FOUND`, `DOCUMENT_QUOTA_REACHED`, …) y sin trazas internas. Validación de forma → `400`; regla de negocio → `422`; conflicto de estado → `409`; plan o cuota → `402`.
 - Listados paginados con `limit` (máx. 100) y `offset`. La respuesta trae `items` y `hasMore`.
+- Límite de peticiones: 300 por minuto por clave de API y 600 por persona. Al pasarlo, `429 RATE_LIMITED` con `Retry-After` en segundos.
 
 ## Implementado (con pruebas HTTP contra PostgreSQL real)
 
@@ -85,5 +86,4 @@ Toda factura incluye `status`, `environment`, `validationEnvironment`, `simulate
 - `Idempotency-Key` en los demás POST. Hoy la exigen `/pos-sales` y `/pos-charges`, y es opcional en `POST /invoices`.
 - Webhooks del proveedor real (`/webhooks/{providerId}/{token}`). El núcleo y la verificación de firma ya existen; falta confirmar el esquema de Muisca.
 - Documento soporte y notas débito.
-- Límite de peticiones por clave de API.
 - Modo de sesión móvil (ADR-0015).

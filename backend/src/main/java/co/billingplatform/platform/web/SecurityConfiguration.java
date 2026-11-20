@@ -1,6 +1,8 @@
 package co.billingplatform.platform.web;
 
 import co.billingplatform.platform.security.AuthRateLimitFilter;
+import co.billingplatform.platform.security.PrincipalRateLimitFilter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -29,7 +31,9 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, Clock clock,
-                                           @Value("${billing.security.auth-requests-per-minute:10}") int authPerMinute)
+                                           @Value("${billing.security.auth-requests-per-minute:10}") int authPerMinute,
+                                           @Value("${billing.security.api-key-requests-per-minute:300}") int apiKeyPerMinute,
+                                           @Value("${billing.security.user-requests-per-minute:600}") int userPerMinute)
             throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
@@ -54,6 +58,8 @@ public class SecurityConfiguration {
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
                 .addFilterBefore(new AuthRateLimitFilter(authPerMinute, clock), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new PrincipalRateLimitFilter(apiKeyPerMinute, userPerMinute, clock),
+                        BearerTokenAuthenticationFilter.class)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

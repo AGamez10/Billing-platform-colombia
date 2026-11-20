@@ -8,6 +8,7 @@ const MESSAGES: Record<string, string> = {
   VALIDATION_FAILED: 'Revisa los campos marcados.',
   LEGAL_ACCEPTANCE_REQUIRED: 'Los términos se actualizaron. Recarga la página y acéptalos de nuevo.',
   INVALID_CREDENTIALS: 'Correo o contraseña incorrectos. Tras varios intentos la cuenta se bloquea unos minutos.',
+  RATE_LIMITED: 'Demasiadas solicitudes seguidas. Espera un minuto e intenta de nuevo.',
   INVALID_TWO_FACTOR_CODE: 'El código no es válido. Usa el que muestra tu app ahora mismo, o uno de tus códigos de recuperación.',
   TWO_FACTOR_CHALLENGE_EXPIRED: 'Pasó demasiado tiempo o hubo muchos intentos. Vuelve a escribir tu contraseña.',
   TWO_FACTOR_LOCKED: 'Demasiados códigos incorrectos. Espera unos minutos y vuelve a intentar.',

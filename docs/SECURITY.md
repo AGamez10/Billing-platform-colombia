@@ -49,6 +49,7 @@
 | IDOR/BOLA entre organizaciones | El tenant sale siempre de la identidad autenticada, nunca del cliente. RLS en todas las tablas con `tenant_id` (la prueba SQL falla si una no la tiene), FK compuestas, rol de app sin `BYPASSRLS` ni ownership. Un recurso de otro tenant responde igual que uno inexistente. | `tenant_isolation_test.sql`, `*ApiTest` |
 | Escalada de privilegios | Permisos por rol en la capa de aplicación (`CurrentUser.require`). `Role.canGrant`: solo se asignan roles contenidos en los propios. El dueño no se degrada; nadie modifica su propio acceso. | `IdentityDomainTest`, `AccountServicesTest` |
 | Contraseñas | Argon2id; mínimo 12 caracteres; el mismo error y el mismo tiempo para usuario inexistente, contraseña errada o cuenta bloqueada | `IdentityServicesTest` |
+| Abuso con credenciales válidas | Límite por credencial autenticada: 300 peticiones/min por clave de API y 600 por persona, configurables; 429 con `Retry-After`. Acota el daño de una clave o un token filtrados y de una integración en bucle. | `PrincipalRateLimitFilterTest` |
 | Fuerza bruta | Bloqueo progresivo por cuenta (5 fallos → 15 min, duplicando hasta 24 h). Límite por IP en login, segundo paso, registro, recuperación, invitaciones y vista pública de documentos. La IP real la fija Caddy, que descarta el `X-Forwarded-For` del cliente. | `IdentityServicesTest`, `AuthRateLimitFilterTest` |
 | **Contraseña filtrada (ADR-0034)** | Verificación en dos pasos TOTP opcional:<br>• secreto cifrado con AES-256-GCM ligado al usuario;<br>• reto de 256 bits (5 min, 5 intentos), sin token ni cookie antes del código;<br>• antirreplay por paso;<br>• bloqueo progresivo por usuario que no se reinicia al acertar la contraseña;<br>• 10 códigos de recuperación de un solo uso guardados como hash;<br>• desactivar pide contraseña y código, y se avisa por correo. | `TotpTest` (vectores RFC 6238), `TwoFactorServiceTest`, `TwoFactorApiTest`, `AesGcmSecretSealerTest`, e2e `seguridad.spec.ts` |
 | Sesiones | Access token JWT HS256 de 15 min, solo en memoria del navegador. Refresh opaco de 256 bits en cookie `HttpOnly; Secure; SameSite=Strict` limitada a `/api/v1/auth`, rotado en cada uso; reutilizar uno gastado revoca la familia. Refresh y logout exigen la cabecera `X-Billing-Client` (CSRF). | `IdentityServicesTest`, `AuthFlowTest` |
@@ -75,15 +76,16 @@
 Ordenados por prioridad sugerida para la auditoría.
 
 1. **DNS rebinding en webhooks salientes:** el DNS se valida y luego `HttpClient` vuelve a resolver al conectar. Un dominio malicioso con TTL 0 podría apuntar a una IP interna en la segunda resolución. Mitigación prevista: conectar a la IP ya validada, con SNI y `Host` del dominio. Los únicos servicios internos alcanzables están en la red de Docker y exigen autenticación, salvo los metadatos del proveedor del VPS.
-2. **Sin límite de peticiones por clave de API ni por usuario autenticado:** solo hay límite por IP en rutas de autenticación. Una clave filtrada puede generar carga hasta que se revoque. Mitigación prevista: un token bucket por clave en memoria, por ser una sola instancia.
-3. **La verificación en dos pasos es opcional** y no se puede exigir para todo el equipo de una organización. El soporte para quien pierde el teléfono y los códigos es manual (DEPLOYMENT.md 3.2).
+2. **Límites de peticiones en memoria y por ventana fija** (por IP en autenticación; por clave de API y por persona en el resto):
+   - con varias instancias hay que moverlos a un almacén compartido;
+   - una ventana fija permite ráfagas de hasta el doble del cupo en el cambio de minuto.
+3. **La verificación en dos pasos es opcional** y no se puede exigir para todo el equipo de una organización. El soporte para quien pierde el teléfono y los códigos es manual (DEPLOYMENT.md 3.2). Activarla no cierra las otras sesiones abiertas de la persona; cambiar la contraseña sí.
 4. **Access token vigente tras retirar a un miembro o cambiar su rol:** sigue sirviendo hasta 15 minutos.
 5. **Enumeración de correos en el registro** (`EMAIL_ALREADY_REGISTERED`): se aceptó por usabilidad; lo mitiga el límite por IP.
-6. **Límites por IP en memoria:** valen para una sola instancia. Con varias instancias hay que moverlos a un almacén compartido.
-7. **`style-src 'unsafe-inline'`** en la CSP, por Swagger UI (solo en desarrollo; en producción está apagada). Evaluar quitarla del nginx de producción tras probar la interfaz con la CSP estricta. La interfaz no inyecta HTML.
-8. **Funciones `SECURITY DEFINER`:** corren como dueño y deben revisarse en cada cambio. Están acotadas a búsquedas por hash o token y a colas.
-9. **Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS.** Lo mitiga que solo `TenantTransactions` lo fija, a partir de la identidad autenticada (MULTITENANCY.md).
-10. **Verificación de firmas de proveedores reales:** el esquema de firma de webhooks de Muisca y otros proveedores está por confirmar con su documentación y su contrato.
-11. **Imágenes Docker:** el análisis de sus paquetes del sistema operativo es informativo, no bloqueante. Las imágenes base se actualizan con Dependabot.
-12. **Pérdida de `BILLING_SECRETS_KEY`:** sin ella no se descifran las llaves de pasarela, de webhooks ni de dos pasos. Debe respaldarse fuera del servidor.
-13. **Sin WAF ni protección DDoS** delante de Caddy. Es suficiente para el volumen inicial; evaluar Cloudflare (proxy) si hay abuso.
+6. **`style-src 'unsafe-inline'`** en la CSP, por Swagger UI (solo en desarrollo; en producción está apagada). Evaluar quitarla del nginx de producción tras probar la interfaz con la CSP estricta. La interfaz no inyecta HTML.
+7. **Funciones `SECURITY DEFINER`:** corren como dueño y deben revisarse en cada cambio. Están acotadas a búsquedas por hash o token y a colas.
+8. **Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS.** Lo mitiga que solo `TenantTransactions` lo fija, a partir de la identidad autenticada (MULTITENANCY.md).
+9. **Verificación de firmas de proveedores reales:** el esquema de firma de webhooks de Muisca y otros proveedores está por confirmar con su documentación y su contrato.
+10. **Imágenes Docker:** el análisis de sus paquetes del sistema operativo es informativo, no bloqueante. Las imágenes base se actualizan con Dependabot.
+11. **Pérdida de `BILLING_SECRETS_KEY`:** sin ella no se descifran las llaves de pasarela, de webhooks ni de dos pasos. Debe respaldarse fuera del servidor.
+12. **Sin WAF ni protección DDoS** delante de Caddy. Es suficiente para el volumen inicial; evaluar Cloudflare (proxy) si hay abuso.

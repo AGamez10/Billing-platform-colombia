@@ -400,7 +400,7 @@ Cómo está construido:
 - **Secreto:** se muestra una vez. La base solo deja a la aplicación revocar (`UPDATE (revoked_at)`). El último uso se marca con una función acotada, a lo sumo una vez por minuto.
 - **`Idempotency-Key` opcional en `POST /invoices`:** el reintento con la misma clave devuelve el mismo borrador; con otro contenido responde 422. Comparte tabla con la venta POS, con espacio de nombres `draft:`.
 
-**Riesgo residual:** no hay límite de peticiones por clave. Lo amortigua Caddy, y queda en la hoja de ruta.
+**Riesgo residual:** no hay límite de peticiones por clave. Lo amortigua Caddy, y queda en la hoja de ruta. *(Actualización 2026-11-19: límite de 300 peticiones/min por clave y 600 por persona, con `PrincipalRateLimitFilter`.)*
 
 ## ADR-0033 — Webhooks salientes firmados con bandeja de salida y protección SSRF
 *2026-11-19 — aceptada*

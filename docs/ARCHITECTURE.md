@@ -1,48 +1,32 @@
 # Arquitectura
 
-> Estado verificado al 2026-11-05. Este documento describe el código que existe; lo planeado está marcado como tal.
+> Estado verificado al 2026-11-19. Este documento describe el código que existe; lo planeado está marcado como tal.
 
 ## Estilo
 
 Monolito modular con puertos y adaptadores (hexagonal). Un solo artefacto desplegable, un solo PostgreSQL, límites de módulo explícitos y verificados por pruebas (`ArchitectureRulesTest`). Justificación en [DECISIONS.md](DECISIONS.md) (ADR-0001).
 
+Cada módulo sigue `domain` (reglas puras) → `application` (casos de uso y puertos) → `adapter/{persistence,web,worker,http,crypto,…}`. `platform/` compone todo con Spring.
+
 ```
 backend/src/main/java/co/billingplatform/
-├── shared/
-│   ├── domain               TenantId, Party, PartyIdentification (NIT+DV), RoundingPolicy, Actor, ColombianTime
-│   └── application          AuditTrail (puerto)
-├── identity/
-│   ├── domain               Role, Permission, PasswordPolicy, LoginThrottlePolicy, OpaqueTokens
-│   └── application          AuthenticationService, RefreshTokenService, ApiKeyService, IdentityPorts
-├── customers/               Customer, CustomerService (implementa CustomerDirectory de facturación), JDBC, REST
-├── products/                Product, ProductService (valida tarifas vigentes), JDBC, REST
-├── subscriptions/
-│   ├── domain               Subscription (límites del plan + sobrescrituras)
-│   └── application          SubscriptionUsageMeter (implementa UsageMeter de facturación)
-├── tax/domain               TaxRate (con vigencia y fundamento legal), TaxCatalog, Discount, DocumentCalculator
-├── invoicing/
-│   ├── domain               Invoice (agregado + máquina de estados), InvoiceLine, NumberingRange, DocumentNumber
-│   └── application          InvoiceDraftService, FinalizeInvoiceService, SubmitInvoiceService, ProviderWebhookService;
-│                            puertos InvoiceRepository, NumberingRangeRepository, CustomerDirectory,
-│                            SubmissionQueue (outbox), UsageMeter, IssuerDirectory
-└── electronicinvoicing/     Módulo de contrato con proveedores tecnológicos
-    ├── domain               ElectronicDocument (modelo neutral), SubmissionResult, ValidationEvidence, ProviderCapabilities…
-    ├── port                 ElectronicInvoicingProvider, ProviderAccountRepository, SecretResolver, ProcessedEventStore
-    ├── application          ProviderRegistry (enrutamiento por configuración + verificación de capacidades)
-    └── adapter/
-        ├── common           HmacWebhookVerifier
-        └── mock             MockElectronicInvoicingProvider (solo SIMULATION)
-├── platform/                Composición Spring: TenantTransactions, SecurityConfiguration (todo cerrado salvo
-│                            lo público), errores RFC 9457, PublicCatalogController
-├── tax/adapter/persistence  JdbcTaxCatalog
-└── subscriptions/adapter/persistence  JdbcPlanCatalog
-backend/src/main/resources/db/migration   V1–V6 (Flyway)
-backend/src/main/resources/static         Página de estado local
-backend/Dockerfile, docker-compose.yml     Entorno local completo
-infrastructure/postgres/init               roles de base de datos
+├── shared/               TenantId, Party, FiscalProfile, FiscalAddress, OpaqueTokens, Csv, AuditTrail, Mailer, EmailHtml
+├── identity/             Usuarios, sesiones, roles y permisos, equipo e invitaciones, claves de API, datos del
+│                         emisor, verificación en dos pasos (Totp, RecoveryCodes, TwoFactorService)
+├── customers/ products/  Clientes y productos (con importación CSV)
+├── tax/                  Tarifas con vigencia y fundamento legal, DocumentCalculator (BigDecimal)
+├── invoicing/            Factura, POS y nota crédito (agregado + máquina de estados), numeración, emisión,
+│                         representación gráfica, enlaces para el comprador, Idempotency-Key
+├── electronicinvoicing/  Contrato neutral con proveedores tecnológicos; ProviderRegistry; adaptador mock (SIMULATION)
+├── subscriptions/        Planes, cuota, excedentes con consentimiento, cambio de plan, pago con Mercado Pago
+├── payments/             Cobro con QR en la pasarela del comercio (Bold)
+├── insights/             Lectura: inicio accionable (AttentionRules), avisos por correo, reportes
+├── integrations/         Webhooks salientes firmados (outbox + SSRF guard)
+└── platform/             Spring: seguridad, TenantTransactions (RLS), errores RFC 9457, cifrado, correo, configuración
+backend/src/main/resources/db/migration   V1–V21 (Flyway)
+frontend/                                  React 19 + Vite (PWA), e2e con Playwright
+deploy/                                    Producción: Caddy, compose, copias cifradas, scripts (ADR-0026)
 ```
-
-Planeado (aún sin código, requiere el build con red — ver [ROADMAP.md](ROADMAP.md)): `organizations`, `customers`, `products` (CRUD), capa web REST, adaptadores JPA/JDBC y criptográficos (Argon2id, JWT), worker de envíos, frontend React.
 
 ## Dirección de dependencias
 

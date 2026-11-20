@@ -137,6 +137,6 @@ Riesgos conocidos del piloto:
 - Retenciones (ReteFuente, ReteIVA, ReteICA) con reglas verificadas por un contador.
 - Dirección, municipio, régimen y responsabilidades fiscales de las partes según el Anexo Técnico.
 - Verificación de correo; exigir dos pasos a todo el equipo de una organización; passkeys (WebAuthn).
-- Límite de peticiones por clave de API; cerrar el DNS rebinding de webhooks salientes (SECURITY.md).
+- Cerrar el DNS rebinding de webhooks salientes (SECURITY.md).
 - Suite de pruebas de contrato compartida que cada adaptador de proveedor debe pasar.
 - Evaluar Java 25 LTS.
