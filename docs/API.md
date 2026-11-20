@@ -1,11 +1,11 @@
 # API REST v1
 
-La documentación interactiva se genera desde el código: `http://localhost:8080/swagger-ui.html` (botón **Authorize** con el `accessToken`).
+La documentación interactiva se genera desde el código: `http://localhost:8080/swagger-ui.html` (botón **Authorize** con el `accessToken` o una clave `bpk_…`). En producción está apagada por defecto (`BILLING_API_DOCS_ENABLED`); este archivo es la referencia.
 
 ## Convenciones
 
 - Base: `/api/v1`. JSON UTF-8. Los montos y precios se escriben como cadenas decimales (`"40000.50"`) y se responden como números decimales exactos. Nunca se usa punto flotante.
-- Autenticación: `Authorization: Bearer <access JWT>`. Las API keys de integración (`bpk_…`) ya existen en el núcleo, pero todavía no se aceptan en las rutas web.
+- Autenticación: `Authorization: Bearer <access JWT>` (persona) o `Authorization: Bearer bpk_…` (integración, ADR-0032). Una clave solo tiene los permisos de operación que se le dieron; las rutas de administración responden 403.
 - El tenant **no** se envía: sale del token. Un id de otra organización responde `404`, igual que uno inexistente.
 - Errores: `application/problem+json` (RFC 9457) con `code` estable (`INVALID_NIT`, `NUMBERING_RANGE_NOT_FOUND`, `DOCUMENT_QUOTA_REACHED`, …) y sin trazas internas. Validación de forma → `400`; regla de negocio → `422`; conflicto de estado → `409`; plan o cuota → `402`.
 - Listados paginados con `limit` (máx. 100) y `offset`. La respuesta trae `items` y `hasMore`.
@@ -16,6 +16,8 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 |---|---|---|
 | `POST /auth/register` | público (rate limit) | Crea la organización, el usuario dueño y la prueba gratis (20 documentos) |
 | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `GET /auth/me` | público / cookie / token | Sesión (refresh rotatorio en cookie segura) |
+| `POST /auth/login/two-factor` | público (límite por IP) | Si el login responde `status: TWO_FACTOR_REQUIRED` con `challenge`, se envía `{challenge, code}`. `code` es el de 6 dígitos de la app o uno de recuperación. El reto vence a los 5 minutos o tras 5 intentos (401 `TWO_FACTOR_CHALLENGE_EXPIRED`). Un código inválido responde 422 `INVALID_TWO_FACTOR_CODE`; demasiados fallos, 429 `TWO_FACTOR_LOCKED`. |
+| `GET /account/two-factor` · `POST /account/two-factor/setup` · `/enable` · `/recovery-codes` · `/disable` | sesión de persona (no clave de API) | Verificación en dos pasos (ADR-0034):<br>• `setup` devuelve `{secret, otpauthUri}`;<br>• `enable {code}` devuelve los 10 `recoveryCodes` una sola vez;<br>• `recovery-codes {code}` los regenera;<br>• `disable {password, code}`. |
 | `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}` | CUSTOMER_* | Adquirientes. El NIT se valida con su DV. `fiscal` opcional: `{personType: LEGAL\|NATURAL, vatRegime: RESPONSIBLE\|NOT_RESPONSIBLE, responsibilities: ["O-13"…] o ["R-99-PN"]}`; `cityCode` debe existir en la DIVIPOLA. Bloqueo optimista con `version`; DELETE desactiva |
 | `GET/POST /products`, `GET/PUT/DELETE /products/{id}` | PRODUCT_* | Productos y servicios con códigos de tarifa vigentes |
 | `GET /public/plans`, `GET /public/tax-rates` | público | Catálogo comercial y tarifas con fundamento legal |
@@ -80,9 +82,8 @@ Toda factura incluye `status`, `environment`, `validationEnvironment`, `simulate
 
 ## Pendiente
 
-- Cabecera `Idempotency-Key` en los demás POST (hoy la exigen `/pos-sales` y `/pos-charges`).
-- API keys aceptadas en las rutas (integración de AdoptaFácil).
-- Usuarios e invitaciones (`/users`), gestión de API keys (`/api-keys`).
-- Webhooks de proveedor (`/webhooks/{providerId}/{token}`); el núcleo y la verificación de firma ya existen.
-- Notas crédito y documento soporte.
+- `Idempotency-Key` en los demás POST. Hoy la exigen `/pos-sales` y `/pos-charges`, y es opcional en `POST /invoices`.
+- Webhooks del proveedor real (`/webhooks/{providerId}/{token}`). El núcleo y la verificación de firma ya existen; falta confirmar el esquema de Muisca.
+- Documento soporte y notas débito.
+- Límite de peticiones por clave de API.
 - Modo de sesión móvil (ADR-0015).

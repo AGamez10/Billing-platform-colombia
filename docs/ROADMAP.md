@@ -89,6 +89,21 @@
 - Falta: dominio y SMTP de producción; nombre comercial; contador del fondo solidario en Mi plan.
 - Landing renovada: hero 3D (Three.js), caja de demostración sin registro, calculadora con Chart.js, secciones de confianza, cambio desde otro sistema y fondo solidario (ADR-0023, revisión).
 
+## Hecho (2026-11-12 a 2026-11-19, listo para auditoría)
+
+Todo con pruebas en CI: unitarias, API contra PostgreSQL real, SQL de aislamiento y e2e en escritorio y celular.
+
+- **Datos tributarios** de emisor y clientes: tipo de persona, régimen, responsabilidades, dirección con municipio DIVIPOLA (ADR-0025).
+- **Kit de producción**: Caddy con HTTPS, imágenes en GHCR, copias cifradas con prueba de restauración, guía paso a paso (ADR-0026).
+- **Representación gráfica**, enlace para el comprador, envío por correo y WhatsApp (ADR-0027).
+- **Notas crédito** de anulación y devolución (ADR-0028).
+- **Inicio accionable**: pendientes con su botón, ventas del mes, cliente creado desde la factura, duplicar y total estimado (ADR-0029).
+- **Avisos por correo** (ADR-0030); **importar CSV y reportes para el contador** (ADR-0031).
+- **API de integración**: claves `bpk_`, `Idempotency-Key`, webhooks firmados con protección SSRF (ADR-0032/0033).
+- **Verificación en dos pasos** (ADR-0034).
+- **Análisis de seguridad en CI**: CodeQL, gitleaks, OSV-Scanner; acciones fijadas por SHA (ADR-0035).
+- **Mercado Pago listo para credenciales**: solo falta el `.env` del servidor (DEPLOYMENT.md 3.1).
+
 ## Producto: lo que el mercado ya tiene + lo nuestro
 
 | Función | Estado | Por qué |
@@ -103,14 +118,14 @@
 
 ## Para salir con clientes piloto (orden recomendado)
 
-1. ~~Oferta de mejora de plan y aceptación de excedentes desde la interfaz~~ (hecho, ADR-0021). Falta el cobro automático con Mercado Pago.
+1. ~~Oferta de mejora de plan y aceptación de excedentes desde la interfaz~~ (hecho, ADR-0021). ~~Cobro con Mercado Pago~~ (hecho, ADR-0024): faltan las credenciales en el servidor.
 2. **Segmento y planes** (decisión del propietario pendiente): foco inicial en fundaciones, profesionales, servicios y facturación entre empresas; comercio y restaurantes (POS de alto volumen) solo con costo por documento ≤ $30 o con otro proveedor (PRICING.md).
-3. **Datos fiscales completos** de emisor y adquiriente que exige el proveedor real: tipo de persona, régimen, responsabilidades, dirección con municipio DANE.
+3. ~~Datos fiscales completos de emisor y adquiriente~~ (hecho, ADR-0025).
 4. **Adaptador Muisca** en `Test` y luego en `Habilitation`, cuando lleguen las credenciales (GitHub Secrets); secretos cifrados (AES-GCM) en `provider_secrets`.
-5. **Descarga de documentos** (PDF/XML del proveedor) y envío por correo al adquiriente.
-6. **Despliegue** en VPS: dominio, HTTPS, backups cifrados fuera del VPS con restauración probada, monitoreo básico.
-7. **Landing page** y página de precios.
-8. Cobro de suscripción con Mercado Pago (para el piloto basta un link de pago manual).
+5. Representación gráfica y envío al comprador (hecho, ADR-0027). Falta el PDF/XML oficial del proveedor real.
+6. **Despliegue** en el VPS con el kit ya probado (ADR-0026). Faltan el dominio, el VPS, el SMTP y un monitoreo externo básico (uptime).
+7. ~~Landing page y página de precios~~ (hecha).
+8. **Auditoría de seguridad externa** sobre la base de SECURITY.md, antes del primer cliente real.
 
 Riesgos conocidos del piloto:
 - El worker llama al proveedor dentro de la transacción que bloquea la factura. Es aceptable con este volumen y se separará antes de escalar.
@@ -118,10 +133,10 @@ Riesgos conocidos del piloto:
 
 ## Después del MVP
 
-- Notas crédito y débito (el contrato y la numeración ya contemplan `CREDIT_NOTE`/`DEBIT_NOTE`); flujo de corrección y reenvío tras rechazo, a confirmar con el proveedor.
+- Notas débito y documento soporte; flujo de corrección y reenvío tras rechazo, a confirmar con el proveedor.
 - Retenciones (ReteFuente, ReteIVA, ReteICA) con reglas verificadas por un contador.
 - Dirección, municipio, régimen y responsabilidades fiscales de las partes según el Anexo Técnico.
-- Recuperación de contraseña, verificación de correo, MFA, invitaciones.
+- Verificación de correo; exigir dos pasos a todo el equipo de una organización; passkeys (WebAuthn).
+- Límite de peticiones por clave de API; cerrar el DNS rebinding de webhooks salientes (SECURITY.md).
 - Suite de pruebas de contrato compartida que cada adaptador de proveedor debe pasar.
-- Pasarela de pagos para suscripciones.
 - Evaluar Java 25 LTS.

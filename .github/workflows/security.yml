@@ -76,18 +76,27 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
       - name: Instalar OSV-Scanner verificado
         run: |
           curl -sSfL -o osv-scanner \
             "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
           echo "${OSV_SHA256}  osv-scanner" | sha256sum -c -
           chmod +x osv-scanner
-      # Backend: resuelve las dependencias transitivas del pom.xml. Frontend: el lockfile exacto.
+      # Backend: Maven resuelve el árbol exacto (con transitivas, sin las de prueba) y lo exporta
+      # como SBOM CycloneDX. Frontend: el lockfile exacto, incluidas las de desarrollo.
+      - name: SBOM del backend
+        working-directory: backend
+        run: mvn -B -ntp -q org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom -DoutputFormat=json -DoutputName=bom
       # Excepciones solo en osv-scanner.toml, cada una con motivo y fecha de revisión.
       - name: Analizar backend y frontend
         run: |
           ./osv-scanner scan source --config osv-scanner.toml \
-            --lockfile backend/pom.xml --lockfile frontend/pnpm-lock.yaml \
+            --lockfile backend/target/bom.json --lockfile frontend/pnpm-lock.yaml \
             --format table | tee osv.txt
           exit "${PIPESTATUS[0]}"
       - name: Resumen

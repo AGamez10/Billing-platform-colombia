@@ -25,6 +25,12 @@ Algunos flujos ocurren antes de conocer el tenant. Cada uno pasa por una funció
 
 `memberships` y `refresh_tokens` permiten además lectura por `app.user_id` (un usuario ve sus propias membresías para elegir organización al iniciar sesión).
 
+**Datos de la cuenta de la persona, no de una organización** (sin `tenant_id` ni RLS, como `users`): `password_reset_tokens`, `user_two_factor`, `user_recovery_codes` y `two_factor_challenges`.
+- Se consultan antes de conocer el tenant, por hash de un token de 256 bits o por el usuario ya autenticado.
+- El secreto de dos pasos va cifrado con datos asociados al usuario: leer la fila de otro no sirve para generar sus códigos.
+- `two_factor_challenges` guarda la organización elegida en la columna `organization_id`. Es un paso de la autenticación, no un dato de la organización.
+- La sesión que se abre después se valida otra vez contra las membresías activas.
+
 ## Evidencia (pruebas ejecutadas)
 
 `backend/src/test/sql/run.sh` crea una base desechable, aplica las migraciones como `billing_owner` y ejecuta `tenant_isolation_test.sql` como `billing_app`. Resultado del 2026-11-05 en PostgreSQL 16.15: **49/49 pruebas pasan**, entre ellas:

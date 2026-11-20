@@ -1,66 +1,89 @@
 # Seguridad
 
-> Estado al 2026-11-10. "Implementado" significa con código y pruebas ejecutadas; "diseñado" significa decidido y con esquema de datos, pendiente de código.
+> **Estado al 2026-11-19.**
+> - **Implementado** significa con código y pruebas que corren en CI en cada cambio.
+> - Nada aquí es una garantía de que el sistema sea impenetrable. Es el inventario de controles verificables y de riesgos conocidos, como punto de partida para una auditoría externa.
 
-## Controles implementados y probados
+## 1. Guía rápida para auditar
 
-| Riesgo (OWASP / API Top 10) | Control | Evidencia |
+| Qué | Dónde |
+|---|---|
+| Arquitectura y módulos | `docs/ARCHITECTURE.md`, `ArchitectureRulesTest` (dependencias prohibidas entre capas) |
+| Aislamiento entre organizaciones | `docs/MULTITENANCY.md`, `backend/src/test/sql/tenant_isolation_test.sql` (RLS probado como el rol real de la app) |
+| Superficie HTTP | `SecurityConfiguration` (rutas públicas explícitas), `AuthRateLimitFilter`, `ProblemDetailsHandler`, `docs/API.md` |
+| Rutas públicas sin sesión | registro, login (incluido el segundo paso), refresh y logout, recuperar contraseña, invitaciones, `/api/v1/public/**` (planes, textos legales, documento compartido, plantillas CSV), webhooks de Bold y Mercado Pago. `/actuator` cerrado desde Caddy. |
+| Secretos y criptografía | `AesGcmSecretVault`, `AesGcmSecretSealer`, `OpaqueTokens`, `Argon2PasswordHasher`, `AccessTokens` |
+| Proxy y despliegue | `deploy/Caddyfile`, `frontend/nginx.conf`, `deploy/compose.prod.yml`, `docs/DEPLOYMENT.md` |
+| Análisis automáticos | `.github/workflows/security.yml` (CodeQL, gitleaks, OSV-Scanner), `.github/dependabot.yml` |
+| Decisiones | `docs/DECISIONS.md` (ADR-0001…0035) |
+
+## 2. Modelo de amenazas (resumen)
+
+**Activos:**
+- datos tributarios de los clientes de cada organización (identificaciones, direcciones, montos);
+- la capacidad de emitir documentos con validez ante la DIAN a nombre de una organización;
+- credenciales guardadas (pasarelas, proveedor, webhooks);
+- cuentas de usuario;
+- el cobro de nuestros planes.
+
+**Actores:**
+- **Externo anónimo:** fuerza bruta, enumeración, abuso de rutas públicas, SSRF por webhooks.
+- **Usuario de otra organización:** IDOR/BOLA, escalada entre tenants.
+- **Usuario de la misma organización con un rol menor:** escalada de rol.
+- **Integración con clave de API filtrada.**
+- **Atacante con la contraseña de un usuario** (phishing, reutilización).
+- **Proveedor externo que envía avisos falsos.**
+- **Cadena de suministro:** dependencias, imágenes, acciones de CI.
+
+**Fronteras de confianza:**
+1. Internet → Caddy (TLS).
+2. Caddy → nginx (interfaz y `/api`).
+3. nginx → backend.
+4. Backend → PostgreSQL, como el rol `billing_app`, sin `BYPASSRLS`.
+5. Backend → APIs externas: Mercado Pago, Bold, el proveedor de facturación y las URLs de webhooks de los clientes.
+
+## 3. Controles implementados y probados
+
+| Riesgo (OWASP Top 10 / API Top 10) | Control | Evidencia |
 |---|---|---|
-| Broken Object Level Authorization (IDOR/BOLA) | Repositorios exigen `TenantId`; RLS en todas las tablas de tenant; FK compuestas | `tenant_isolation_test.sql`, `SubmitInvoiceServiceTest` |
-| Escalada de privilegios entre organizaciones | Políticas de escritura en `memberships`; rol de app sin `BYPASSRLS` ni ownership | `tenant_isolation_test.sql` |
-| Webhooks falsificados / manipulados / reproducidos | HMAC-SHA256 sobre timestamp + cuerpo, comparación en tiempo constante, ventana de 5 min, deduplicación por `eventId`, cuenta resuelta por token opaco de URL (nunca por el cuerpo) | `ProviderWebhookServiceTest`, `MockElectronicInvoicingProviderTest` |
-| Integridad de datos financieros | `BigDecimal` + redondeo explícito; restricciones de base de datos sobre totales y estados; facturas numeradas inmutables por trigger | `DocumentCalculatorTest`, `tenant_isolation_test.sql` |
-| Falsa afirmación de validez tributaria | `ACCEPTED` exige `ValidationEvidence` (en dominio y por `CHECK` en base); validez legal solo en `PRODUCTION`; el adaptador simulado no opera en otro ambiente | `InvoiceTest`, `SubmitInvoiceServiceTest` |
-| Exposición de secretos en logs | `ProviderAccount` solo lleva referencias y su `toString` las omite; secretos de proveedor cifrados por la app (tabla `provider_secrets`) | `MockElectronicInvoicingProviderTest` |
-| Manipulación de auditoría | `audit_log` sin `UPDATE`/`DELETE` para la app | `tenant_isolation_test.sql` |
-| Enumeración de recursos | Factura de otro tenant devuelve el mismo error que una inexistente | `SubmitInvoiceServiceTest`, `InvoiceLifecycleServiceTest` |
-| Enumeración de usuarios en login | Mismo error para usuario inexistente, contraseña errada, cuenta deshabilitada o bloqueada; verificación de hash siempre ejecutada | `IdentityServicesTest` |
-| Fuerza bruta por cuenta | Bloqueo progresivo: 5 fallos → 15 min, duplicando hasta 24 h | `IdentityDomainTest`, `IdentityServicesTest` |
-| Robo de refresh token | Rotación en cada uso; reúso de un token gastado revoca la familia; rol releído en cada rotación | `IdentityServicesTest` |
-| Claves de API filtradas o sobredimensionadas | Formato con prefijo + secreto de 256 bits, guardado como SHA-256, comparación en tiempo constante, expiración, sin permisos administrativos | `IdentityServicesTest` |
-| Escalada de privilegios por asignación de roles | `Role.canGrant`: solo se asignan roles con permisos contenidos en los propios | `IdentityDomainTest` |
-| XSS / robo de sesión en la interfaz | Access token solo en memoria (nunca `localStorage`); refresh en cookie `HttpOnly; Secure; SameSite=Strict`; CSP `script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`; React escapa todo texto | `client.test.ts`, job Docker (cabeceras) |
-| Datos tributarios en caché del navegador | El service worker solo guarda la interfaz; nunca `/api` | `public/sw.js` (revisión) |
-| Cadena de suministro del frontend | pnpm con lockfile obligatorio (`--frozen-lockfile`), `minimumReleaseAge` 7 días, scripts de instalación bloqueados salvo lista revisada (`strictDepBuilds`), `pnpm audit --prod` en CI, Dependabot | `frontend/pnpm-workspace.yaml`, job `frontend` |
-| Límite por IP falseado o compartido detrás del proxy | `forward-headers-strategy: native`: `X-Forwarded-For` solo se acepta desde redes internas; el límite aplica a login, registro, recuperar contraseña e invitaciones | `AuthRateLimitFilterTest` |
-| Toma de cuentas por "olvidé mi contraseña" | Enlace de un solo uso con 256 bits (solo se guarda su SHA-256) que vence en 30 min; solo vale el último; máximo 5 por hora por cuenta; misma respuesta exista o no la cuenta y envío en segundo plano (el tiempo no delata); al cambiarla se cierran todas las sesiones y se avisa al correo; token en el fragmento `#` de la URL (no llega a registros ni a `Referer`) y se borra de la barra | `AccountServicesTest`, `AccountApiTest`, e2e `cuenta.spec.ts` |
-| Invitaciones usadas por otra persona o para escalar | Enlace ligado al correo invitado, 7 días, un solo uso, nunca rol `OWNER`, `canGrant` al invitar y al cambiar roles; cuenta existente acepta solo con su contraseña y el mismo bloqueo por intentos del login; el dueño no se degrada ni se retira; nadie modifica su propio acceso; invitaciones con RLS y resueltas sin tenant solo por función acotada | `AccountServicesTest`, `AccountApiTest`, `tenant_isolation_test.sql` |
-| Inyección en correos | Nombres de organización y personas escapados en HTML; cabeceras sin saltos de línea; el cuerpo (con enlaces) nunca se imprime en registros | `AccountServicesTest` |
-| Correos por operaciones deshechas | El envío se registra para después de confirmar la transacción | `MailConfiguration` (revisión) |
-| Uso de numeración real en pruebas | Resolución y cuenta de proveedor deben ser del mismo ambiente; evidencia de otro ambiente se rechaza | `InvoiceTest`, `InvoiceLifecycleServiceTest` |
+| IDOR/BOLA entre organizaciones | El tenant sale siempre de la identidad autenticada, nunca del cliente. RLS en todas las tablas con `tenant_id` (la prueba SQL falla si una no la tiene), FK compuestas, rol de app sin `BYPASSRLS` ni ownership. Un recurso de otro tenant responde igual que uno inexistente. | `tenant_isolation_test.sql`, `*ApiTest` |
+| Escalada de privilegios | Permisos por rol en la capa de aplicación (`CurrentUser.require`). `Role.canGrant`: solo se asignan roles contenidos en los propios. El dueño no se degrada; nadie modifica su propio acceso. | `IdentityDomainTest`, `AccountServicesTest` |
+| Contraseñas | Argon2id; mínimo 12 caracteres; el mismo error y el mismo tiempo para usuario inexistente, contraseña errada o cuenta bloqueada | `IdentityServicesTest` |
+| Fuerza bruta | Bloqueo progresivo por cuenta (5 fallos → 15 min, duplicando hasta 24 h). Límite por IP en login, segundo paso, registro, recuperación, invitaciones y vista pública de documentos. La IP real la fija Caddy, que descarta el `X-Forwarded-For` del cliente. | `IdentityServicesTest`, `AuthRateLimitFilterTest` |
+| **Contraseña filtrada (ADR-0034)** | Verificación en dos pasos TOTP opcional:<br>• secreto cifrado con AES-256-GCM ligado al usuario;<br>• reto de 256 bits (5 min, 5 intentos), sin token ni cookie antes del código;<br>• antirreplay por paso;<br>• bloqueo progresivo por usuario que no se reinicia al acertar la contraseña;<br>• 10 códigos de recuperación de un solo uso guardados como hash;<br>• desactivar pide contraseña y código, y se avisa por correo. | `TotpTest` (vectores RFC 6238), `TwoFactorServiceTest`, `TwoFactorApiTest`, `AesGcmSecretSealerTest`, e2e `seguridad.spec.ts` |
+| Sesiones | Access token JWT HS256 de 15 min, solo en memoria del navegador. Refresh opaco de 256 bits en cookie `HttpOnly; Secure; SameSite=Strict` limitada a `/api/v1/auth`, rotado en cada uso; reutilizar uno gastado revoca la familia. Refresh y logout exigen la cabecera `X-Billing-Client` (CSRF). | `IdentityServicesTest`, `AuthFlowTest` |
+| Recuperar contraseña | Enlace de un solo uso (256 bits, 30 min; solo vale el último; 5 por hora). Misma respuesta exista o no la cuenta. Cierra todas las sesiones y avisa. El token va en el fragmento `#` y no llega a registros ni a `Referer`. | `AccountServicesTest`, `AccountApiTest`, e2e `cuenta.spec.ts` |
+| Claves de API (ADR-0032) | `bpk_<prefijo>_<secreto 256 bits>`, guardadas como SHA-256 y comparadas en tiempo constante. Expiración y revocación. Solo permisos de operación: nunca equipo, plan, proveedor, claves, webhooks ni dos pasos (`requireUser`). | `IntegrationApiTest`, `TwoFactorApiTest` |
+| SSRF por webhooks salientes (ADR-0033) | • Solo HTTPS, a un dominio público, en los puertos 443 u 8443.<br>• Antes de cada envío se resuelve el DNS y se rechazan las IP privadas, loopback, link-local (incluidos los metadatos de la nube), CGNAT, multicast y sus equivalentes IPv6.<br>• Sin redirecciones; 10 s máximo; la respuesta se descarta. | `WebhookTargetTest`, `SafeWebhookSenderTest` |
+| Webhooks entrantes falsificados | **Proveedor:** HMAC con ventana de 5 min y deduplicación.<br>**Bold:** token opaco por comercio más firma; el contenido no se cree.<br>**Mercado Pago:** firma `x-signature`; el contenido no se cree, el pago se consulta a la API, y solo un pago real, aprobado, en COP, por el valor exacto y con nuestra referencia activa un plan. | `ProviderWebhookServiceTest`, `PaymentsApiTest`, `SubscriptionCheckoutServiceTest`, `SubscriptionPaymentsApiTest` |
+| Webhooks salientes verificables | Firma `t=…,v1=HMAC-SHA256`. El secreto se muestra una vez y se guarda cifrado. | `WebhookServiceTest` |
+| Secretos en reposo | AES-256-GCM con llave maestra fuera de la base (`BILLING_SECRETS_KEY`), nonce aleatorio y datos asociados (tenant/referencia o usuario): una copia a otra fila no se descifra. Tokens y códigos de un solo uso, solo como hash. | `AesGcmSecretSealerTest`, `PaymentsApiTest` |
+| Secretos en logs | `toString` enmascarado en peticiones con contraseñas, códigos y llaves. Los correos con enlaces nunca se imprimen. | revisión de código |
+| Documento compartido públicamente (ADR-0027) | Token de 256 bits en el fragmento de la URL; solo se guarda el hash; vence a los 180 días; límite de enlaces por documento y por IP. | `DocumentSharingServiceTest`, `DocumentApiTest` |
+| Inyección SQL | Solo consultas parametrizadas (`JdbcClient` con parámetros nombrados), sin SQL dinámico con datos del usuario | revisión de código; CodeQL |
+| XSS | React escapa todo el texto. CSP `script-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`. Correos con datos escapados. | job Docker (cabeceras), `AccountServicesTest` |
+| Inyección en CSV exportado | Las celdas que empiezan por `= + - @` (o tabulador / CR) llevan `'` delante | `CsvTest` |
+| Abuso por tamaño | Cuerpo máximo de 2 MB en Caddy y 1 MB en nginx; importación de 1 MB y 2.000 filas; paginación con límite | `CsvTest`, `ImportAndReportApiTest` |
+| Integridad financiera y tributaria | `BigDecimal` con redondeo explícito; restricciones en base de datos; facturas numeradas inmutables por trigger. `ACCEPTED` exige evidencia del proveedor; un cobro de prueba nunca emite un documento real. | `DocumentCalculatorTest`, `InvoiceTest`, `tenant_isolation_test.sql` |
+| Auditoría | `audit_log` sin `UPDATE`/`DELETE` para la app | `tenant_isolation_test.sql` |
+| Transporte | HTTPS automático (Let's Encrypt), HSTS de 1 año, HTTP→HTTPS. `/actuator` cerrado. PostgreSQL sin puerto publicado. Contenedores sin root. Documentación de la API cerrada por defecto en producción. | job "Kit de producción" |
+| Copias de seguridad | `pg_dump` diario cifrado con `age` (la llave privada no está en el servidor), copia externa y prueba de restauración automatizada | job "Kit de producción" |
+| Cadena de suministro (ADR-0035) | **Análisis en cada cambio:** CodeQL `security-extended` (Java, TypeScript, workflows), gitleaks (historial completo) y OSV-Scanner (dependencias Maven transitivas y lockfile de pnpm). Bloquean la integración.<br>**Binarios de los escáneres:** verificados por SHA-256; acciones fijadas por SHA de commit.<br>**pnpm:** lockfile congelado, `minimumReleaseAge` de 7 días, scripts de instalación bloqueados; Dependabot semanal. | workflow "Seguridad" |
 
-## Diseñado, pendiente de implementar (capa Spring)
+## 4. Riesgos residuales conocidos
 
-**Autenticación de usuarios** (ADR-0003) — **implementada y probada por HTTP real** (`AuthFlowTest`, CI): registro, login, refresh rotatorio, logout, `/api/v1/auth/me`; Argon2id; JWT HS256 de 15 min con secreto ≥ 256 bits por variable de entorno (`BILLING_JWT_SECRET`); cookie `bp_refresh` HttpOnly/Secure/SameSite=Strict en `/api/v1/auth` + cabecera `X-Billing-Client` obligatoria para refresh/logout; límite de 10 intentos/min por IP en endpoints de sesión; el contador de fallos y la revocación por reúso se confirman aunque la petición falle
-- Contraseñas con Argon2id (`Argon2PasswordEncoder` de Spring Security + BouncyCastle). Mínimo 12 caracteres, verificación contra listas de contraseñas comprometidas en la roadmap.
-- Access token JWT de 15 min firmado por la plataforma (validado con el resource server de Spring); claims: `sub`, `tid` (tenant), `role`, `jti`.
-- Refresh token opaco de 256 bits, guardado como hash SHA-256, rotado en cada uso; reúso de un token ya rotado revoca toda la familia. Viaja en cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`. Al usar cookie, el endpoint de refresh exige verificación de `Origin` (CSRF).
-- Access token del frontend solo en memoria (no `localStorage`).
-- Bloqueo progresivo por usuario (`failed_login_count`, `locked_until`) y rate limiting por IP en login/registro.
+Ordenados por prioridad sugerida para la auditoría.
 
-**Integraciones (p. ej. AdoptaFácil)**: API keys por organización, formato `bpk_<prefijo>_<secreto>`; se guarda prefijo + SHA-256; scopes; expiración y revocación; uso registrado en auditoría.
-
-**Autorización**: roles `OWNER`, `ADMIN`, `BILLER`, `VIEWER` por membresía; verificación en la capa de aplicación (no en el frontend).
-
-**API**: validación con Jakarta Validation; errores RFC 9457 sin trazas; CORS con lista explícita de orígenes; cabeceras de seguridad; `Idempotency-Key` en POST (tabla `api_idempotency_keys`); paginación con límite máximo.
-
-**SSRF**: las URLs de proveedores se fijan en configuración del despliegue por adaptador; nunca se aceptan URLs de proveedor desde datos de un tenant.
-
-**Secretos**: almacén `AesGcmSecretVault` **implementado**: AES-256-GCM con llave maestra `BILLING_SECRETS_KEY` (Base64 de 32 bytes, fuera de la base), nonce aleatorio de 96 bits por secreto, datos asociados = tenant + referencia (un cifrado copiado a otra fila u organización no se descifra) y `key_version` para rotación. La lectura respeta RLS. Si la llave maestra se pierde, los secretos guardados no se recuperan: se respalda aparte de la base. Nada de secretos en el repositorio (`.gitignore` excluye `.env*`).
-
-**Cobros con la pasarela del comercio (ADR-0020)**: las llaves de Bold se verifican contra Bold antes de guardarse, se guardan cifradas y nunca se devuelven ni se registran (los `toString` las enmascaran). Conectar requiere PROVIDER_MANAGE (solo el dueño). El webhook es público pero exige un token opaco de 256 bits por comercio (solo se guarda su hash) **y** la firma HMAC de Bold; aun así su contenido no se usa: solo dispara la consulta del estado a Bold. Un cobro de prueba nunca emite un documento con validez tributaria, y un cobro real nunca emite un documento simulado. `charges` y `payment_accounts` tienen RLS; la aplicación no puede borrarlos.
-
-**Dependencias**: OWASP Dependency-Check o equivalente en CI cuando exista acceso a los registros.
-
-## Riesgos residuales conocidos
-
-- **Backend publicado directamente:** si el puerto del backend se expone sin el proxy, un cliente en una red interna podría falsear `X-Forwarded-For`. En producción solo el proxy publica puertos.
-- **CSP de estilos:** `style-src` permite `'unsafe-inline'` por la documentación interactiva (Swagger UI). La interfaz no usa estilos en línea en el HTML; se puede endurecer cuando Swagger se cierre en producción.
-
-1. El límite por IP es en memoria (una instancia). Si se escala a varias instancias hay que moverlo a la base de datos o a un almacén compartido.
-2. Retirar a un miembro corta la renovación de su sesión, pero su access token vigente sigue sirviendo hasta 15 minutos; lo mismo con un cambio de rol.
-3. El registro informa si un correo ya existe (`EMAIL_ALREADY_REGISTERED`): facilita la enumeración de correos a cambio de usabilidad; lo mitiga el límite por IP. Revisar cuando haya verificación por correo.
-2. El código Java solo se ha ejecutado con un runner offline compatible con la API de JUnit 5, no con JUnit/Surefire reales.
-3. Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS (ver MULTITENANCY.md).
-4. Las funciones `SECURITY DEFINER` corren como dueño con `BYPASSRLS`; deben revisarse en cada cambio.
-5. El esquema de firma de webhooks de cada proveedor real está por confirmar; `HmacWebhookVerifier` solo aplica si el proveedor usa HMAC con secreto compartido.
+1. **DNS rebinding en webhooks salientes:** el DNS se valida y luego `HttpClient` vuelve a resolver al conectar. Un dominio malicioso con TTL 0 podría apuntar a una IP interna en la segunda resolución. Mitigación prevista: conectar a la IP ya validada, con SNI y `Host` del dominio. Los únicos servicios internos alcanzables están en la red de Docker y exigen autenticación, salvo los metadatos del proveedor del VPS.
+2. **Sin límite de peticiones por clave de API ni por usuario autenticado:** solo hay límite por IP en rutas de autenticación. Una clave filtrada puede generar carga hasta que se revoque. Mitigación prevista: un token bucket por clave en memoria, por ser una sola instancia.
+3. **La verificación en dos pasos es opcional** y no se puede exigir para todo el equipo de una organización. El soporte para quien pierde el teléfono y los códigos es manual (DEPLOYMENT.md 3.2).
+4. **Access token vigente tras retirar a un miembro o cambiar su rol:** sigue sirviendo hasta 15 minutos.
+5. **Enumeración de correos en el registro** (`EMAIL_ALREADY_REGISTERED`): se aceptó por usabilidad; lo mitiga el límite por IP.
+6. **Límites por IP en memoria:** valen para una sola instancia. Con varias instancias hay que moverlos a un almacén compartido.
+7. **`style-src 'unsafe-inline'`** en la CSP, por Swagger UI (solo en desarrollo; en producción está apagada). Evaluar quitarla del nginx de producción tras probar la interfaz con la CSP estricta. La interfaz no inyecta HTML.
+8. **Funciones `SECURITY DEFINER`:** corren como dueño y deben revisarse en cada cambio. Están acotadas a búsquedas por hash o token y a colas.
+9. **Un `app.tenant_id` mal fijado por la aplicación no lo detecta RLS.** Lo mitiga que solo `TenantTransactions` lo fija, a partir de la identidad autenticada (MULTITENANCY.md).
+10. **Verificación de firmas de proveedores reales:** el esquema de firma de webhooks de Muisca y otros proveedores está por confirmar con su documentación y su contrato.
+11. **Imágenes Docker:** el análisis de sus paquetes del sistema operativo es informativo, no bloqueante. Las imágenes base se actualizan con Dependabot.
+12. **Pérdida de `BILLING_SECRETS_KEY`:** sin ella no se descifran las llaves de pasarela, de webhooks ni de dos pasos. Debe respaldarse fuera del servidor.
+13. **Sin WAF ni protección DDoS** delante de Caddy. Es suficiente para el volumen inicial; evaluar Cloudflare (proxy) si hay abuso.

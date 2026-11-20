@@ -69,8 +69,67 @@ nano .env                      # dominio, correo ACME, marca, SMTP, Mercado Pago
 ```
 - **Copias:** genera el par de llaves age **en tu computador**, no en el servidor: `age-keygen -o billing-backups.key`. Pon en `.env` solo la pública (`BACKUP_AGE_RECIPIENT=age1…`). Guarda la privada en tu gestor de contraseñas y una copia impresa: sin ella las copias no sirven.
 - **Destino externo:** `rclone config` (como `billing`) y `BACKUP_RCLONE_REMOTE=nombre:bucket/billing`.
-- **BILLING_SECRETS_KEY** (cifra las llaves Bold guardadas): guárdala también en tu gestor de contraseñas.
-- **Mercado Pago:** access token y clave secreta de webhooks en `.env` (nunca en el chat ni en el repositorio). En el panel de la aplicación de Mercado Pago, webhook `https://<dominio>/api/v1/webhooks/mercadopago`, evento *Pagos*. Con credenciales de prueba, `BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=false`; en real, `true`.
+- **BILLING_SECRETS_KEY** (cifra las llaves Bold y los secretos de verificación en dos pasos): guárdala también en tu gestor de contraseñas.
+- **Documentación interactiva de la API:** cerrada por defecto (`BILLING_API_DOCS_ENABLED=false`). La referencia para integradores está en `docs/API.md`.
+- **Mercado Pago:** sección 3.1.
+
+### 3.1 Mercado Pago para cobrar los planes (lo único que falta configurar)
+
+El código, las pruebas y la configuración ya están listos y verificados en CI contra un simulador de Mercado Pago (`SubscriptionPaymentsApiTest`). Solo faltan tus credenciales en el `.env` del servidor. **Nunca las pegues en el chat ni las subas al repositorio.**
+
+Pasos según la guía oficial ["Salir a producción" de Checkout Pro Colombia](https://www.mercadopago.com.co/developers/es/docs/checkout-pro/go-to-production), revisada el 2026-11-19:
+
+1. **Crear la aplicación.** En [Tus integraciones](https://www.mercadopago.com.co/developers/panel/app), crea una aplicación de tipo **Checkout Pro**, con la cuenta de Mercado Pago de la empresa que va a recibir el dinero.
+2. **Activar las credenciales de producción.** Entra a **Credenciales → Productivas → Activar credenciales**. Pide:
+   - la industria;
+   - el sitio web: usa `https://<dominio>`;
+   - aceptar los términos.
+3. **Copiar el Access Token productivo** al `.env` del servidor:
+   ```bash
+   nano /opt/billing/deploy/.env
+   BILLING_MERCADOPAGO_ACCESS_TOKEN=<Access Token productivo>
+   BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=true
+   ```
+   La Public Key no se usa: el pago ocurre en la página de Mercado Pago.
+4. **Configurar los avisos.** En la aplicación, entra a **Webhooks → Configurar notificaciones → Modo productivo**:
+   - URL: `https://<dominio>/api/v1/webhooks/mercadopago`
+   - evento: **Pagos**
+   - **Guardar configuración** genera la **clave secreta**. Revélala y cópiala:
+   ```bash
+   BILLING_MERCADOPAGO_WEBHOOK_SECRET=<clave secreta>
+   ```
+5. **Aplicar:** `scripts/deploy.sh <versión actual>`. Revisa los registros del backend al arrancar:
+   - si dice `WEBHOOK_SECRET is empty`, falta la clave del paso 4;
+   - si dice `test credentials with ... REQUIRE_LIVE_MODE=true`, pegaste las credenciales de prueba.
+6. **Prueba real de punta a punta.** Con una organización tuya, ve a **Mi plan** y paga el plan más barato con una tarjeta real. Al volver, el plan debe quedar activo. Después reembólsalo desde el panel de Mercado Pago si quieres.
+
+**Cómo se protege el cobro:**
+- Mercado Pago no recibe la tarjeta en nuestros servidores: el pago ocurre en su página.
+- El aviso (webhook) se acepta solo con la firma `x-signature` válida, y aun así su contenido no se cree: el pago se consulta a la API de Mercado Pago.
+- Solo un pago aprobado, real (`live_mode`), en pesos, por el valor exacto y con nuestra referencia activa el plan.
+
+**Si un aviso no llega o se rechaza**, el plan igual se activa en unos 2 minutos: el backend consulta cada 2 minutos los pagos pendientes. Mercado Pago da prioridad a la URL de avisos que la plataforma envía en cada pago sobre la del panel. Las dos apuntan al mismo lugar.
+
+**Pruebas con credenciales de prueba** (opcional, en un ambiente que no sea producción):
+- usa las credenciales **de prueba** de la misma aplicación;
+- pon `BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=false`;
+- paga con las tarjetas de prueba de Mercado Pago.
+
+En producción, ese valor siempre va en `true`.
+
+### 3.2 Soporte: una persona perdió el teléfono y sus códigos de recuperación
+
+Es la única forma de recuperar una cuenta con verificación en dos pasos.
+
+1. **Verifica la identidad** por un canal distinto al correo de la cuenta: videollamada con documento, o confirmación del dueño de la organización. Quien controla ese correo podría ser el atacante.
+2. **Borra la configuración** como dueño de la base:
+   ```bash
+   docker compose --project-directory /opt/billing/deploy -f /opt/billing/deploy/compose.prod.yml exec postgres \
+     psql -U postgres -d billing -c "DELETE FROM user_recovery_codes WHERE user_id = (SELECT id FROM users WHERE email = 'correo@cliente.co'); DELETE FROM user_two_factor WHERE user_id = (SELECT id FROM users WHERE email = 'correo@cliente.co');"
+   ```
+3. **Pide a la persona** que entre y vuelva a activar la verificación en **Seguridad**.
+
+Lo mismo aplica a todos los usuarios si se pierde `BILLING_SECRETS_KEY`.
 
 ### 4. Publicar una versión y desplegar
 En tu equipo: `git tag v0.1.0 && git push origin v0.1.0`. El flujo **Release** publica `ghcr.io/agamez10/billing-platform-{backend,web}:v0.1.0` (la marca de la interfaz sale de la variable del repositorio `BILLING_BRAND_NAME`). En el servidor:
@@ -112,7 +171,7 @@ Internet ─▶ Caddy/Nginx (TLS, HSTS) ─┬─▶ frontend estático
 - Backups: `pg_dump` diario cifrado a almacenamiento externo + retención 30 días; prueba de restauración mensual. Evaluar WAL archiving cuando haya clientes en producción.
 - Observabilidad: Actuator (health/metrics) no expuesto públicamente; logs JSON sin secretos ni datos tributarios completos.
 - Correo transaccional (recuperar contraseña, invitaciones): SMTP con STARTTLS. Opción recomendada por costo: Amazon SES (del orden de USD 0,10 por cada mil correos según su lista pública; confirmar el precio vigente antes de contratar), con el dominio verificado y SPF, DKIM y DMARC publicados para no caer en spam. Variables: `BILLING_MAIL_MODE=smtp`, `BILLING_MAIL_FROM`, `BILLING_SMTP_HOST`, `BILLING_SMTP_PORT=587`, `BILLING_SMTP_USERNAME`, `BILLING_SMTP_PASSWORD`, `BILLING_WEB_BASE_URL` (la URL pública con HTTPS). En local, Docker Compose levanta Mailpit (http://localhost:8025) y nada sale a internet.
-- Pago de planes con Mercado Pago (ADR-0024): `BILLING_MERCADOPAGO_ACCESS_TOKEN`, `BILLING_MERCADOPAGO_WEBHOOK_SECRET` y `BILLING_MERCADOPAGO_REQUIRE_LIVE_MODE=true`. En el panel de la aplicación de Mercado Pago, configurar el webhook `https://<dominio>/api/v1/webhooks/mercadopago` con el evento de pagos. Las credenciales nunca van al repositorio ni al chat.
+- Pago de planes con Mercado Pago (ADR-0024): ver la sección 3.1.
 - Ambientes separados (desarrollo, habilitación, producción) con bases y credenciales de proveedor distintas.
 
 
