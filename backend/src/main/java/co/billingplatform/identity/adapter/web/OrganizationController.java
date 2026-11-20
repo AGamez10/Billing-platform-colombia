@@ -14,7 +14,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,7 +35,9 @@ class OrganizationController {
 
     record ProfileView(String identificationType, String identificationNumber, Integer checkDigit, String legalName,
                        String tradeName, String email, String phone, FiscalProfileDto fiscal, AddressView address,
-                       boolean readyToIssue) {}
+                       boolean readyToIssue, boolean emailAlerts) {}
+
+    record AlertsRequest(@NotNull Boolean enabled) {}
 
     record ProfileRequest(
             @NotBlank @Size(max = 450) String legalName,
@@ -61,6 +65,17 @@ class OrganizationController {
         return tx.inTenant(u.tenantId(), () -> view(profiles.get(u.tenantId())));
     }
 
+    @PutMapping("/email-alerts")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Encender o apagar los avisos por correo a dueños y administradores (numeración, plan, rechazos)")
+    void emailAlerts(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AlertsRequest r) {
+        CurrentUser u = CurrentUser.from(jwt).require(Permission.ORGANIZATION_MANAGE);
+        tx.inTenant(u.tenantId(), () -> {
+            profiles.setEmailAlerts(u.tenantId(), u.actor(), r.enabled());
+            return null;
+        });
+    }
+
     @PutMapping
     @Operation(summary = "Actualizar razón social, contacto, perfil tributario y dirección fiscal. Dueño o administrador.")
     ProfileView update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ProfileRequest r) {
@@ -76,6 +91,6 @@ class OrganizationController {
                 .orElse(new AddressView(p.address().line(), p.address().cityCode(), null, p.address().departmentCode(), null));
         return new ProfileView(p.identification().type().name(), p.identification().number(),
                 p.identification().checkDigit(), p.legalName(), p.tradeName(), p.email(), p.phone(),
-                FiscalProfileDto.of(p.fiscal()), address, p.readyToIssue());
+                FiscalProfileDto.of(p.fiscal()), address, p.readyToIssue(), profiles.emailAlerts(p.tenantId()));
     }
 }

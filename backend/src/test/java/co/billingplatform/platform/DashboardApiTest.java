@@ -25,7 +25,7 @@ class DashboardApiTest extends ApiTest {
         LocalDate today = LocalDate.now();
         assertEquals(201, send("POST", "/api/v1/numbering-ranges", token,
                 ("{\"environment\":\"SIMULATION\",\"resolutionNumber\":\"18760000021\",\"prefix\":\"DB\","
-                        + "\"rangeFrom\":1,\"rangeTo\":12,\"validFrom\":\"%s\",\"validTo\":\"%s\"}")
+                        + "\"rangeFrom\":1,\"rangeTo\":10,\"validFrom\":\"%s\",\"validTo\":\"%s\"}")
                         .formatted(today.minusDays(2), today.plusDays(10))).statusCode());
         String customerId = field(send("POST", "/api/v1/customers", token, "{" + randomNitJson()
                 + ",\"legalName\":\"Cliente Inicio\"}").body(), "id");
@@ -43,7 +43,7 @@ class DashboardApiTest extends ApiTest {
         assertEquals("SIMULATION", field(body, "environment"));
         assertTrue(body.contains("\"total\":119000.00"), body);
         assertTrue(body.contains("\"documents\":1"), body);
-        assertTrue(body.contains("NUMBERING_EXPIRING") && body.contains("NUMBERING_LOW"), "vence en 10 días y quedan 11 de 12: " + body);
+        assertTrue(body.contains("NUMBERING_EXPIRING") && body.contains("NUMBERING_LOW"), "vence en 10 días y quedan 9 de 10: " + body);
         assertTrue(body.contains("ISSUER_PROFILE_INCOMPLETE"));
         assertFalse(body.contains("PROVIDER_MISSING"));
 

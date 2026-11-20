@@ -71,6 +71,7 @@ export interface OrganizationProfile {
   fiscal?: FiscalProfile | null;
   address?: { line: string; cityCode: string; cityName?: string | null; departmentCode: string; departmentName?: string | null } | null;
   readyToIssue: boolean;
+  emailAlerts: boolean;
 }
 
 export interface Product {

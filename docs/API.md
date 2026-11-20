@@ -22,6 +22,7 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `GET /dashboard` | INVOICE_READ | Ventas del mes en el ambiente activo (por día, total, promedio, notas crédito) y pendientes con su acción. Los del plan solo con USAGE_READ (ADR-0029) |
 | `GET /public/municipalities` | público (caché 1 día) | Municipios DIVIPOLA del DANE: `code` (5 dígitos), `name`, `departmentCode`, `departmentName` |
 | `GET /organization` | cualquier miembro | Datos del emisor: identificación, razón social, contacto, `fiscal`, `address` (con nombre del municipio) y `readyToIssue` |
+| `PUT /organization/email-alerts` | ORGANIZATION_MANAGE | `{enabled}`: avisos automáticos por correo (ADR-0030). `GET /organization` incluye `emailAlerts` |
 | `PUT /organization` | ORGANIZATION_MANAGE (dueño/admin) | `{legalName, tradeName?, email, phone?, addressLine, cityCode, fiscal}`. La identificación no se cambia. `422 UNKNOWN_MUNICIPALITY` si el código no está en la DIVIPOLA |
 | `GET/POST /provider-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Proveedor y ambiente activos para nuevas facturas. Hoy solo está disponible `mock` en `SIMULATION` |
 | `GET/POST /numbering-ranges` | POST: NUMBERING_MANAGE | Resolución de numeración tal como figura en la resolución DIAN, por ambiente |

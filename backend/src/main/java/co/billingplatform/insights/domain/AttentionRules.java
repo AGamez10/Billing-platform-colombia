@@ -28,7 +28,17 @@ public final class AttentionRules {
     public record Facts(String activeEnvironment, boolean issuerReady, List<RangeFact> ranges,
                         Integer quotaLimit, int quotaUsed, boolean trial,
                         String subscriptionStatus, LocalDate periodEnd,
-                        int rejected, int failed, int uncertain, int staleDrafts) {}
+                        int rejected, int failed, int uncertain, int staleDrafts,
+                        java.time.Instant lastRejectedAt, java.time.Instant lastFailedAt) {
+
+        /** Sin marcas de tiempo (pruebas y lecturas que no las necesitan). */
+        public Facts(String activeEnvironment, boolean issuerReady, List<RangeFact> ranges, Integer quotaLimit, int quotaUsed,
+                     boolean trial, String subscriptionStatus, LocalDate periodEnd, int rejected, int failed, int uncertain,
+                     int staleDrafts) {
+            this(activeEnvironment, issuerReady, ranges, quotaLimit, quotaUsed, trial, subscriptionStatus, periodEnd, rejected,
+                    failed, uncertain, staleDrafts, null, null);
+        }
+    }
 
     private AttentionRules() {}
 
@@ -85,16 +95,18 @@ public final class AttentionRules {
                     "No hacen falta para practicar, sí para facturar en real.", "Completar", "/empresa", "ISSUER_PROFILE_INCOMPLETE"));
         }
 
+        // La cuota de un plan es mensual: el mismo aviso puede volver el mes siguiente; la de la prueba es una sola.
+        String cycle = f.trial() ? "trial" : today.withDayOfMonth(1).toString();
         if (f.quotaLimit() != null && f.quotaLimit() > 0) {
             if (f.quotaUsed() >= f.quotaLimit()) {
                 out.add(new Attention("QUOTA_REACHED", Severity.CRITICAL,
                         f.trial() ? "Usaste todos los documentos de la prueba" : "Llegaste al límite de tu plan",
-                        "Mejora tu plan para seguir emitiendo.", "Ver planes", "/plan", "QUOTA_REACHED:" + f.quotaLimit()));
+                        "Mejora tu plan para seguir emitiendo.", "Ver planes", "/plan", "QUOTA_REACHED:" + f.quotaLimit() + ":" + cycle));
             } else if (f.quotaUsed() * 10 >= f.quotaLimit() * 8) {
                 out.add(new Attention("QUOTA_HIGH", Severity.WARNING,
                         "Has usado " + f.quotaUsed() + " de " + f.quotaLimit() + " documentos",
                         f.trial() ? "Elige un plan antes de que se acabe la prueba." : "Considera mejorar tu plan.", "Ver planes", "/plan",
-                        "QUOTA_HIGH:" + f.quotaLimit()));
+                        "QUOTA_HIGH:" + f.quotaLimit() + ":" + cycle));
             }
         }
 
@@ -102,12 +114,13 @@ public final class AttentionRules {
             out.add(new Attention("DOCUMENTS_REJECTED", Severity.CRITICAL,
                     f.rejected() == 1 ? "1 documento fue rechazado" : f.rejected() + " documentos fueron rechazados",
                     "Revisa el motivo, corrige el dato y emite uno nuevo.", "Revisar", "/facturas?estado=REJECTED",
-                    "DOCUMENTS_REJECTED:" + f.rejected()));
+                    "DOCUMENTS_REJECTED:" + (f.lastRejectedAt() == null ? f.rejected() : f.lastRejectedAt().toEpochMilli())));
         }
         if (f.failed() > 0) {
             out.add(new Attention("DOCUMENTS_FAILED", Severity.CRITICAL,
                     f.failed() == 1 ? "1 documento no se pudo enviar" : f.failed() + " documentos no se pudieron enviar",
-                    "Revisa el detalle de cada uno.", "Revisar", "/facturas?estado=FAILED", "DOCUMENTS_FAILED:" + f.failed()));
+                    "Revisa el detalle de cada uno.", "Revisar", "/facturas?estado=FAILED",
+                    "DOCUMENTS_FAILED:" + (f.lastFailedAt() == null ? f.failed() : f.lastFailedAt().toEpochMilli())));
         }
         if (f.uncertain() > 0) {
             out.add(new Attention("DOCUMENTS_UNCERTAIN", Severity.WARNING,

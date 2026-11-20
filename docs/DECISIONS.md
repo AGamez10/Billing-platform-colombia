@@ -366,6 +366,16 @@ Cómo está construido:
 
 **Por qué un módulo de lectura y no llamadas a cada servicio:** el inicio se abre a cada rato; una consulta agregada por concepto es barata y no acopla los módulos de escritura entre sí.
 
+## ADR-0030 — Avisos automáticos por correo, una vez por situación
+*2026-11-19 — aceptada*
+
+**Decisión:** un trabajo cada hora (`AlertWorker`) evalúa los pendientes de cada organización con las mismas reglas del inicio (ADR-0029). Solo lo urgente o próximo de una lista cerrada se envía por correo a dueños y administradores: plan vencido o por vencer, numeración faltante, por vencer o por agotarse, datos de la empresa incompletos en ambiente real, cuota al 80 % o al límite, y documentos rechazados o fallidos. Lo informativo se queda en el inicio.
+
+- **Sin repetir:** la clave de cada pendiente cambia solo cuando cambia la situación (otra resolución, otro mes de cuota, un rechazo nuevo). Se registra en `alert_notifications` (V19, con RLS) y no se vuelve a enviar.
+- **Un correo por destinatario** con todo lo nuevo, enviado después del commit (Mailer).
+- **Apagable por organización:** `PUT /organization/email-alerts`, interruptor en Datos de tu empresa. La lista de organizaciones sale de una función acotada que solo devuelve ids.
+- Un fallo en una organización no detiene a las demás.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

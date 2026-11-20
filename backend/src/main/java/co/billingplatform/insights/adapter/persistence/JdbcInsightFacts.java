@@ -69,13 +69,18 @@ public class JdbcInsightFacts implements InsightsService.FactsReader {
                         SELECT count(*) FILTER (WHERE status = 'REJECTED' AND updated_at > now() - interval '30 days') AS rejected,
                                count(*) FILTER (WHERE status = 'FAILED' AND updated_at > now() - interval '30 days') AS failed,
                                count(*) FILTER (WHERE outcome_uncertain AND status IN ('PENDING_SUBMISSION', 'SUBMITTED')) AS uncertain,
-                               count(*) FILTER (WHERE status = 'DRAFT' AND created_at < now() - interval '1 day') AS drafts
+                               count(*) FILTER (WHERE status = 'DRAFT' AND created_at < now() - interval '1 day') AS drafts,
+                               max(updated_at) FILTER (WHERE status = 'REJECTED' AND updated_at > now() - interval '30 days') AS last_rejected,
+                               max(updated_at) FILTER (WHERE status = 'FAILED' AND updated_at > now() - interval '30 days') AS last_failed
                         FROM invoices WHERE tenant_id = :t""")
                 .param("t", t)
-                .query((rs, n) -> new int[] {rs.getInt("rejected"), rs.getInt("failed"), rs.getInt("uncertain"), rs.getInt("drafts")})
+                .query((rs, n) -> new Object[] {rs.getInt("rejected"), rs.getInt("failed"), rs.getInt("uncertain"), rs.getInt("drafts"),
+                        rs.getTimestamp("last_rejected"), rs.getTimestamp("last_failed")})
                 .single();
         return new AttentionRules.Facts(env, issuerReady, ranges, limit, used, trial, status, periodEnd,
-                counts[0], counts[1], counts[2], counts[3]);
+                (int) counts[0], (int) counts[1], (int) counts[2], (int) counts[3],
+                counts[4] == null ? null : ((java.sql.Timestamp) counts[4]).toInstant(),
+                counts[5] == null ? null : ((java.sql.Timestamp) counts[5]).toInstant());
     }
 
     @Override

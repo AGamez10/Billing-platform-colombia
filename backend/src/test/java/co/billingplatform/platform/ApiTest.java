@@ -54,8 +54,12 @@ public abstract class ApiTest extends PostgresIntegrationTest {
 
     /** Registra una organización nueva y devuelve el access token de su dueño. */
     protected String registerOrganization() throws Exception {
+        return registerOrganization("o-" + UUID.randomUUID() + "@example.com");
+    }
+
+    protected String registerOrganization(String ownerEmail) throws Exception {
         String body = "{\"organizationName\":\"Org Prueba\"," + randomNitJson()
-                + ",\"fullName\":\"Dueño\",\"email\":\"o-" + UUID.randomUUID() + "@example.com\",\"password\":\"caballo bateria grapa\""
+                + ",\"fullName\":\"Dueño\",\"email\":\"" + ownerEmail + "\",\"password\":\"caballo bateria grapa\""
                 + ",\"acceptedTermsVersion\":\"borrador-2026-11\",\"acceptedPrivacyVersion\":\"borrador-2026-11\"}";
         HttpResponse<String> res = send("POST", "/api/v1/auth/register", null, body);
         assertTrue(res.statusCode() == 201, res.body());

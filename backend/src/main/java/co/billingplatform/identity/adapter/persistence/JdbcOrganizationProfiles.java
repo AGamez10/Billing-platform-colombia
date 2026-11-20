@@ -57,6 +57,18 @@ public class JdbcOrganizationProfiles implements OrganizationProfileService.Prof
                 .update();
     }
 
+    @Override
+    public boolean emailAlerts(TenantId tenantId) {
+        return jdbc.sql("SELECT email_alerts FROM organizations WHERE id = :t").param("t", tenantId.value())
+                .query(Boolean.class).optional().orElse(false);
+    }
+
+    @Override
+    public void setEmailAlerts(TenantId tenantId, boolean enabled) {
+        jdbc.sql("UPDATE organizations SET email_alerts = :e, updated_at = now() WHERE id = :t")
+                .param("e", enabled).param("t", tenantId.value()).update();
+    }
+
     static OrganizationProfile map(ResultSet rs, int n) throws SQLException {
         Object dv = rs.getObject("check_digit");
         String line = rs.getString("address_line");

@@ -28,6 +28,7 @@ public abstract class PostgresIntegrationTest {
         registry.add("BILLING_JWT_SECRET", () -> "dGVzdC1vbmx5LWp3dC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC0wMTIzNDU=");
         registry.add("BILLING_AUTH_REQUESTS_PER_MINUTE", () -> "1000");
         registry.add("billing.mail.mode", () -> "memory");
+        registry.add("billing.alerts.enabled", () -> "false"); // las pruebas invocan el notificador directamente
         registry.add("billing.mercadopago.access-token", () -> MercadoPagoStub.ACCESS_TOKEN);
         registry.add("billing.mercadopago.webhook-secret", () -> MercadoPagoStub.WEBHOOK_SECRET);
         registry.add("billing.mercadopago.base-url", () -> MercadoPagoStub.get().baseUrl());

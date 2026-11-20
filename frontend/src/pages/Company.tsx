@@ -134,6 +134,25 @@ export function Company() {
           <FiscalFields whose="own" disabled={readOnly} value={form.fiscal} onChange={set('fiscal')} />
         </section>
 
+        <section className="card stack" aria-labelledby="alerts-h">
+          <h2 id="alerts-h">Avisos por correo</h2>
+          <label className="consent">
+            <input
+              type="checkbox"
+              checked={p.emailAlerts}
+              disabled={readOnly}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                void http.put('/api/v1/organization/email-alerts', { enabled }).then(() => profile.reload()).catch((err) => setError(messageFor(err)));
+              }}
+            />
+            <span>
+              Avisar a dueños y administradores cuando algo requiera atención: numeración por vencer o por agotarse, plan por vencer,
+              cuota al límite y documentos rechazados.
+            </span>
+          </label>
+        </section>
+
         {readOnly ? (
           <p className="small muted">Solo el dueño o un administrador puede cambiar estos datos.</p>
         ) : (

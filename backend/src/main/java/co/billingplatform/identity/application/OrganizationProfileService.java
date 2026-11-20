@@ -20,6 +20,10 @@ public final class OrganizationProfileService {
         Optional<OrganizationProfile> find(TenantId tenantId);
 
         void update(OrganizationProfile profile);
+
+        boolean emailAlerts(TenantId tenantId);
+
+        void setEmailAlerts(TenantId tenantId, boolean enabled);
     }
 
     public record Changes(String legalName, String tradeName, String email, String phone, FiscalProfile fiscal,
@@ -38,6 +42,17 @@ public final class OrganizationProfileService {
     public OrganizationProfile get(TenantId tenantId) {
         return profiles.find(tenantId)
                 .orElseThrow(() -> new DomainException("ORGANIZATION_NOT_FOUND", "Organization not found"));
+    }
+
+    public boolean emailAlerts(TenantId tenantId) {
+        return profiles.emailAlerts(tenantId);
+    }
+
+    /** Encender o apagar los avisos automáticos por correo de la organización. */
+    public void setEmailAlerts(TenantId tenantId, Actor actor, boolean enabled) {
+        profiles.setEmailAlerts(tenantId, enabled);
+        audit.record(new AuditTrail.Event(tenantId, actor, "EMAIL_ALERTS_CHANGED", "organization", tenantId.value().toString(),
+                Map.of("enabled", String.valueOf(enabled))));
     }
 
     public OrganizationProfile update(TenantId tenantId, Actor actor, Changes c) {

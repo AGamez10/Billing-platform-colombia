@@ -67,6 +67,6 @@ class AttentionRulesTest {
         assertEquals("Tu plan vence en 3 días", list.get(1).title());
         assertEquals(List.of("SUBSCRIPTION_PAST_DUE", "QUOTA_REACHED"), codes(
                 new Facts("PRODUCTION", true, List.of(HEALTHY), 20, 20, true, "PAST_DUE", TODAY.minusDays(2), 0, 0, 0, 0)));
-        assertEquals("QUOTA_HIGH:40", list.get(2).key(), "la clave permite no repetir el aviso");
+        assertEquals("QUOTA_HIGH:40:2026-11-01", list.get(2).key(), "la clave permite no repetir el aviso en el mes");
     }
 }
