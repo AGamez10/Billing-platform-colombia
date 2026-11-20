@@ -8,7 +8,7 @@ public final class Base32 {
     private Base32() {}
 
     public static String encode(byte[] data) {
-        StringBuilder out = new StringBuilder((data.length * 8 + 4) / 5);
+        StringBuilder out = new StringBuilder();
         int buffer = 0;
         int bits = 0;
         for (byte b : data) {

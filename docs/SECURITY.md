@@ -71,7 +71,16 @@
 | Copias de seguridad | `pg_dump` diario cifrado con `age` (la llave privada no está en el servidor), copia externa y prueba de restauración automatizada | job "Kit de producción" |
 | Cadena de suministro (ADR-0035) | **Análisis en cada cambio:** CodeQL `security-extended` (Java, TypeScript, workflows), gitleaks (historial completo) y OSV-Scanner (dependencias Maven transitivas y lockfile de pnpm). Bloquean la integración.<br>**Binarios de los escáneres:** verificados por SHA-256; acciones fijadas por SHA de commit.<br>**pnpm:** lockfile congelado, `minimumReleaseAge` de 7 días, scripts de instalación bloqueados; Dependabot semanal. | workflow "Seguridad" |
 
-## 4. Riesgos residuales conocidos
+## 4. Resultado de los análisis automáticos (2026-11-20)
+
+- **gitleaks:** 0 secretos en el historial y el árbol. La llave de las pruebas está marcada `gitleaks:allow`.
+- **OSV-Scanner:** 0 vulnerabilidades conocidas en dependencias Maven (árbol resuelto) y pnpm, tras subir vitest a 4.1.12.
+- **CodeQL `security-extended`:** 0 hallazgos en TypeScript y workflows. En Java hubo 3:
+  - `java/polynomial-redos` en la validación de correo: corregido sin expresión regular, con prueba de entrada hostil.
+  - `java/uncontrolled-arithmetic` en `Base32`: corregido.
+  - `java/spring-disabled-csrf-protection`: **falso positivo justificado.** La API autentica con `Authorization: Bearer`, que el navegador no envía solo. Las únicas rutas con cookie (refresh y logout) usan `SameSite=Strict`, `Path=/api/v1/auth` y exigen la cabecera `X-Billing-Client`. Se puede descartar en GitHub → Security → Code scanning con este motivo.
+
+## 5. Riesgos residuales conocidos
 
 Ordenados por prioridad sugerida para la auditoría.
 

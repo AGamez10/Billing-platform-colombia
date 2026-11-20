@@ -41,4 +41,19 @@ class PartyIdentificationTest {
         assertThrows(DomainException.class, () -> new Party(party.identification(), " ", null));
         assertThrows(DomainException.class, () -> new Party(party.identification(), "Ana", "no-es-correo"));
     }
+
+    @Test
+    @DisplayName("forma del correo sin expresión regular (sin riesgo de ReDoS)")
+    void emailShape() {
+        assertTrue(Party.looksLikeEmail("ana@example.com"));
+        assertTrue(Party.looksLikeEmail("a.b+c@sub.example.co"));
+        for (String bad : new String[] {"@example.com", "ana@", "ana@example", "ana@.com", "ana@example.",
+                "a@b@c.com", "ana @example.com"}) {
+            assertFalse(Party.looksLikeEmail(bad), bad);
+        }
+        String hostile = "a@" + "b.".repeat(5_000) + "@";
+        long start = System.nanoTime();
+        assertFalse(Party.looksLikeEmail(hostile));
+        assertTrue(System.nanoTime() - start < 50_000_000L, "entrada hostil se rechaza en tiempo lineal");
+    }
 }

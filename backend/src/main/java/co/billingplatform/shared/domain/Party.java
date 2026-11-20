@@ -51,8 +51,22 @@ public record Party(PartyIdentification identification, String legalName, String
             throw new DomainException("INVALID_PARTY", "Legal name is too long");
         }
         email = (email == null || email.isBlank()) ? null : email.strip().toLowerCase(java.util.Locale.ROOT);
-        if (email != null && (email.length() > 254 || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))) {
+        if (email != null && (email.length() > 254 || !looksLikeEmail(email))) {
             throw new DomainException("INVALID_PARTY", "Email is not valid");
         }
+    }
+
+    /**
+     * Forma mínima {@code local@dominio.tld} sin espacios ni dos {@code @}. Sin expresión regular:
+     * evita retrocesos costosos con entradas maliciosas (CodeQL java/polynomial-redos).
+     */
+    static boolean looksLikeEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 0 || at != email.lastIndexOf('@') || email.chars().anyMatch(Character::isWhitespace)) {
+            return false;
+        }
+        String domain = email.substring(at + 1);
+        int dot = domain.lastIndexOf('.');
+        return dot > 0 && dot < domain.length() - 1;
     }
 }

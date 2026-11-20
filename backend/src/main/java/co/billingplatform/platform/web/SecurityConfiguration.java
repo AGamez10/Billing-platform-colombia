@@ -61,6 +61,9 @@ public class SecurityConfiguration {
                 .addFilterAfter(new PrincipalRateLimitFilter(apiKeyPerMinute, userPerMinute, clock),
                         BearerTokenAuthenticationFilter.class)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // API sin sesión de servidor: cada petición lleva el access token en Authorization, que el
+                // navegador no envía solo. Las únicas rutas con cookie (refresh y logout) usan
+                // SameSite=Strict, Path=/api/v1/auth y exigen la cabecera X-Billing-Client (AuthController).
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
