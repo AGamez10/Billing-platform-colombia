@@ -120,12 +120,18 @@ test('capturas de la app en uso', async ({ page }, info) => {
   await shot('vender', false);
   await page.getByRole('button', { name: /Cobrar/ }).click();
   await expect(page.getByText('Aceptada', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Mostrar QR al cliente' }).click();
+  await expect(page.getByRole('img', { name: /comprobante/ })).toBeVisible();
   await shot('venta-emitida', false);
 
   // Pantallas principales con datos
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /^Ventas de / })).toBeVisible();
-  await page.waitForTimeout(800); // gráfica diferida
+  const chart = page.locator('.sales-chart');
+  await chart.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1500); // Chart.js diferido + animación
+  await chart.screenshot({ path: `capturas/${info.project.name}-app-grafica.jpg`, type: 'jpeg', quality: 70 });
+  await page.evaluate(() => window.scrollTo(0, 0));
   await shot('inicio');
   await page.goto('/facturas');
   await shot('facturas');

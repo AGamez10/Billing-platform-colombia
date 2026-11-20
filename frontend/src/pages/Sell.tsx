@@ -47,6 +47,16 @@ export function Sell() {
   const [sold, setSold] = useState<Invoice | null>(null);
   const [charging, setCharging] = useState<Charge | null>(null);
   const [quotaBlocked, setQuotaBlocked] = useState(false);
+  const [cartEl, setCartEl] = useState<HTMLElement | null>(null);
+  const [cartInView, setCartInView] = useState(false);
+
+  // La barra de total del celular se oculta cuando el carrito ya está a la vista.
+  useEffect(() => {
+    if (!cartEl || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([entry]) => setCartInView(!!entry?.isIntersecting), { threshold: 0.2 });
+    io.observe(cartEl);
+    return () => io.disconnect();
+  }, [cartEl]);
 
   const active = accounts.data?.find((a) => a.active);
   const hasPosRange = !!ranges.data?.some((r) => r.kind === 'POS_EQUIVALENT' && r.environment === active?.environment && r.remaining > 0);
@@ -175,7 +185,18 @@ export function Sell() {
         </div>
       </section>
 
-      <section className="card stack" aria-labelledby="cart-h">
+      {cart.length > 0 && !cartInView && (
+        // En el celular el carrito queda abajo: esta barra muestra el total y lleva a cobrar.
+        <a href="#cart-h" className="pos-sticky" onClick={(e) => { e.preventDefault(); document.getElementById('cart-h')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+          <span>
+            {cart.reduce((n, l) => n + l.quantity, 0)} {cart.reduce((n, l) => n + l.quantity, 0) === 1 ? 'producto' : 'productos'}
+          </span>
+          <strong className="num">{formatCop(centsToNumber(totalCents))}</strong>
+          <span className="pos-sticky-cta">Ir a cobrar</span>
+        </a>
+      )}
+
+      <section ref={setCartEl} className="card stack" aria-labelledby="cart-h">
         <h2 id="cart-h">Venta</h2>
         {cart.length === 0 ? (
           <p className="muted">Aún no hay productos en esta venta.</p>
@@ -257,6 +278,7 @@ function Receipt({ sale: initial, onNext }: { sale: Invoice; onNext: () => void 
           {!isTerminal(sale.status) && <Spinner label="Enviando" />}
         </div>
         {sale.status === 'REJECTED' && <Alert tone="error">El documento fue rechazado. Revísalo en Documentos.</Alert>}
+        {sale.status === 'ACCEPTED' && <HandOff saleId={sale.id} />}
         <div className="row">
           <button type="button" className="btn btn-primary" onClick={onNext}>
             Nueva venta
@@ -267,6 +289,70 @@ function Receipt({ sale: initial, onNext }: { sale: Invoice; onNext: () => void 
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Entregar el comprobante a quien está en la caja: un QR que abre el documento en su celular
+ * (sin cuenta), WhatsApp o impresión.
+ */
+function HandOff({ saleId }: { saleId: string }) {
+  const [link, setLink] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ensureLink(): Promise<string | null> {
+    if (link) return link;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await http.post<{ link: string }>(`/api/v1/invoices/${saleId}/share-links`);
+      setLink(r.link);
+      return r.link;
+    } catch (err) {
+      setError(messageFor(err));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function whatsapp() {
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    const url = await ensureLink();
+    if (!url) {
+      tab?.close();
+      return;
+    }
+    const target = `https://wa.me/?text=${encodeURIComponent(`Hola, aquí está tu comprobante: ${url}`)}`;
+    if (tab) tab.location.href = target;
+    else window.location.href = target;
+  }
+
+  return (
+    <div className="stack handoff">
+      {error && <Alert tone="error">{error}</Alert>}
+      {link ? (
+        <div className="handoff-qr">
+          <QrCode value={link} label="Código QR del comprobante para el celular del cliente" size={200} />
+          <p className="small muted">El cliente lo escanea con la cámara y ve su comprobante, sin descargar nada.</p>
+        </div>
+      ) : null}
+      <div className="row wrap">
+        {!link && (
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void ensureLink()}>
+            {busy ? 'Preparando…' : 'Mostrar QR al cliente'}
+          </button>
+        )}
+        <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void whatsapp()}>
+          WhatsApp
+        </button>
+        <Link to={`/facturas/${saleId}/documento`} className="btn btn-ghost">
+          Imprimir
+        </Link>
+      </div>
+    </div>
   );
 }
 

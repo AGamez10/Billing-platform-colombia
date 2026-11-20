@@ -28,7 +28,7 @@ export function Integrations() {
     <>
       <PageHead
         title="Integraciones"
-        subtitle="Conecta otras apps para que facturen por ti y reciban el resultado. La documentación de la API está en /swagger-ui.html."
+        subtitle="Conecta otras apps para que facturen por ti y reciban el resultado. Si tu desarrollador necesita la guía de la API, escríbenos."
       />
       <ApiKeys />
       <Webhooks />
