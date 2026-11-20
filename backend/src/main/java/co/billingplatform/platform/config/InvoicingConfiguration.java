@@ -8,6 +8,8 @@ import co.billingplatform.electronicinvoicing.port.ProviderAccountRepository;
 import co.billingplatform.invoicing.application.CreditNoteService;
 import co.billingplatform.invoicing.application.DocumentSharingService;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
+import co.billingplatform.invoicing.application.IdempotentDrafts;
+import co.billingplatform.invoicing.application.InvoiceEvents;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
 import co.billingplatform.invoicing.application.InvoiceRepository;
 import co.billingplatform.invoicing.application.IssuerDirectory;
@@ -110,6 +112,11 @@ class InvoicingConfiguration {
     }
 
     @Bean
+    IdempotentDrafts idempotentDrafts(InvoiceDraftService drafts, InvoiceRepository invoices, PosSaleService.IdempotencyKeys keys) {
+        return new IdempotentDrafts(drafts, invoices, keys);
+    }
+
+    @Bean
     PosSaleService posSaleService(InvoiceDraftService drafts, FinalizeInvoiceService finalizer, InvoiceRepository invoices,
                                   PosSaleService.IdempotencyKeys keys) {
         return new PosSaleService(drafts, finalizer, invoices, keys);
@@ -118,7 +125,8 @@ class InvoicingConfiguration {
     @Bean
     SubmitInvoiceService submitInvoiceService(InvoiceRepository invoices, ProviderAccountRepository accounts,
                                               ProviderRegistry registry, IssuerDirectory issuers, Clock clock,
-                                              @Value("${billing.submission.max-provider-interactions:10}") int maxInteractions) {
-        return new SubmitInvoiceService(invoices, accounts, registry, issuers, clock, maxInteractions);
+                                              @Value("${billing.submission.max-provider-interactions:10}") int maxInteractions,
+                                              InvoiceEvents events) {
+        return new SubmitInvoiceService(invoices, accounts, registry, issuers, clock, maxInteractions, events);
     }
 }

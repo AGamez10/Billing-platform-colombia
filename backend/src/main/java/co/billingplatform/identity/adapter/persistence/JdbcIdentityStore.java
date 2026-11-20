@@ -211,6 +211,35 @@ class JdbcIdentityStore implements IdentityPorts.UserAccounts, IdentityPorts.Mem
                 .update();
     }
 
+    @Override
+    public java.util.List<IdentityPorts.ApiKeySummary> list(TenantId tenantId) {
+        return jdbc.sql("""
+                        SELECT id, name, key_prefix, scopes, created_at, last_used_at, expires_at, revoked_at
+                        FROM api_keys WHERE tenant_id = :t ORDER BY created_at DESC
+                        """)
+                .param("t", tenantId.value())
+                .query((rs, i) -> {
+                    Set<Permission> permissions = EnumSet.noneOf(Permission.class);
+                    Arrays.stream((String[]) rs.getArray("scopes").getArray()).map(Permission::valueOf).forEach(permissions::add);
+                    return new IdentityPorts.ApiKeySummary(rs.getObject("id", UUID.class), rs.getString("name"),
+                            rs.getString("key_prefix"), Set.copyOf(permissions), instant(rs.getTimestamp("created_at")),
+                            instant(rs.getTimestamp("last_used_at")), instant(rs.getTimestamp("expires_at")),
+                            instant(rs.getTimestamp("revoked_at")));
+                })
+                .list();
+    }
+
+    @Override
+    public boolean revoke(TenantId tenantId, UUID id) {
+        return jdbc.sql("UPDATE api_keys SET revoked_at = now() WHERE tenant_id = :t AND id = :id AND revoked_at IS NULL")
+                .param("t", tenantId.value()).param("id", id).update() == 1;
+    }
+
+    @Override
+    public void touch(UUID id) {
+        jdbc.sql("SELECT auth_touch_api_key(:id)").param("id", id).query(Boolean.class).single();
+    }
+
     // ------------------------------------------------------------------ utilidades
 
     private void setUser(UUID userId) {

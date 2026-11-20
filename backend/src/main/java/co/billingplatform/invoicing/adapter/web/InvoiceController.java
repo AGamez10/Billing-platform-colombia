@@ -6,6 +6,7 @@ import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceQueries;
 import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceQueries.InvoiceSummary;
 import co.billingplatform.invoicing.adapter.persistence.JdbcInvoiceRepository;
 import co.billingplatform.invoicing.application.FinalizeInvoiceService;
+import co.billingplatform.invoicing.application.IdempotentDrafts;
 import co.billingplatform.invoicing.application.InvoiceDraftService;
 import co.billingplatform.invoicing.domain.InvoiceStatus;
 import co.billingplatform.platform.persistence.TenantTransactions;
@@ -53,9 +54,11 @@ class InvoiceController {
     private final JdbcInvoiceRepository invoices;
     private final JdbcInvoiceQueries queries;
     private final TenantTransactions tx;
+    private final IdempotentDrafts idempotent;
 
     InvoiceController(InvoiceDraftService drafts, FinalizeInvoiceService finalizer, JdbcInvoiceRepository invoices,
-                      JdbcInvoiceQueries queries, TenantTransactions tx) {
+                      JdbcInvoiceQueries queries, TenantTransactions tx, IdempotentDrafts idempotent) {
+        this.idempotent = idempotent;
         this.drafts = drafts;
         this.finalizer = finalizer;
         this.invoices = invoices;
@@ -65,10 +68,12 @@ class InvoiceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Crear borrador (totales e impuestos los calcula el servidor; no consume numeración)")
-    InvoiceView create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DraftRequest r) {
+    @Operation(summary = "Crear borrador (totales e impuestos los calcula el servidor; no consume numeración). "
+            + "Integraciones: envíe Idempotency-Key para que un reintento devuelva el mismo borrador.")
+    InvoiceView create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DraftRequest r,
+                       @org.springframework.web.bind.annotation.RequestHeader(name = "Idempotency-Key", required = false) String key) {
         CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_WRITE);
-        return tx.inTenant(u.tenantId(), () -> InvoiceView.of(drafts.create(u.tenantId(), u.actor(), r.command())));
+        return tx.inTenant(u.tenantId(), () -> InvoiceView.of(idempotent.create(u.tenantId(), u.actor(), key, r.command(), r.toString())));
     }
 
     @PutMapping("/{id}")

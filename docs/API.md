@@ -23,6 +23,8 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `POST /products/import?commit=` | PRODUCT_WRITE | CSV de productos; impuestos obligatorios. Plantilla: `GET /public/import-templates/products.csv` |
 | `GET /reports/sales?from=&to=` | INVOICE_READ | Resumen del periodo: documentos, subtotal, impuestos por tarifa, total (notas restadas) |
 | `GET /reports/sales.csv?from=&to=` | INVOICE_READ | Documentos del periodo en CSV para Excel (protegido contra inyección de fórmulas) |
+| `GET/POST /api-keys`, `DELETE /api-keys/{id}` | API_KEYS_MANAGE (persona) | Claves `bpk_…` para integraciones; permisos de operación; secreto una vez (ADR-0032) |
+| `GET/POST /webhook-endpoints`, `DELETE /{id}`, `POST /{id}/test`, `GET /{id}/deliveries` | API_KEYS_MANAGE (persona) | Avisos firmados `document.accepted\|rejected\|failed` (ADR-0033) |
 | `GET /dashboard` | INVOICE_READ | Ventas del mes en el ambiente activo (por día, total, promedio, notas crédito) y pendientes con su acción. Los del plan solo con USAGE_READ (ADR-0029) |
 | `GET /public/municipalities` | público (caché 1 día) | Municipios DIVIPOLA del DANE: `code` (5 dígitos), `name`, `departmentCode`, `departmentName` |
 | `GET /organization` | cualquier miembro | Datos del emisor: identificación, razón social, contacto, `fiscal`, `address` (con nombre del municipio) y `readyToIssue` |
@@ -30,7 +32,7 @@ La documentación interactiva se genera desde el código: `http://localhost:8080
 | `PUT /organization` | ORGANIZATION_MANAGE (dueño/admin) | `{legalName, tradeName?, email, phone?, addressLine, cityCode, fiscal}`. La identificación no se cambia. `422 UNKNOWN_MUNICIPALITY` si el código no está en la DIVIPOLA |
 | `GET/POST /provider-accounts` | POST: PROVIDER_MANAGE (solo dueño) | Proveedor y ambiente activos para nuevas facturas. Hoy solo está disponible `mock` en `SIMULATION` |
 | `GET/POST /numbering-ranges` | POST: NUMBERING_MANAGE | Resolución de numeración tal como figura en la resolución DIAN, por ambiente |
-| `POST /invoices` | INVOICE_WRITE | Crea un borrador. Totales e impuestos los calcula el servidor; no consume número |
+| `POST /invoices` (cabecera opcional `Idempotency-Key`) | INVOICE_WRITE | Crea un borrador. Totales e impuestos los calcula el servidor; no consume número |
 | `PUT /invoices/{id}` · `DELETE /invoices/{id}` | INVOICE_WRITE | Solo borradores (`409` si ya se emitió) |
 | `POST /invoices/{id}/finalize` | INVOICE_FINALIZE | Verifica la cuota, asigna el número consecutivo y encola el envío. Es idempotente. Fuera de simulación exige perfil tributario del emisor y del cliente (`409 ISSUER_PROFILE_INCOMPLETE` / `CUSTOMER_PROFILE_INCOMPLETE`, ADR-0025) |
 | `GET /invoices/{id}` | INVOICE_READ | Devuelve estado, número, ambiente, totales, subtotales por tarifa, evidencia del proveedor e historial |

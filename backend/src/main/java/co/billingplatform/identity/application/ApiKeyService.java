@@ -89,7 +89,19 @@ public final class ApiKeyService {
         if (record.expiresAt() != null && !record.expiresAt().isAfter(clock.instant())) {
             throw invalid();
         }
+        keys.touch(record.id());
         return new ApiKeyPrincipal(record.tenantId(), record.id(), record.scopes());
+    }
+
+    public java.util.List<IdentityPorts.ApiKeySummary> list(TenantId tenantId) {
+        return keys.list(tenantId);
+    }
+
+    public void revoke(TenantId tenantId, Actor actor, UUID id) {
+        if (!keys.revoke(tenantId, id)) {
+            throw new DomainException("API_KEY_NOT_FOUND", "API key not found or already revoked");
+        }
+        audit.record(new AuditTrail.Event(tenantId, actor, "API_KEY_REVOKED", "api_key", id.toString(), Map.of()));
     }
 
     private static DomainException invalid() {

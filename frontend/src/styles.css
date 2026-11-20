@@ -424,3 +424,7 @@ td.num, th.num { text-align: right; }
 .file-drop:hover, .file-drop:focus-within { border-color: var(--green); }
 .file-drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .file-drop { position: relative; }
+.secret-box { border: 1px solid var(--green); background: var(--green-soft); border-radius: 12px; padding: 12px 14px; }
+.secret-box code { word-break: break-all; font-size: 14px; }
+.key-row { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.key-row.stack { display: grid; }

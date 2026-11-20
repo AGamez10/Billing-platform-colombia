@@ -31,6 +31,12 @@ export function Settings() {
           <span>Razón social, dirección y datos tributarios del RUT.</span>
         </Link>
         {can('manage') && (
+          <Link to="/integraciones" className="hub-link">
+            <strong>Integraciones</strong>
+            <span>Claves de API y avisos para conectar otras apps, como AdoptaFácil.</span>
+          </Link>
+        )}
+        {can('manage') && (
           <Link to="/equipo" className="hub-link">
             <strong>Equipo</strong>
             <span>Invita personas y define qué puede hacer cada una.</span>

@@ -390,6 +390,33 @@ Cómo está construido:
 
 **Seguridad del CSV:** el CSV sale con punto y coma, decimales con coma y BOM UTF-8. Toda celda que empiece como fórmula (`=`, `+`, `-`, `@`) se neutraliza con un apóstrofo, salvo los números negativos (inyección CSV, OWASP).
 
+## ADR-0032 — Claves de API para integraciones
+*2026-11-19 — aceptada*
+
+**Decisión:** las integraciones (AdoptaFácil, tiendas en línea) usan `Authorization: Bearer bpk_<prefijo>_<secreto>`.
+
+- **Verificación:** el decodificador de tokens reconoce el prefijo `bpk_` y verifica la clave con `auth_find_api_key`: hash SHA-256 comparado en tiempo constante, vigencia, no revocada y organización activa. Con eso crea un principal interno con la organización y los permisos de la clave. Los demás tokens se validan como JWT firmados. Todos los controladores usan `CurrentUser`, que distingue usuario de clave.
+- **Permisos:** solo de operación (documentos, clientes y productos). Nunca administrativos: usuarios, plan, proveedor, claves o webhooks (`requireUser`). El cobro POS con Bold exige además una persona.
+- **Secreto:** se muestra una vez. La base solo deja a la aplicación revocar (`UPDATE (revoked_at)`). El último uso se marca con una función acotada, a lo sumo una vez por minuto.
+- **`Idempotency-Key` opcional en `POST /invoices`:** el reintento con la misma clave devuelve el mismo borrador; con otro contenido responde 422. Comparte tabla con la venta POS, con espacio de nombres `draft:`.
+
+**Riesgo residual:** no hay límite de peticiones por clave. Lo amortigua Caddy, y queda en la hoja de ruta.
+
+## ADR-0033 — Webhooks salientes firmados con bandeja de salida y protección SSRF
+*2026-11-19 — aceptada*
+
+**Decisión:** la organización registra hasta 5 URLs HTTPS y los eventos que quiere recibir (`document.accepted`, `document.rejected`, `document.failed`; `ping` para probar).
+
+- **Bandeja de salida:** cuando un documento llega a un estado final, `InvoiceEvents` encola el aviso en `webhook_deliveries`, en la misma transacción. Un trabajador lo entrega cada 15 s con arriendo de 2 min (`claim_webhook_deliveries`).
+- **Firma:** `X-Billing-Signature: t=<epoch>,v1=HMAC-SHA256(secreto, "t.cuerpo")`, más `X-Billing-Event` y `X-Billing-Delivery` para deduplicar del lado del receptor. El secreto se genera aquí, se muestra una vez y se guarda cifrado con AES-GCM.
+- **Reintentos:** 1 min, 5 min, 30 min, 2 h, 6 h, 12 h y 24 h; tras 8 intentos la entrega queda fallida.
+- **SSRF:**
+  - al registrar, solo HTTPS, nombre de dominio público (no IP literal, no localhost ni dominios internos), sin credenciales, puertos 443 u 8443;
+  - antes de cada envío se resuelve el DNS y se rechazan loopback, redes privadas, link-local (incluidos los metadatos de la nube), CGNAT, multicast y los equivalentes IPv6;
+  - sin redirecciones; el cuerpo de la respuesta se descarta; tiempo máximo de 10 s.
+
+**Riesgo residual:** DNS rebinding entre la comprobación y la conexión. Queda en SECURITY.md; se cerraría conectando a la IP verificada.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

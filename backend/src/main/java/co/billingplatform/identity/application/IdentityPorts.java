@@ -92,5 +92,17 @@ public final class IdentityPorts {
         /** Solo claves no revocadas de organizaciones activas ({@code auth_find_api_key}). */
         Optional<ApiKeyRecord> findByPrefix(String prefix);
         void insert(ApiKeyRecord record);
+
+        /** Claves de la organización (sin hash), más recientes primero. */
+        java.util.List<ApiKeySummary> list(TenantId tenantId);
+
+        /** @return {@code false} si no existe o ya estaba revocada */
+        boolean revoke(TenantId tenantId, UUID id);
+
+        /** Sin tenant: marca el último uso (a lo sumo una escritura por minuto por clave). */
+        void touch(UUID id);
     }
+
+    public record ApiKeySummary(UUID id, String name, String prefix, Set<Permission> scopes, Instant createdAt,
+                                Instant lastUsedAt, Instant expiresAt, Instant revokedAt) {}
 }

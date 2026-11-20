@@ -30,6 +30,6 @@ class DashboardController {
             + "ordenados por gravedad. Los del plan solo para quien puede verlo.")
     InsightsService.Dashboard dashboard(@AuthenticationPrincipal Jwt jwt) {
         CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_READ);
-        return tx.inTenant(u.tenantId(), () -> insights.dashboard(u.tenantId(), u.role().can(Permission.USAGE_READ)));
+        return tx.inTenant(u.tenantId(), () -> insights.dashboard(u.tenantId(), u.can(Permission.USAGE_READ)));
     }
 }

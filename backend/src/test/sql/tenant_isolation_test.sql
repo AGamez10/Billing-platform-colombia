@@ -408,6 +408,13 @@ VALUES (:tenant_a, 'f0000000-0000-0000-0000-0000000000c1', 'DRAFT', 'CREDIT_NOTE
 SELECT t.expect_eq((SELECT count(*) FROM invoices WHERE credited_invoice_id = 'f0000000-0000-0000-0000-0000000000a2'), 1,
        'la nota de la misma organización se guarda');
 
+-- 18. Claves de API y webhooks (V20): solo se revocan; los endpoints de webhook solo HTTPS.
+SELECT set_config('app.tenant_id', :tenant_a, false);
+SELECT t.expect_sqlstate($$UPDATE api_keys SET scopes = ARRAY['USERS_MANAGE']$$, '42501', 'la aplicación no puede ampliar los permisos de una clave');
+SELECT t.expect_sqlstate($$UPDATE api_keys SET key_hash = '\x00'$$, '42501', 'la aplicación no puede cambiar el hash de una clave');
+SELECT t.expect_sqlstate($$DELETE FROM webhook_deliveries$$, '42501', 'las entregas de webhooks no se borran');
+SELECT t.expect_eq((SELECT count(*) FROM claim_webhook_deliveries(10)), 0, 'sin entregas vencidas no se reclama nada');
+
 RESET ROLE;
 \echo '== Invariantes del catálogo (como dueño) =='
 SELECT t.expect_sqlstate(

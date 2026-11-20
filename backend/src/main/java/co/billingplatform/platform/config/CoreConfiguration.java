@@ -4,9 +4,10 @@ import co.billingplatform.identity.application.AccountPorts;
 import co.billingplatform.identity.application.AuthenticationService;
 import co.billingplatform.identity.application.IdentityEmails;
 import co.billingplatform.identity.application.PasswordRecoveryService;
+import co.billingplatform.identity.application.ApiKeyService;
+import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.OrganizationProfileService;
 import co.billingplatform.identity.application.TeamService;
-import co.billingplatform.identity.application.IdentityPorts;
 import co.billingplatform.identity.application.RefreshTokenService;
 import co.billingplatform.identity.application.RegistrationService;
 import co.billingplatform.customers.application.CustomerRepository;
@@ -55,6 +56,11 @@ class CoreConfiguration {
     @Bean
     CustomerService customerService(CustomerRepository customers, AuditTrail audit, Municipalities municipalities) {
         return new CustomerService(customers, audit, municipalities);
+    }
+
+    @Bean
+    ApiKeyService apiKeyService(IdentityPorts.ApiKeys keys, AuditTrail audit, Clock clock) {
+        return new ApiKeyService(keys, audit, clock);
     }
 
     @Bean

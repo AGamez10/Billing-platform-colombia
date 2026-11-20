@@ -41,10 +41,18 @@ public final class SubmitInvoiceService {
     private final IssuerDirectory issuers;
     private final Clock clock;
     private final int maxProviderInteractions;
+    private final InvoiceEvents events;
 
     public SubmitInvoiceService(InvoiceRepository invoices, ProviderAccountRepository accounts,
                                 ProviderRegistry registry, IssuerDirectory issuers, Clock clock,
                                 int maxProviderInteractions) {
+        this(invoices, accounts, registry, issuers, clock, maxProviderInteractions, InvoiceEvents.NONE);
+    }
+
+    public SubmitInvoiceService(InvoiceRepository invoices, ProviderAccountRepository accounts,
+                                ProviderRegistry registry, IssuerDirectory issuers, Clock clock,
+                                int maxProviderInteractions, InvoiceEvents events) {
+        this.events = Objects.requireNonNull(events);
         this.invoices = Objects.requireNonNull(invoices);
         this.accounts = Objects.requireNonNull(accounts);
         this.registry = Objects.requireNonNull(registry);
@@ -81,6 +89,9 @@ public final class SubmitInvoiceService {
                     clock.instant());
         }
         invoices.save(invoice);
+        if (invoice.status().isTerminal()) {
+            events.reachedFinalStatus(invoice);
+        }
         return invoice;
     }
 

@@ -33,9 +33,16 @@ public final class ProviderWebhookService {
     private final ProcessedEventStore processedEvents;
     private final InvoiceRepository invoices;
     private final Clock clock;
+    private final InvoiceEvents events;
 
     public ProviderWebhookService(ProviderAccountRepository accounts, ProviderRegistry registry,
                                   ProcessedEventStore processedEvents, InvoiceRepository invoices, Clock clock) {
+        this(accounts, registry, processedEvents, invoices, clock, InvoiceEvents.NONE);
+    }
+
+    public ProviderWebhookService(ProviderAccountRepository accounts, ProviderRegistry registry,
+                                  ProcessedEventStore processedEvents, InvoiceRepository invoices, Clock clock, InvoiceEvents events) {
+        this.events = Objects.requireNonNull(events);
         this.accounts = Objects.requireNonNull(accounts);
         this.registry = Objects.requireNonNull(registry);
         this.processedEvents = Objects.requireNonNull(processedEvents);
@@ -59,8 +66,12 @@ public final class ProviderWebhookService {
             return Outcome.DUPLICATE;
         }
         Invoice target = invoice.get();
+        boolean wasFinal = target.status().isTerminal();
         target.recordProviderResult(event.outcome(), clock.instant());
         invoices.save(target);
+        if (!wasFinal && target.status().isTerminal()) {
+            events.reachedFinalStatus(target);
+        }
         return Outcome.APPLIED;
     }
 }

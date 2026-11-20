@@ -96,6 +96,11 @@ class IdentityServicesTest {
         return new ApiKeyService(new IdentityPorts.ApiKeys() {
             @Override public Optional<ApiKeyRecord> findByPrefix(String p) { return Optional.ofNullable(apiKeyStore.get(p)); }
             @Override public void insert(ApiKeyRecord r) { apiKeyStore.put(r.prefix(), r); }
+            @Override public java.util.List<IdentityPorts.ApiKeySummary> list(TenantId t) { return java.util.List.of(); }
+            @Override public boolean revoke(TenantId t, java.util.UUID id) {
+                return apiKeyStore.values().removeIf(r -> r.id().equals(id) && r.tenantId().equals(t));
+            }
+            @Override public void touch(java.util.UUID id) {}
         }, e -> auditActions.add(e.action()), clock);
     }
 

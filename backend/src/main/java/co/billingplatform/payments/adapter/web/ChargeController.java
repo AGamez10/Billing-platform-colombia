@@ -68,7 +68,7 @@ class ChargeController {
     ChargeView start(@AuthenticationPrincipal Jwt jwt,
                      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
                      @Valid @RequestBody ChargeRequest r) {
-        CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_FINALIZE);
+        CurrentUser u = CurrentUser.from(jwt).require(Permission.INVOICE_FINALIZE).requireUser(); // el cobro lo firma una persona
         u.require(Permission.INVOICE_WRITE);
         // Antes de cobrar, en una transacción corta: ¿el documento podrá emitirse?
         tx.inTenant(u.tenantId(), () -> {

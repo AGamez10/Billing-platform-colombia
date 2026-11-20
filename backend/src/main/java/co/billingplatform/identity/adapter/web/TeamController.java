@@ -108,6 +108,7 @@ class TeamController {
     }
 
     private static TeamService.Acting acting(CurrentUser u) {
+        u.requireUser();
         return new TeamService.Acting(u.tenantId(), u.userId(), u.role());
     }
 

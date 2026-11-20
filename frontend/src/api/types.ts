@@ -385,3 +385,34 @@ export interface SalesReport {
   total: number;
   taxes: { type: string; percentage: string; taxable: number; amount: number }[];
 }
+
+export interface ApiKeyInfo {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  createdAt: string;
+  lastUsedAt?: string | null;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+}
+
+export interface WebhookEndpointInfo {
+  id: string;
+  url: string;
+  events: string[];
+  description?: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface WebhookDeliveryInfo {
+  id: string;
+  event: string;
+  status: 'PENDING' | 'DELIVERED' | 'FAILED';
+  attempts: number;
+  nextAttemptAt: string;
+  lastStatus?: number | null;
+  lastError?: string | null;
+  createdAt: string;
+}

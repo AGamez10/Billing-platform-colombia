@@ -13,6 +13,7 @@ import { Setup } from './pages/Setup';
 import { Team } from './pages/Team';
 import { Company } from './pages/Company';
 import { Import } from './pages/Import';
+import { Integrations } from './pages/Integrations';
 import { Reports } from './pages/Reports';
 import { DocumentPrint } from './pages/DocumentPrint';
 import { PublicDocument } from './pages/PublicDocument';
@@ -85,6 +86,7 @@ export function App() {
         <Route path="empresa" element={<Company />} />
         <Route path="reportes" element={<Reports />} />
         <Route path="importar" element={<Import />} />
+        <Route path="integraciones" element={<Integrations />} />
         <Route path="plan" element={<Plan />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

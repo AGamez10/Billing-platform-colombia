@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import co.billingplatform.identity.application.ApiKeyService;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -61,10 +62,10 @@ public class AccessTokens {
     }
 
     @Bean
-    JwtDecoder jwtDecoder() {
+    JwtDecoder jwtDecoder(ApiKeyService apiKeys) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
         decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(ISSUER));
-        return decoder;
+        return new ApiKeyAwareJwtDecoder(decoder, apiKeys, clock);
     }
 
     public Issued issue(UUID userId, TenantId tenantId, Role role) {
