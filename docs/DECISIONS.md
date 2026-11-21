@@ -452,6 +452,21 @@ Cómo está construido:
 
 - Todas las acciones de los workflows quedan fijadas por SHA de commit, con la versión en un comentario. Dependabot propone las actualizaciones.
 
+## ADR-0036 — Página pública con alcance nacional: Colombia municipio por municipio
+*2026-11-21 — aceptada*
+
+**Contexto:** el propietario pidió que la página pública posicione la plataforma como una solución con capacidad nacional. El hero 3D anterior (caja y tiquete) se veía como un producto de tienda de barrio y pesaba unos 130 KB más (Three.js).
+
+**Decisión:**
+- **Hero:** mapa de Colombia hecho con datos públicos y verificables, no con cifras de uso que aún no tenemos.
+  - Departamentos de Natural Earth (dominio público), simplificados.
+  - Un punto por cada uno de los 1.122 municipios y áreas no municipalizadas de la DIVIPOLA, con las coordenadas oficiales del DANE (datos.gov.co, generadas por el workflow "Catálogo DIVIPOLA").
+  - San Andrés y Providencia en recuadro.
+  - El buscador "¿Dónde está tu negocio?" usa el mismo catálogo que la app y muestra el código DANE que exige la factura.
+- **Producto:** la representación gráfica es el componente real de la app con una factura de ejemplo marcada como ilustrativa. Le siguen la API para desarrolladores, la seguridad y los ambientes, y precios visibles leídos del catálogo.
+- **Animación:** una sola, el país que se enciende de norte a sur. Respeta el movimiento reducido.
+- **Sin cifras inventadas:** ni clientes, ni documentos emitidos, ni comparaciones sin fuente.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |
