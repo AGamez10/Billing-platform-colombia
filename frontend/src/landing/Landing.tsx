@@ -1,19 +1,21 @@
 import { Link } from 'react-router';
 import type { Plan } from '../api/types';
 import { BRAND_NAME } from '../brand';
+import { DocumentSheetView } from '../components/DocumentSheetView';
 import { Icon } from '../components/ui';
 import { annualSaving } from '../components/UpgradeOffer';
 import { formatCop } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { ColombiaMap } from './ColombiaMap';
 import { CostCalculator } from './CostCalculator';
-import { Hero3D } from './Hero3D';
 import { PosDemo } from './PosDemo';
+import { SAMPLE_SHEET } from './sampleSheet';
 import './landing.css';
 
 /**
- * Página pública. Orden pensado para quien hoy factura con otro sistema: primero ve la promesa
- * funcionando (3D), luego la prueba con sus manos (demo), sabe cuánto le cuesta con precios
- * reales (calculadora), entiende por qué confiar y qué nos mueve.
+ * Página pública. Primero la escala (el país entero, municipio por municipio), luego el producto
+ * real (la factura tal como sale), la prueba con las manos (demo), a quién sirve, cómo se integra,
+ * por qué confiar y cuánto cuesta con precios del catálogo.
  */
 export function Landing() {
   const plans = useApi<Plan[]>('/api/v1/public/plans');
@@ -34,10 +36,10 @@ export function Landing() {
             <span>{BRAND_NAME}</span>
           </Link>
           <nav className="lp-nav" aria-label="Secciones">
-            <a href="#pruebalo">Pruébalo</a>
+            <a href="#producto">Producto</a>
             <a href="#precios">Precios</a>
-            <a href="#confianza">Confianza</a>
-            <a href="#lo-que-nos-mueve">Lo que nos mueve</a>
+            <a href="#desarrolladores">Desarrolladores</a>
+            <a href="#seguridad">Seguridad</a>
           </nav>
           <div className="lp-header-actions">
             <Link to="/entrar" className="btn lp-btn-quiet">
@@ -50,70 +52,82 @@ export function Landing() {
         </header>
 
         <div className="lp-hero-grid">
-          <h1 id="hero-h">Vende, cobra y la factura sale sola.</h1>
-          <Hero3D fallback={<StaticReceipt />} />
           <div className="lp-hero-copy">
+            <h1 id="hero-h">Factura electrónica para todo Colombia.</h1>
             <p className="lp-lead">
-              Factura electrónica y tiquete POS para el comercio colombiano. Tu cliente paga con QR y, en el momento en que el pago se confirma,
-              el documento se emite. Sin digitar dos veces, sin esperar al final del día.
+              Facturas, tiquetes POS y notas crédito con validez ante la DIAN, desde el celular o el computador. Para la tienda de Leticia y
+              para la empresa de Barranquilla, con los mismos precios publicados.
             </p>
             <div className="lp-cta-row">
               <Link to="/registro" className="btn btn-primary btn-lg">
                 Empieza gratis con 20 documentos
               </Link>
               <a href="#pruebalo" className="btn btn-lg lp-btn-outline">
-                Pruébalo aquí mismo
+                Prueba la caja aquí
               </a>
             </div>
-            <ul className="lp-hero-facts">
-              <li>
-                <strong>{cheapestMonthly ? `Desde ${formatCop(cheapestMonthly)}` : 'Precios públicos'}</strong>
-                <span>{cheapestMonthly ? 'al mes, precio publicado' : 'en esta página'}</span>
-              </li>
-              <li>
-                <strong>Sin tarjeta</strong>
-                <span>para empezar</span>
-              </li>
-              <li>
-                <strong>Práctica ilimitada</strong>
-                <span>antes de facturar en real</span>
-              </li>
-            </ul>
+            <dl className="lp-hero-facts">
+              <div>
+                <dt>{cheapestMonthly ? `Desde ${formatCop(cheapestMonthly)}` : 'Precios públicos'}</dt>
+                <dd>al mes, con todo incluido</dd>
+              </div>
+              <div>
+                <dt>Sin tarjeta</dt>
+                <dd>para empezar</dd>
+              </div>
+              <div>
+                <dt>Práctica ilimitada</dt>
+                <dd>antes de facturar en real</dd>
+              </div>
+            </dl>
           </div>
+          <ColombiaMap />
         </div>
       </section>
 
-      <section id="confianza" className="lp-trust" aria-labelledby="trust-h">
-        <div className="lp-wrap">
-          <h2 id="trust-h" className="lp-trust-title">Confianza que se puede comprobar, no solo prometer</h2>
-          <ul className="lp-trust-list">
-            <li>
-              <h3>Validez ante la DIAN</h3>
-              <p>Tus documentos se emiten a través de un proveedor tecnológico autorizado por la DIAN, y ves el estado de cada uno: enviado, aceptado o rechazado, con el motivo.</p>
-            </li>
-            <li>
-              <h3>Siempre sabes dónde estás</h3>
-              <p>Práctica, habilitación o producción: cada documento lo dice. Nunca confundirás una prueba con una factura real.</p>
-            </li>
-            <li>
-              <h3>Tu información, solo tuya</h3>
-              <p>Cada organización está aislada en la base de datos, las llaves de tus cuentas se guardan cifradas y cada persona de tu equipo entra con su propio usuario.</p>
-            </li>
-            <li>
-              <h3>El dinero llega directo a ti</h3>
-              <p>Los cobros con QR van a tu propia cuenta Bold. Nosotros nunca tocamos el dinero de tus ventas.</p>
-            </li>
-          </ul>
+      <section id="producto" className="lp-section lp-product" aria-labelledby="product-h">
+        <div className="lp-wrap lp-product-grid">
+          <div className="lp-product-copy">
+            <h2 id="product-h">Todo el ciclo de un documento, en un solo lugar</h2>
+            <dl className="lp-cycle">
+              <div>
+                <dt>Emite</dt>
+                <dd>Factura electrónica, tiquete POS y nota crédito, con tu numeración DIAN y los impuestos calculados por la plataforma.</dd>
+              </div>
+              <div>
+                <dt>Cobra</dt>
+                <dd>Tu cliente paga con QR en tu propia cuenta y el documento se emite solo cuando el pago se confirma.</dd>
+              </div>
+              <div>
+                <dt>Entrega</dt>
+                <dd>Por correo, por WhatsApp o con un QR que tu cliente escanea en la caja. Se ve e imprime sin crear cuenta.</dd>
+              </div>
+              <div>
+                <dt>Corrige</dt>
+                <dd>Anulaciones y devoluciones con nota crédito ligada a la factura original, sin rehacer nada a mano.</dd>
+              </div>
+              <div>
+                <dt>Reporta</dt>
+                <dd>Ventas del mes, impuestos y documentos validados, listos para tu contador en un archivo que abre en Excel.</dd>
+              </div>
+            </dl>
+          </div>
+          <figure className="lp-sheet">
+            <div className="lp-sheet-frame">
+              <DocumentSheetView sheet={SAMPLE_SHEET} />
+            </div>
+            <figcaption>Así sale cada factura: con CUFE, código QR, resolución y los datos tributarios de ambas partes. Ejemplo ilustrativo.</figcaption>
+          </figure>
         </div>
       </section>
 
-      <section id="pruebalo" className="lp-section" aria-labelledby="demo-h">
+      <section id="pruebalo" className="lp-section lp-section-alt" aria-labelledby="demo-h">
         <div className="lp-wrap lp-split">
           <div className="lp-split-copy">
             <h2 id="demo-h">Pruébalo aquí, sin registrarte</h2>
             <p>
-              Agrega productos, cobra con QR y simula el pago. El tiquete sale solo, como en tu caja. Es la misma pantalla que vas a usar
-              todos los días, en el celular o en el computador.
+              Agrega productos, cobra con QR y simula el pago. El tiquete sale solo, como en tu caja. Es la misma pantalla que vas a usar todos
+              los días, en el celular o en el computador.
             </p>
             <ol className="lp-steps-mini">
               <li>Toca los productos</li>
@@ -125,68 +139,175 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="lp-section lp-section-alt" aria-labelledby="who-h">
+      <section className="lp-section" aria-labelledby="who-h">
         <div className="lp-wrap">
-          <h2 id="who-h">Hecho para quien no tiene tiempo de pelear con la DIAN</h2>
+          <h2 id="who-h">Del mostrador al departamento de contabilidad</h2>
           <dl className="lp-who">
             <div>
               <dt>Tiendas, restaurantes y droguerías</dt>
-              <dd>Caja rápida desde el celular, cobro con QR y planes por volumen pensados para el día a día de la caja.</dd>
+              <dd>Caja rápida en el celular, cobro con QR y cada venta con su tiquete POS, aunque entren cien clientes en una hora.</dd>
             </div>
             <div>
-              <dt>Fundaciones, refugios y ESAL</dt>
-              <dd>Facturas por servicios, eventos y ventas de tu fundación, sin pagar un software pensado para empresas grandes.</dd>
+              <dt>Empresas de servicios</dt>
+              <dd>Facturas entre empresas con los datos tributarios completos de cada cliente, equipo con permisos y reportes para el cierre.</dd>
             </div>
             <div>
               <dt>Profesionales independientes</dt>
-              <dd>Una factura en un minuto, con los datos de tus clientes guardados y el dígito de verificación calculado por ti.</dd>
+              <dd>Una factura en un minuto, con tus clientes guardados y el dígito de verificación calculado por ti.</dd>
+            </div>
+            <div>
+              <dt>Fundaciones, refugios y ESAL</dt>
+              <dd>Facturas por servicios, eventos y ventas, sin pagar un software pensado para empresas grandes.</dd>
+            </div>
+            <div>
+              <dt>Plataformas y software propio</dt>
+              <dd>Emite desde tu tienda en línea, tu ERP o tu app con nuestra API y recibe el resultado de la DIAN en tu sistema.</dd>
             </div>
           </dl>
-          <ul className="lp-promises">
-            <li>
-              <strong>Nunca te quedas sin poder vender por sorpresa.</strong> Te avisamos antes de que se acabe tu cupo y eliges: subir de plan
-              o seguir con documentos adicionales.
-            </li>
-            <li>
-              <strong>Te acompañamos en la habilitación.</strong> Practicas sin riesgo y pasas a real con nosotros al lado.
-            </li>
-            <li>
-              <strong>Tu equipo, con permisos.</strong> Cajeros que venden, contador que consulta y solo tú tocas lo delicado.
-            </li>
-            <li>
-              <strong>En el celular, como una app.</strong> Se instala desde el navegador, sin pasar por tiendas de aplicaciones.
-            </li>
-          </ul>
         </div>
       </section>
 
-      <section id="precios" className="lp-section" aria-labelledby="price-h">
+      <section id="desarrolladores" className="lp-dev" aria-labelledby="dev-h">
+        <div className="lp-wrap lp-dev-grid">
+          <div className="lp-dev-copy">
+            <h2 id="dev-h">Factura desde tu propio sistema</h2>
+            <p>Una API REST para crear y emitir documentos, y avisos firmados cuando la DIAN responde. Sin SDK obligatorio.</p>
+            <ul className="lp-dev-list">
+              <li>
+                <strong>Claves de API con permisos.</strong> Cada integración solo hace lo que le diste: emitir, consultar o administrar
+                clientes.
+              </li>
+              <li>
+                <strong>Sin documentos duplicados.</strong> Si tu sistema reintenta con la misma clave de idempotencia, recibe el mismo documento.
+              </li>
+              <li>
+                <strong>Avisos verificables.</strong> Cada webhook va firmado con HMAC-SHA256 y se reintenta durante casi dos días si tu servidor no
+                responde.
+              </li>
+              <li>
+                <strong>Tus datos, tu formato.</strong> Importa clientes y productos por CSV y exporta tus ventas cuando quieras.
+              </li>
+            </ul>
+          </div>
+          <div className="lp-code" role="group" aria-label="Ejemplo de uso de la API">
+            <p className="lp-code-title">Emitir una factura</p>
+            <pre>
+              <code>{`POST /api/v1/invoices
+Authorization: Bearer bpk_…
+Idempotency-Key: pedido-48211
+
+{
+  "customerId": "6f1c…",
+  "lines": [{
+    "description": "Plan anual de soporte",
+    "unitCode": "94",
+    "quantity": 1,
+    "unitPrice": "240000.00",
+    "taxRateCodes": ["IVA19"]
+  }]
+}`}</code>
+            </pre>
+            <p className="lp-code-title">Aviso a tu servidor cuando la DIAN acepta</p>
+            <pre>
+              <code>{`X-Billing-Signature: t=1763740920,v1=5d2f…
+
+{
+  "type": "document.accepted",
+  "data": {
+    "number": "FE 1043",
+    "legallyValid": true,
+    "documentKey": "8f3a61c2…",
+    "total": "285600.00"
+  }
+}`}</code>
+            </pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="seguridad" className="lp-section" aria-labelledby="sec-h">
         <div className="lp-wrap">
-          <h2 id="price-h">¿Cuánto te cuesta? Muévelo y lo ves</h2>
-          <p className="lp-sub">Con los precios reales del catálogo, sin letra pequeña. Cambias de plan cuando quieras.</p>
-          {plans.data ? <CostCalculator plans={all} /> : <p className="muted">Cargando precios…</p>}
-          <details className="lp-all-plans">
-            <summary>Ver todos los planes</summary>
-            <div className="lp-prices">
-              <PriceTable title="Para facturar" caption="Facturas electrónicas al mes" plans={general} />
-              <PriceTable title="Para caja (POS)" caption="Documentos al mes" plans={commerce} />
-            </div>
-          </details>
-          <p className="small muted">Empiezas con la prueba gratis: 20 documentos, sin fecha de vencimiento.</p>
+          <h2 id="sec-h">Tu información tributaria, protegida desde el diseño</h2>
+          <div className="lp-sec-grid">
+            <ul className="lp-sec-list">
+              <li>
+                <h3>Cada empresa, aislada</h3>
+                <p>La base de datos impide por diseño que una organización vea datos de otra, aunque la aplicación se equivoque.</p>
+              </li>
+              <li>
+                <h3>Verificación en dos pasos</h3>
+                <p>Con tu app de autenticación. Una contraseña filtrada no basta para entrar a tu cuenta.</p>
+              </li>
+              <li>
+                <h3>Llaves cifradas</h3>
+                <p>Las credenciales de tus cuentas de pago se guardan cifradas con AES-256 y nunca se muestran de nuevo.</p>
+              </li>
+              <li>
+                <h3>Copias cada día</h3>
+                <p>Copia cifrada diaria fuera del servidor, con restauración probada de forma automática.</p>
+              </li>
+              <li>
+                <h3>Si la DIAN se demora, nada se pierde</h3>
+                <p>Cada documento queda en cola y se reintenta solo, sin duplicarse, hasta tener una respuesta.</p>
+              </li>
+              <li>
+                <h3>Todo queda registrado</h3>
+                <p>Quién emitió, anuló o cambió algo y cuándo. Ese registro no se puede editar.</p>
+              </li>
+            </ul>
+            <aside className="lp-env">
+              <h3>Nunca confundes una prueba con una factura real</h3>
+              <ol>
+                <li>
+                  <strong>Práctica</strong>
+                  <span>Aprende sin enviar nada a la DIAN.</span>
+                </li>
+                <li>
+                  <strong>Habilitación</strong>
+                  <span>El set de pruebas ante la DIAN, con nosotros al lado.</span>
+                </li>
+                <li>
+                  <strong>Producción</strong>
+                  <span>Solo aquí un documento tiene validez tributaria, y así lo dice.</span>
+                </li>
+              </ol>
+            </aside>
+          </div>
         </div>
       </section>
 
-      <section className="lp-section lp-section-alt" aria-labelledby="switch-h">
+      <section id="precios" className="lp-section lp-section-alt" aria-labelledby="price-h">
+        <div className="lp-wrap">
+          <h2 id="price-h">Precios publicados, iguales para todo el país</h2>
+          <p className="lp-sub">
+            Todos los tipos de documento, usuarios ilimitados y API en todos los planes. Al llegar a tu límite te avisamos antes; nunca cobramos
+            documentos extra sin que los aceptes.
+          </p>
+          {plans.data ? (
+            <div className="lp-prices">
+              <PriceTable title="Para facturar" plans={general} />
+              <PriceTable title="Para caja (POS)" plans={commerce} />
+            </div>
+          ) : (
+            <p className="muted">Cargando precios…</p>
+          )}
+          <h3 className="lp-calc-title">¿Cuál te sirve? Muévelo y lo ves</h3>
+          {plans.data && <CostCalculator plans={all} />}
+          <p className="small muted">Empiezas con la prueba gratis: 20 documentos en producción, sin tarjeta.</p>
+        </div>
+      </section>
+
+      <section className="lp-section" aria-labelledby="switch-h">
         <div className="lp-wrap lp-switch">
-          <h2 id="switch-h">¿Ya facturas con otro sistema?</h2>
+          <h2 id="switch-h">¿Ya facturas con otro sistema? Cámbiate sin dejar de facturar</h2>
           <ol className="lp-switch-steps">
             <li>
               <h3>Practica sin soltar lo que tienes</h3>
               <p>Crea tu cuenta y usa la práctica mientras sigues facturando como hoy. Nada de lo que hagas aquí sale hacia la DIAN.</p>
             </li>
             <li>
-              <h3>Prepara tu caja</h3>
-              <p>Carga tus productos y clientes, invita a tu equipo y conecta tu cuenta Bold para cobrar con QR.</p>
+              <h3>Trae tus datos</h3>
+              <p>Importa clientes y productos desde un archivo de Excel, invita a tu equipo y conecta tu cuenta para cobrar con QR.</p>
             </li>
             <li>
               <h3>Cambia cuando estés listo</h3>
@@ -200,8 +321,8 @@ export function Landing() {
         <div className="lp-wrap">
           <h2 id="mission-h">Cada suscripción le factura a alguien más</h2>
           <p className="lp-mission-lead">
-            Los refugios de animales y las fundaciones también tienen que facturar, y casi nunca tienen con qué pagar un software. Por eso el
-            20 % de cada suscripción va a un fondo solidario que cubre su facturación electrónica.
+            Los refugios de animales y las fundaciones también tienen que facturar, y casi nunca tienen con qué pagar un software. Por eso el 20
+            % de cada suscripción va a un fondo solidario que cubre su facturación electrónica.
           </p>
           <ol className="lp-flow" aria-label="Cómo llega tu aporte">
             <li>
@@ -236,23 +357,27 @@ export function Landing() {
               </p>
             </details>
             <details>
+              <summary>¿Funciona en mi ciudad o municipio?</summary>
+              <p>
+                Sí. La plataforma trae los 1.122 municipios y áreas no municipalizadas de la DIVIPOLA del DANE, con el código que exige la
+                factura electrónica en la dirección del emisor y del cliente.
+              </p>
+            </details>
+            <details>
               <summary>¿Qué incluye la prueba gratis?</summary>
-              <p>20 documentos en producción, sin tarjeta y sin fecha de vencimiento. La práctica no gasta documentos.</p>
+              <p>20 documentos en producción, sin tarjeta. La práctica no gasta documentos.</p>
             </details>
             <details>
               <summary>¿Quién recibe el dinero de mis ventas con QR?</summary>
               <p>Tú. Conectas tu propia cuenta Bold y el dinero llega directo a ella. Nosotros solo creamos el cobro y emitimos el documento.</p>
             </details>
             <details>
-              <summary>¿Qué pasa si se acaba mi cupo del mes?</summary>
-              <p>Te avisamos antes. Puedes subir de plan o, si tu plan lo permite y lo aceptas, seguir con documentos adicionales a un precio fijo.</p>
+              <summary>¿Puedo emitir desde mi propio software?</summary>
+              <p>Sí. Creas una clave de API con los permisos que quieras y tu sistema emite y consulta documentos; te avisamos por webhook cuando la DIAN responde.</p>
             </details>
             <details>
-              <summary>¿Quién ve mi información?</summary>
-              <p>
-                Solo tu organización y las personas que invites, cada una con su usuario y sus permisos. La información de cada organización está
-                aislada de las demás.
-              </p>
+              <summary>¿Qué pasa si se acaba mi cupo del mes?</summary>
+              <p>Te avisamos antes. Puedes subir de plan o, si tu plan lo permite y lo aceptas, seguir con documentos adicionales a un precio fijo.</p>
             </details>
           </div>
         </div>
@@ -269,29 +394,43 @@ export function Landing() {
 
       <footer className="lp-footer">
         <div className="lp-wrap lp-footer-inner">
-          <span className="brand">
-            {Icon.logo}
-            <span>{BRAND_NAME}</span>
-          </span>
-          <nav aria-label="Legal" className="lp-footer-links">
-            <Link to="/terminos">Términos y condiciones</Link>
-            <Link to="/privacidad">Tratamiento de datos</Link>
+          <div className="lp-footer-brand">
+            <span className="brand">
+              {Icon.logo}
+              <span>{BRAND_NAME}</span>
+            </span>
+            <p className="small">Facturación electrónica hecha en Colombia, para todo el país.</p>
+          </div>
+          <nav aria-label="Producto" className="lp-footer-col">
+            <h2>Producto</h2>
+            <a href="#producto">Qué incluye</a>
+            <a href="#precios">Precios</a>
+            <a href="#desarrolladores">API para desarrolladores</a>
+            <a href="#seguridad">Seguridad</a>
+          </nav>
+          <nav aria-label="Cuenta" className="lp-footer-col">
+            <h2>Cuenta</h2>
+            <Link to="/registro">Crear cuenta</Link>
             <Link to="/entrar">Entrar</Link>
           </nav>
-          <p className="small">Hecho en Colombia.</p>
+          <nav aria-label="Legal" className="lp-footer-col">
+            <h2>Legal</h2>
+            <Link to="/terminos">Términos y condiciones</Link>
+            <Link to="/privacidad">Tratamiento de datos</Link>
+          </nav>
         </div>
       </footer>
     </div>
   );
 }
 
-function PriceTable({ title, caption, plans }: { title: string; caption: string; plans: Plan[] }) {
+function PriceTable({ title, plans }: { title: string; plans: Plan[] }) {
   if (plans.length === 0) return null;
   return (
     <div className="lp-price-block">
       <h3>{title}</h3>
       <table className="lp-price-table">
-        <caption className="visually-hidden">{caption}</caption>
+        <caption className="visually-hidden">{title}: documentos al mes y precio de cada plan</caption>
         <thead>
           <tr>
             <th scope="col">Plan</th>
@@ -315,37 +454,5 @@ function PriceTable({ title, caption, plans }: { title: string; caption: string;
         </tbody>
       </table>
     </div>
-  );
-}
-
-/** Versión estática del hero (sin WebGL, con ahorro de datos o mientras carga el 3D). */
-function StaticReceipt() {
-  return (
-    <figure className="l-receipt">
-      <div className="receipt-paper">
-        <p className="receipt-shop">Tienda Doña Rosa</p>
-        <p className="receipt-meta">POS electrónico · CAJA 1043</p>
-        <ul className="receipt-lines">
-          <li>
-            <span>2 × Gaseosa 400 ml</span>
-            <span className="num">$ 5.000</span>
-          </li>
-          <li>
-            <span>1 × Pan aliñado</span>
-            <span className="num">$ 3.500</span>
-          </li>
-          <li>
-            <span>1 × Leche 1 L</span>
-            <span className="num">$ 4.200</span>
-          </li>
-        </ul>
-        <p className="receipt-total">
-          <span>Total</span>
-          <span className="num">$ 12.700</span>
-        </p>
-        <p className="receipt-paid">Pagado con Bre-B</p>
-        <p className="receipt-stamp">Emitido solo</p>
-      </div>
-    </figure>
   );
 }

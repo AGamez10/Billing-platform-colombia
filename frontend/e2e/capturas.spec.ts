@@ -8,10 +8,12 @@ test('capturas de pantallas principales', async ({ page }, info) => {
   const shot = async (name: string, fullPage = false) =>
     page.screenshot({ path: `capturas/${info.project.name}-${name}.jpg`, type: 'jpeg', quality: 62, fullPage });
   await page.goto('/');
-  await page.waitForTimeout(4500); // carga diferida del 3D y primeros segundos de la escena
+  await page.waitForTimeout(2600); // entrada del mapa, de norte a sur
   await shot('landing-hero');
-  await page.waitForTimeout(3500); // el tiquete sale impreso
-  await shot('landing-hero-tiquete');
+  await page.getByRole('combobox', { name: '¿Dónde está tu negocio?' }).fill('leticia');
+  await page.getByRole('option').first().click();
+  await page.waitForTimeout(400);
+  await shot('landing-hero-municipio');
   await page.locator('#precios').scrollIntoViewIfNeeded();
   await page.waitForTimeout(1200); // Chart.js se carga al acercarse
   await shot('landing', true);

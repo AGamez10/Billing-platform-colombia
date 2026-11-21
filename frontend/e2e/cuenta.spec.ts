@@ -3,7 +3,14 @@ import { linkFromEmail, PASSWORD, registerOrganization, suffix } from './helpers
 
 test('la página pública: demo sin registro, calculadora con precios reales y registro', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1, name: 'Vende, cobra y la factura sale sola.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Factura electrónica para todo Colombia.' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /Mapa de Colombia con un punto por cada uno de sus 1\.122 municipios/ })).toBeVisible();
+
+  // ¿Funciona en mi municipio? Busca en la DIVIPOLA y lo marca en el mapa
+  await page.getByRole('combobox', { name: '¿Dónde está tu negocio?' }).fill('cienaga');
+  await page.getByRole('option', { name: /Ciénaga\s*Magdalena/ }).click();
+  await expect(page.getByText(/Facturas desde\s*Ciénaga/)).toBeVisible();
+  await expect(page.getByText('47189')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Cada suscripción le factura a alguien más' })).toBeVisible();
 
   // La caja de demostración funciona de punta a punta sin cuenta
@@ -20,7 +27,6 @@ test('la página pública: demo sin registro, calculadora con precios reales y r
   await page.getByRole('slider').focus();
   await page.keyboard.press('End');
   await expect(page.locator('.calc-plan')).toHaveText('Comercio 3.000');
-  await page.getByText('Ver todos los planes').click();
   await expect(page.getByRole('rowheader', { name: 'Comercio 1.200' })).toBeVisible();
   await page.getByRole('link', { name: /Empieza gratis con 20 documentos/ }).click();
   await expect(page).toHaveURL(/\/registro$/);
