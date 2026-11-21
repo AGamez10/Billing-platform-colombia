@@ -57,11 +57,25 @@ jobs:
           done
           awk -F'","' 'NR>1 && substr($1,2,2) != $3 { bad++ } END { if (bad) { print "::error::" bad " filas con departamento inconsistente"; exit 1 } }' "$f"
 
+      # Un punto por municipio para el mapa de la página pública: [longitud, latitud, código DANE].
+      - name: Coordenadas de los municipios (mapa de la página pública)
+        run: |
+          set -euo pipefail
+          out=frontend/src/landing/municipios.json
+          jq -c '[.[]
+                  | select(.longitud != null and .latitud != null)
+                  | [ (.longitud | tostring | gsub(",";".") | tonumber * 100 | round / 100),
+                      (.latitud  | tostring | gsub(",";".") | tonumber * 100 | round / 100),
+                      (.cod_mpio | tostring | gsub("[^0-9]";"")) ]
+                  | select(.[0] < -66 and .[0] > -82 and .[1] > -5 and .[1] < 14)]' /tmp/divipola.json > "$out"
+          n=$(jq length "$out"); echo "municipios con coordenadas: $n"
+          [ "$n" -ge 1100 ] || { echo "::error::faltan coordenadas: $n"; exit 1; }
+
       - name: Confirmar
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/src/main/resources/catalog/divipola.csv
+          git add backend/src/main/resources/catalog/divipola.csv frontend/src/landing/municipios.json
           if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
-          git commit -m "Catálogo DIVIPOLA (DANE, datos.gov.co, generado en CI)"
+          git commit -m "Catálogo DIVIPOLA y coordenadas de municipios (DANE, datos.gov.co, generado en CI)"
           git push
