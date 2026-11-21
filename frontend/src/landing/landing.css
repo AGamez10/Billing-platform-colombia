@@ -238,3 +238,11 @@
 .lp-footer-col h2 { font-family: var(--font-body); font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: 0; max-width: none; }
 .lp-footer-col a { color: var(--ink-2); text-decoration: none; font-size: 15px; }
 .lp-footer-col a:hover { color: var(--green-strong); text-decoration: underline; }
+
+/* El ejemplo de factura no debe ensanchar la columna del texto en pantallas angostas */
+.lp-product-grid > *, .lp-dev-grid > *, .lp-hero-grid > * { min-width: 0; }
+@media (max-width: 640px) {
+  .lp-cycle > div { grid-template-columns: 1fr; gap: 4px; }
+  .lp-sheet-frame { padding: 10px; max-height: 520px; }
+  .lp-sheet-frame .doc-sheet { font-size: 11px; padding: 16px; }
+}
