@@ -325,6 +325,9 @@
   .journey-steps { padding: 18vh 0 22vh; gap: 0; }
   .journey-steps li { min-height: 52vh; align-content: center; opacity: 0.38; transition: opacity 400ms; }
   .journey-steps li.is-active { opacity: 1; }
+  /* Al llegar el mensaje al cliente, la factura se corre para que el celular no tape el total. */
+  .journey-stage .jdoc { transition: transform 700ms cubic-bezier(.2,.7,.2,1); }
+  .journey-stage.ge-3 .jdoc { transform: translate(-64px, -56px); }
 }
 @media (max-width: 899px) {
   /* En el celular el documento se muestra completo y los pasos se leen debajo. */
