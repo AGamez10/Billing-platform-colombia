@@ -156,6 +156,14 @@ Debe terminar en `RESTAURACIÓN OK`. Para restaurar de verdad (desastre): servid
 - Registros: `docker compose --project-directory /opt/billing/deploy -f /opt/billing/deploy/compose.prod.yml logs -f backend` (rotan a 5×10 MB por servicio).
 - Ambientes: este kit es para **un** ambiente. Habilitación y producción del proveedor se distinguen dentro de la app por cuenta; un ambiente de pruebas de la plataforma iría en otro servidor o directorio con su propio `.env` y dominio.
 
+### 7. Aparecer en los buscadores (después del primer despliegue)
+El código ya entrega a los buscadores una página pública completa en HTML, con título, descripción, datos estructurados, `robots.txt` y `sitemap.xml` con tu dominio (ADR-0038). Lo que queda depende de ti:
+1. **Google Search Console** (search.google.com/search-console): agrega la propiedad de dominio y verifícala con el registro TXT que te indica en el DNS. Luego, en *Sitemaps*, envía `https://tu-dominio/sitemap.xml`. Con *Inspección de URL* pide indexar la raíz.
+2. **Bing Webmaster Tools** (bing.com/webmasters): puedes importar el sitio desde Search Console. Bing también alimenta a DuckDuckGo y a otros buscadores.
+3. **Perfil de empresa en Google** con el nombre de la marca, para las búsquedas por nombre y desde Maps.
+4. **Revisa la vista previa** pegando el enlace en WhatsApp o en el depurador de Facebook: debe salir la imagen `og.png` con el título.
+5. **Enlaces y contenido:** pide que te enlacen gremios, cámaras de comercio, el blog de tu contador aliado y los clientes (AdoptaFácil, por ejemplo). Publica guías útiles: cómo sacar la resolución de facturación, qué es el CUFE, factura electrónica para restaurantes. Esto pesa más que cualquier ajuste técnico, y nadie puede garantizar el primer lugar.
+
 ## Notas de diseño del despliegue
 
 
