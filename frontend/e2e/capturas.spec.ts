@@ -14,6 +14,16 @@ test('capturas de pantallas principales', async ({ page }, info) => {
   await page.getByRole('option').first().click();
   await page.waitForTimeout(400);
   await shot('landing-hero-municipio');
+  // El viaje de una factura, paso por paso, como lo ve quien hace scroll
+  const steps = page.locator('.journey-steps li');
+  for (let i = 0; i < 4; i++) {
+    await steps.nth(i).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(1100);
+    await shot(`landing-viaje-${i + 1}`);
+  }
+  await page.locator('#por-que').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(300);
+  await shot('landing-por-que');
   await page.locator('#precios').scrollIntoViewIfNeeded();
   await page.waitForTimeout(1200); // Chart.js se carga al acercarse
   await shot('landing', true);
