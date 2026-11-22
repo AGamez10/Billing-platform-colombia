@@ -50,7 +50,7 @@ export const SAMPLE_SHEET: DocumentSheet = {
   ],
   taxSubtotals: [{ code: 'IVA19', type: 'IVA', percentage: 19, taxableAmount: 400000, taxAmount: 76000 }],
   totals: { currency: 'COP', lineExtensionAmount: 400000, taxTotal: 76000, payableAmount: 476000 },
-  documentKey: '8f3a61c2d9e04b7a95c1e6f2a8d4b0c37e9a12f5d6b8c0e3a7f4d1b9c2e5a8f06b3d7c1e9a4f2b8d5c0e7a3f6b1d9c4',
+  documentKey: '8f3a61c2d9e04b7a95c1e6f2a8d4b0c37e9a12f5d6b8c0e3a7f4d1b9c2e5a8f06b3d7c1e9a4f2b8d5c0e7a3f6b1d9c4', // gitleaks:allow (CUFE ilustrativo de la página pública, no es un secreto)
   qrPayload: 'Ejemplo ilustrativo: esta factura no existe.',
   correction: null,
 };
