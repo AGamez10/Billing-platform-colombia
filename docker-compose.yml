@@ -52,7 +52,7 @@ services:
       # Solo desarrollo local: en producción, 32 bytes aleatorios en Base64 (openssl rand -base64 32).
       BILLING_SECRETS_KEY: ${BILLING_SECRETS_KEY:-bG9jYWwtZGV2LW9ubHktc2VjcmV0cy1rZXktMzJieXQ=}
       BILLING_AUTH_REQUESTS_PER_MINUTE: ${BILLING_AUTH_REQUESTS_PER_MINUTE:-10}
-      BILLING_BRAND_NAME: ${BILLING_BRAND_NAME:-Billing Platform}
+      BILLING_BRAND_NAME: ${BILLING_BRAND_NAME:-Nítido}
       BILLING_WEB_BASE_URL: ${BILLING_WEB_BASE_URL:-http://localhost:3000}
       # En local los correos van a Mailpit (no salen a internet). En producción: SMTP real
       # (Amazon SES u otro) con usuario, contraseña y STARTTLS (ver docs/DEPLOYMENT.md).

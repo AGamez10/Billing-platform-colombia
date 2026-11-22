@@ -74,7 +74,7 @@ public class SecurityConfiguration {
     @Bean
     OpenAPI openApi() {
         return new OpenAPI()
-                .info(new Info().title("Billing Platform Colombia API").version("v1")
+                .info(new Info().title("Nítido API").version("v1")
                         .description("Para probar: registra una organización o inicia sesión, copia accessToken y pulsa Authorize."))
                 .components(new Components().addSecuritySchemes("bearer",
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")));

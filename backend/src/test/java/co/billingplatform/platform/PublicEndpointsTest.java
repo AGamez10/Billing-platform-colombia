@@ -58,7 +58,7 @@ class PublicEndpointsTest extends PostgresIntegrationTest {
     @DisplayName("página de estado, salud y documentación de la API son públicas")
     void publicPages() throws Exception {
         assertEquals(200, get("/").statusCode());
-        assertTrue(get("/").body().contains("Billing Platform Colombia"));
+        assertTrue(get("/").body().contains("Nítido"));
         assertEquals(200, get("/actuator/health").statusCode());
         assertEquals(200, get("/v3/api-docs").statusCode());
     }

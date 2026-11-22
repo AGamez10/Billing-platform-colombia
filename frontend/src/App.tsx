@@ -1,4 +1,5 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { dropPrerender, hasPrerender } from './landing/prerenderSwap';
 import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { useSession } from './auth/session';
 import { Layout } from './components/Layout';
@@ -28,18 +29,23 @@ import { Register } from './pages/Register';
 import { Sell } from './pages/Sell';
 import { Settings } from './pages/Settings';
 
-// La página pública (con 3D y gráficas) es un paquete aparte: quien ya trabaja en la app nunca lo descarga.
+// La página pública es un paquete aparte: quien ya trabaja en la app nunca lo descarga.
 const Landing = lazy(() => import('./landing/Landing').then((m) => ({ default: m.Landing })));
 
 function RequireSession({ children }: { children: ReactNode }) {
   const { state } = useSession();
   const location = useLocation();
-  if (state.status === 'loading') return <Loading />;
+  // Con sesión se muestra la app: la página pública prerenderizada (si llegó) se retira.
+  useEffect(() => {
+    if (state.status === 'signed-in') dropPrerender();
+  }, [state.status]);
+  // Mientras se sabe si hay sesión, la página pública prerenderizada sigue a la vista (sin parpadeo).
+  if (state.status === 'loading') return hasPrerender() ? null : <Loading />;
   if (state.status === 'signed-out') {
     // Sin sesión, la raíz es la página pública; el resto pide entrar.
     if (location.pathname === '/') {
       return (
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={hasPrerender() ? null : <Loading />}>
           <Landing />
         </Suspense>
       );

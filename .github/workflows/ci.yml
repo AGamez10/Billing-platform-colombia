@@ -190,6 +190,29 @@ jobs:
           [ "$user" != "root" ] || { echo "::error title=Web::nginx corre como root"; exit 1; }
           echo "::notice title=Web::Interfaz, rutas SPA, manifest PWA, proxy /api y cabeceras de seguridad OK"
 
+      - name: SEO (página pública prerenderizada, robots, sitemap, noindex de lo privado)
+        run: |
+          set -e
+          fail() { echo "::error title=SEO::$1"; exit 1; }
+          base=http://127.0.0.1:3000
+          page=$(curl -fsS $base/)
+          echo "$page" | grep -q 'id="seo-landing"' || fail "la raíz no trae la página prerenderizada"
+          echo "$page" | grep -q '<h1[^>]*>Factura electrónica para todo Colombia.</h1>' || fail "falta el h1 en el HTML"
+          [ "$(echo "$page" | grep -o '<h1' | wc -l)" -eq 1 ] || fail "debe haber exactamente un h1"
+          echo "$page" | grep -q '"@type":"FAQPage"' || fail "faltan los datos estructurados FAQPage"
+          echo "$page" | grep -q "rel=\"canonical\" href=\"$base/\"" || fail "canónica sin el dominio"
+          echo "$page" | grep -q "property=\"og:image\" content=\"$base/og.png\"" || fail "og:image sin el dominio"
+          ! echo "$page" | grep -q '__SITE_URL__' || fail "quedó el marcador __SITE_URL__"
+          curl -fsSI $base/ | grep -qi 'x-robots-tag' && fail "la raíz no debe tener noindex"
+          curl -fsSI $base/documento | grep -qi 'x-robots-tag: noindex' || fail "los documentos compartidos deben ser noindex"
+          curl -fsSI $base/facturas | grep -qi 'x-robots-tag: noindex' || fail "la app debe ser noindex"
+          curl -fsS $base/facturas | grep -q 'seo-landing' && fail "la app no debe traer la página pública"
+          curl -fsS $base/robots.txt | grep -q "Sitemap: $base/sitemap.xml" || fail "robots.txt sin sitemap"
+          curl -fsS $base/sitemap.xml | grep -q "<loc>$base/</loc>" || fail "sitemap sin la raíz"
+          curl -fsSI $base/og.png | grep -qi 'content-type: image/png' || fail "falta la imagen para redes"
+          curl -fsSI $base/ | grep -qi "content-security-policy: default-src 'self'" || fail "la raíz perdió la CSP"
+          echo "::notice title=SEO::HTML prerenderizado, un h1, JSON-LD, canónica, robots, sitemap y noindex de lo privado OK"
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           package_json_file: frontend/package.json
@@ -234,7 +257,7 @@ jobs:
       - name: Verificar endpoints públicos y cierre por defecto
         run: |
           set -e
-          curl -fsS http://127.0.0.1:8080/ | grep -q "Billing Platform Colombia"
+          curl -fsS http://127.0.0.1:8080/ | grep -q "Nítido"
           curl -fsS http://127.0.0.1:8080/api/v1/public/plans | grep -q '"code":"MICRO"'
           curl -fsS http://127.0.0.1:8080/api/v1/public/tax-rates | grep -q '"code":"IVA_19"'
           curl -fsS http://127.0.0.1:8080/v3/api-docs > /dev/null

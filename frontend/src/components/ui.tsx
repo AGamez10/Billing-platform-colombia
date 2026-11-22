@@ -146,10 +146,12 @@ export const Icon = {
     </svg>
   ),
   logo: (
+    // Medallón de oro: anillos y granulado como en la orfebrería precolombina; el sello de lo aceptado.
     <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-      <rect x="2" y="2" width="28" height="28" rx="8" fill="#3DDC97" />
-      <path d="M10 9h9l3 3v11H10z" fill="none" stroke="#0E1A2B" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M13 16l2.5 2.5L20 14" fill="none" stroke="#0E1A2B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect width="32" height="32" rx="8" fill="#0b2a20" />
+      <circle cx="16" cy="16" r="9.4" fill="none" stroke="#e2b43b" strokeWidth="1.9" />
+      <circle cx="16" cy="16" r="5.6" fill="none" stroke="#e2b43b" strokeWidth="1.4" strokeDasharray="2.2 1.6" />
+      <circle cx="16" cy="16" r="2.7" fill="#e2b43b" />
     </svg>
   ),
 };

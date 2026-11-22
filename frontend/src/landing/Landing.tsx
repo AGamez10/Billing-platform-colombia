@@ -1,23 +1,30 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import type { Plan } from '../api/types';
-import { BRAND_NAME } from '../brand';
 import { DocumentSheetView } from '../components/DocumentSheetView';
-import { Icon } from '../components/ui';
+import { Wordmark } from '../components/Wordmark';
 import { annualSaving } from '../components/UpgradeOffer';
 import { formatCop } from '../lib/format';
 import { useApi } from '../lib/useApi';
 import { ColombiaMap } from './ColombiaMap';
 import { CostCalculator } from './CostCalculator';
+import { FAQ } from './faq';
+import { JourneyStory } from './JourneyStory';
+import { Greca, Medallion, Seal } from './Motifs';
 import { PosDemo } from './PosDemo';
+import { dropPrerender, hasPrerender } from './prerenderSwap';
 import { SAMPLE_SHEET } from './sampleSheet';
 import './landing.css';
 
 /**
- * Página pública. Primero la escala (el país entero, municipio por municipio), luego el producto
- * real (la factura tal como sale), la prueba con las manos (demo), a quién sirve, cómo se integra,
- * por qué confiar y cuánto cuesta con precios del catálogo.
+ * Página pública (ADR-0036, ADR-0037). Primero la escala (el país entero, municipio por
+ * municipio), luego el viaje de una factura contado con el scroll, el producto real, la prueba con
+ * las manos, por qué elegirnos, cómo se integra, por qué confiar y cuánto cuesta.
  */
 export function Landing() {
+  // Si el servidor entregó esta página ya dibujada (SEO), la entrada animada ya se vio: no se repite.
+  const introPlayed = useRef(hasPrerender());
+  useEffect(() => dropPrerender(), []);
   const plans = useApi<Plan[]>('/api/v1/public/plans');
   const all = plans.data ?? [];
   const general = all.filter((p) => p.family === 'GENERAL');
@@ -28,15 +35,15 @@ export function Landing() {
     .sort((a, b) => a - b)[0];
 
   return (
-    <div className="lp">
+    <div className={introPlayed.current ? 'lp lp-intro-done' : 'lp'}>
       <section className="lp-hero" aria-labelledby="hero-h">
         <header className="lp-header">
-          <Link to="/" className="brand">
-            {Icon.logo}
-            <span>{BRAND_NAME}</span>
+          <Link to="/" className="brand lp-brand">
+            <Wordmark className="wordmark-stamp" />
           </Link>
           <nav className="lp-nav" aria-label="Secciones">
-            <a href="#producto">Producto</a>
+            <a href="#como-funciona">Cómo funciona</a>
+            <a href="#por-que">Por qué Nítido</a>
             <a href="#precios">Precios</a>
             <a href="#desarrolladores">Desarrolladores</a>
             <a href="#seguridad">Seguridad</a>
@@ -81,14 +88,26 @@ export function Landing() {
               </div>
             </dl>
           </div>
-          <ColombiaMap />
+          <div className="lp-hero-visual">
+            <Medallion className="lp-hero-medallion" size={620} />
+            <ColombiaMap />
+          </div>
+        </div>
+        <Greca className="lp-greca" />
+      </section>
+
+      <section id="como-funciona" className="lp-section lp-journey-sec" aria-labelledby="journey-h">
+        <div className="lp-wrap">
+          <h2 id="journey-h">Así viaja cada factura electrónica: de tu caja a la DIAN y a tu cliente</h2>
+          <p className="lp-sub">Cuatro pasos que pasan en segundos. Tú solo haces el primero.</p>
+          <JourneyStory />
         </div>
       </section>
 
       <section id="producto" className="lp-section lp-product" aria-labelledby="product-h">
         <div className="lp-wrap lp-product-grid">
           <div className="lp-product-copy">
-            <h2 id="product-h">Todo el ciclo de un documento, en un solo lugar</h2>
+            <h2 id="product-h">Factura electrónica, POS y nota crédito en una sola plataforma</h2>
             <dl className="lp-cycle">
               <div>
                 <dt>Emite</dt>
@@ -114,7 +133,7 @@ export function Landing() {
           </div>
           <figure className="lp-sheet">
             <div className="lp-sheet-frame">
-              <DocumentSheetView sheet={SAMPLE_SHEET} />
+              <DocumentSheetView sheet={SAMPLE_SHEET} embedded />
             </div>
             <figcaption>Así sale cada factura: con CUFE, código QR, resolución y los datos tributarios de ambas partes. Ejemplo ilustrativo.</figcaption>
           </figure>
@@ -136,6 +155,50 @@ export function Landing() {
             </ol>
           </div>
           <PosDemo />
+        </div>
+      </section>
+
+      <section id="por-que" className="lp-why" aria-labelledby="why-h">
+        <div className="lp-wrap">
+          <h2 id="why-h">Por qué elegir Nítido</h2>
+          <p className="lp-why-lead">
+            Los pueblos que trabajaron el oro en estas tierras lo hacían con un cuidado que todavía asombra. Nosotros intentamos lo mismo con
+            algo menos brillante y más cotidiano: que cada factura quede nítida.
+          </p>
+          <ul className="lp-why-list">
+            <li>
+              <Seal />
+              <h3>Hecho para la norma colombiana</h3>
+              <p>El NIT con su dígito de verificación, los regímenes de IVA, las responsabilidades fiscales y la DIVIPOLA. Nada traducido de otro país.</p>
+            </li>
+            <li>
+              <Seal />
+              <h3>Un precio para todo el país</h3>
+              <p>Los mismos precios publicados en Leticia y en Bogotá, con usuarios ilimitados y todos los tipos de documento incluidos.</p>
+            </li>
+            <li>
+              <Seal />
+              <h3>Sin cobros sorpresa</h3>
+              <p>Te avisamos antes de llegar a tu límite. Nunca cobramos documentos extra sin que los aceptes.</p>
+            </li>
+            <li>
+              <Seal />
+              <h3>No te amarramos</h3>
+              <p>Exportas clientes, productos y ventas cuando quieras. Y la plataforma no depende de un único proveedor tecnológico.</p>
+            </li>
+            <li>
+              <Seal />
+              <h3>Seguridad de verdad</h3>
+              <p>Datos de cada empresa aislados en la base, verificación en dos pasos, llaves cifradas y copias diarias.</p>
+            </li>
+            <li>
+              <Seal />
+              <h3>Tu suscripción ayuda</h3>
+              <p>
+                Una parte de cada plan paga la facturación de refugios y fundaciones. <a href="#lo-que-nos-mueve">Así funciona</a>.
+              </p>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -349,36 +412,12 @@ Idempotency-Key: pedido-48211
         <div className="lp-wrap">
           <h2 id="faq-h">Preguntas frecuentes</h2>
           <div className="lp-faq">
-            <details>
-              <summary>¿Mis facturas son válidas ante la DIAN?</summary>
-              <p>
-                Sí, cuando facturas en producción: los documentos se emiten a través de un proveedor tecnológico autorizado por la DIAN. Mientras
-                practicas, todo está marcado como práctica y no tiene validez tributaria.
-              </p>
-            </details>
-            <details>
-              <summary>¿Funciona en mi ciudad o municipio?</summary>
-              <p>
-                Sí. La plataforma trae los 1.122 municipios y áreas no municipalizadas de la DIVIPOLA del DANE, con el código que exige la
-                factura electrónica en la dirección del emisor y del cliente.
-              </p>
-            </details>
-            <details>
-              <summary>¿Qué incluye la prueba gratis?</summary>
-              <p>20 documentos en producción, sin tarjeta. La práctica no gasta documentos.</p>
-            </details>
-            <details>
-              <summary>¿Quién recibe el dinero de mis ventas con QR?</summary>
-              <p>Tú. Conectas tu propia cuenta Bold y el dinero llega directo a ella. Nosotros solo creamos el cobro y emitimos el documento.</p>
-            </details>
-            <details>
-              <summary>¿Puedo emitir desde mi propio software?</summary>
-              <p>Sí. Creas una clave de API con los permisos que quieras y tu sistema emite y consulta documentos; te avisamos por webhook cuando la DIAN responde.</p>
-            </details>
-            <details>
-              <summary>¿Qué pasa si se acaba mi cupo del mes?</summary>
-              <p>Te avisamos antes. Puedes subir de plan o, si tu plan lo permite y lo aceptas, seguir con documentos adicionales a un precio fijo.</p>
-            </details>
+            {FAQ.map((f) => (
+              <details key={f.q}>
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>
@@ -393,28 +432,27 @@ Idempotency-Key: pedido-48211
       </section>
 
       <footer className="lp-footer">
+        <Greca className="lp-greca lp-greca-footer" />
         <div className="lp-wrap lp-footer-inner">
           <div className="lp-footer-brand">
-            <span className="brand">
-              {Icon.logo}
-              <span>{BRAND_NAME}</span>
-            </span>
+            <Wordmark className="lp-footer-wordmark" />
             <p className="small">Facturación electrónica hecha en Colombia, para todo el país.</p>
+            <p className="small muted">Motivos inspirados en la orfebrería precolombina de Colombia.</p>
           </div>
           <nav aria-label="Producto" className="lp-footer-col">
-            <h2>Producto</h2>
+            <p className="lp-footer-title">Producto</p>
             <a href="#producto">Qué incluye</a>
             <a href="#precios">Precios</a>
             <a href="#desarrolladores">API para desarrolladores</a>
             <a href="#seguridad">Seguridad</a>
           </nav>
           <nav aria-label="Cuenta" className="lp-footer-col">
-            <h2>Cuenta</h2>
+            <p className="lp-footer-title">Cuenta</p>
             <Link to="/registro">Crear cuenta</Link>
             <Link to="/entrar">Entrar</Link>
           </nav>
           <nav aria-label="Legal" className="lp-footer-col">
-            <h2>Legal</h2>
+            <p className="lp-footer-title">Legal</p>
             <Link to="/terminos">Términos y condiciones</Link>
             <Link to="/privacidad">Tratamiento de datos</Link>
           </nav>

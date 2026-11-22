@@ -13,6 +13,8 @@ export default defineConfig({
   build: {
     sourcemap: false,
     target: 'es2022',
+    // El manifiesto le dice al prerenderizado qué CSS lleva la página pública (se borra después).
+    manifest: true,
   },
   test: {
     environment: 'jsdom',

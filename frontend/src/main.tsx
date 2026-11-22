@@ -7,6 +7,11 @@ import { SessionProvider } from './auth/session';
 import '@fontsource-variable/bricolage-grotesque';
 import '@fontsource-variable/public-sans';
 import './styles.css';
+import { dropPrerender } from './landing/prerenderSwap';
+
+// La página pública prerenderizada solo corresponde a "/" (p. ej. si el service worker la
+// devolvió sin conexión para otra ruta).
+if (window.location.pathname !== '/') dropPrerender();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

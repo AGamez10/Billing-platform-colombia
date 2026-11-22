@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 import { useSession } from '../auth/session';
-import { BRAND_NAME } from '../brand';
+import { Wordmark } from './Wordmark';
 import { Icon } from './ui';
 
 const NAV = [
@@ -29,7 +29,7 @@ export function Layout() {
       <aside className="sidebar">
         <NavLink to="/" className="brand">
           {Icon.logo}
-          <span>{BRAND_NAME}</span>
+          <Wordmark />
         </NavLink>
         <nav className="sidenav" aria-label="Principal">
           {NAV.map((item) => (
@@ -58,7 +58,7 @@ export function Layout() {
         <header className="topbar">
           <NavLink to="/" className="brand">
             {Icon.logo}
-            <span>{BRAND_NAME}</span>
+            <Wordmark />
           </NavLink>
           {orgName && <span className="org-name">{orgName}</span>}
         </header>

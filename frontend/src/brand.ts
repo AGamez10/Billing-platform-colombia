@@ -1,5 +1,6 @@
 /**
- * Nombre comercial. Mientras el propietario lo define, se usa el nombre de trabajo; se cambia
- * en el build con VITE_BRAND_NAME (docker compose lo pasa como argumento de construcción).
+ * Nombre comercial (ADR-0037). Se puede cambiar en el build con VITE_BRAND_NAME para una marca
+ * blanca; el logotipo con la tilde dorada solo se dibuja con el nombre propio.
  */
-export const BRAND_NAME: string = import.meta.env.VITE_BRAND_NAME || 'Billing Platform';
+export const BRAND_NAME: string = import.meta.env.VITE_BRAND_NAME || 'Nítido';
+export const BRAND_TAGLINE = 'Factura electrónica para todo Colombia';

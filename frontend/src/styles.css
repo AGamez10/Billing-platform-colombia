@@ -1,20 +1,24 @@
 :root {
-  /* Identidad: verde de aval (lo que la DIAN acepta), noche (la tienda que cierra tarde) y sol
-     (lo que nos mueve: el fondo solidario). El amarillo nunca es texto sobre blanco. */
-  --night: #12261f;
-  --night-2: #1d3a30;
-  --ink: #14211c;
-  --ink-2: #34463e;
-  --muted: #5a6b63;
-  --line: #dde4de;
-  --bg: #f5f7f4;
+  /* Identidad Nítido (ADR-0037): esmeralda (Colombia, primer productor de esmeraldas del mundo)
+     y oro de la orfebrería precolombina sobre una noche verde. El oro es sello y acento: nunca
+     texto sobre fondo claro (para eso, --gold-ink). */
+  --night: #0b2a20;
+  --night-2: #12382b;
+  --ink: #102019;
+  --ink-2: #2f443a;
+  --muted: #55685f;
+  --line: #dbe3de;
+  --bg: #f4f6f3;
   --card: #ffffff;
-  --green: #0b7a5c;
-  --green-strong: #075a44;
-  --green-bright: #43d39b;
-  --green-soft: #e2f4ec;
-  --sun: #f4c43b;
-  --sun-soft: #fdf3d3;
+  --green: #0e7c5a;
+  --green-strong: #0a5c43;
+  --green-bright: #3fcf98;
+  --green-soft: #e1f2ea;
+  --sun: #e2b43b;
+  --gold: #e2b43b;
+  --gold-bright: #f0cf74;
+  --gold-ink: #7a5a0e;
+  --sun-soft: #f8eccb;
   --amber-soft: #fff3d6;
   --amber: #7d5200;
   --red-soft: #fde8e6;
@@ -56,7 +60,7 @@ p { margin: 0; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--night); color: #fff; position: sticky; top: 0; z-index: 10; }
 .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-family: var(--font-display); font-weight: 750; font-size: 19px; letter-spacing: -0.01em; }
 .brand:hover { color: #fff; }
-.org-name { color: #c9d3e0; font-size: 13px; max-width: 50vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-name { color: #b9cdc3; font-size: 13px; max-width: 50vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .bottomnav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, 1fr); padding: 6px 2px calc(6px + env(safe-area-inset-bottom)); z-index: 10; }
 .bottomnav a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); text-decoration: none; padding: 6px 2px; min-height: 48px; border-radius: 10px; }
@@ -68,7 +72,7 @@ p { margin: 0; }
   .bottomnav { display: none; }
   .sidebar { display: flex; flex-direction: column; gap: 24px; width: 248px; flex: 0 0 248px; background: var(--night); color: #fff; padding: 24px 16px; position: sticky; top: 0; height: 100dvh; }
   .sidenav { display: flex; flex-direction: column; gap: 4px; }
-  .sidenav a { display: flex; align-items: center; gap: 12px; color: #c9d3e0; text-decoration: none; padding: 10px 12px; border-radius: 10px; font-weight: 500; }
+  .sidenav a { display: flex; align-items: center; gap: 12px; color: #b9cdc3; text-decoration: none; padding: 10px 12px; border-radius: 10px; font-weight: 500; }
   .sidenav a:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .sidenav a.active { background: rgba(61,220,151,0.14); color: var(--green-bright); }
   .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #93a3b8; }
@@ -177,7 +181,7 @@ td.num, th.num { text-align: right; }
 
 .card-head { padding: 16px 20px; }
 .amount-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
-.sidebar .btn-ghost { color: #c9d3e0; justify-content: flex-start; padding-left: 12px; }
+.sidebar .btn-ghost { color: #b9cdc3; justify-content: flex-start; padding-left: 12px; }
 .sidebar .btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.06); }
 .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
 .consent input { width: 20px; height: 20px; min-height: 0; margin-top: 2px; flex: 0 0 auto; }
@@ -353,11 +357,11 @@ td.num, th.num { text-align: right; }
 .doc-warning { margin: 0; padding: 10px 14px; border: 2px dashed var(--amber); border-radius: 10px; background: var(--amber-soft); color: var(--amber); font-weight: 700; text-align: center; letter-spacing: 0.02em; }
 .doc-head { display: grid; gap: 16px; }
 @media (min-width: 720px) { .doc-head { grid-template-columns: 1fr auto; align-items: start; } }
-.doc-issuer { font-family: var(--font-display); font-size: 22px; margin: 0 0 6px; line-height: 1.2; }
+.doc-issuer { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin: 0 0 6px; line-height: 1.2; }
 .doc-number { display: grid; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; min-width: 240px; }
 .doc-number span { font-size: 12px; color: #444; }
 .doc-number strong { font-size: 22px; font-variant-numeric: tabular-nums; }
-.doc-block h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #555; margin: 0 0 4px; }
+.doc-block h2, .doc-block .doc-block-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #555; margin: 0 0 4px; }
 .doc-block p, .doc-party { margin: 0; }
 .doc-party { color: #333; font-size: 13px; }
 .doc-strong { font-weight: 700; }
@@ -459,3 +463,28 @@ td.num, th.num { text-align: right; }
   .table-stack td.stack-title { grid-column: 1 / -1; font-weight: 600; }
   .table-stack td.stack-total { grid-column: 1 / -1; font-weight: 700; }
 }
+
+/* ---------- Logotipo ---------- */
+.wordmark { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.035em; line-height: 1; white-space: nowrap; }
+.wordmark-i { position: relative; display: inline-block; }
+.wordmark-accent { position: absolute; left: 50%; top: -0.2em; width: 0.15em; height: 0.36em; margin-left: -0.02em; border-radius: 0.08em; background: var(--gold); transform: rotate(32deg); transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .wordmark-stamp .wordmark-accent { animation: accent-stamp 700ms cubic-bezier(.2,1.4,.4,1) 1.5s both; }
+}
+@keyframes accent-stamp { from { transform: rotate(32deg) translateY(-0.6em) scale(1.8); opacity: 0; } to { transform: rotate(32deg); opacity: 1; } }
+
+/* ---------- Sello de aceptación (microinteracción) ---------- */
+.accept-stamp { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: none; background: radial-gradient(circle at center, rgba(11,42,32,0.35), transparent 60%); }
+.accept-stamp svg { width: 150px; height: 150px; }
+.accept-stamp circle { fill: none; stroke: var(--gold); stroke-width: 5; }
+.accept-stamp .accept-stamp-dash { stroke-width: 3; stroke-dasharray: 8 7; }
+.accept-stamp .accept-stamp-core { fill: var(--gold); stroke: none; }
+.accept-stamp span { background: var(--night); color: #fff; font-family: var(--font-display); font-weight: 750; font-size: 20px; padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--gold); }
+@media (prefers-reduced-motion: no-preference) {
+  .accept-stamp svg { animation: stamp-in 2.6s cubic-bezier(.2,1.5,.4,1) both; }
+  .accept-stamp span { animation: stamp-label 2.6s ease both; }
+  .accept-stamp { animation: stamp-fade 2.6s ease both; }
+}
+@keyframes stamp-in { 0% { transform: scale(2.2) rotate(-25deg); opacity: 0; } 18% { transform: scale(1) rotate(-8deg); opacity: 1; } 80% { transform: scale(1) rotate(-8deg); opacity: 1; } 100% { transform: scale(.9) rotate(-8deg); opacity: 0; } }
+@keyframes stamp-label { 0%, 15% { opacity: 0; transform: translateY(8px); } 25%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes stamp-fade { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }

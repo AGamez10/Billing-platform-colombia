@@ -50,7 +50,7 @@ billing:
     # Dirección pública de la interfaz: con ella se arman los enlaces de los correos.
     base-url: ${BILLING_WEB_BASE_URL:http://localhost:3000}
   brand:
-    name: ${BILLING_BRAND_NAME:Billing Platform}
+    name: ${BILLING_BRAND_NAME:Nítido}
   mail:
     # smtp (producción), log (por omisión: no envía) o memory (pruebas).
     mode: ${BILLING_MAIL_MODE:log}

@@ -467,6 +467,44 @@ Cómo está construido:
 - **Animación:** una sola, el país que se enciende de norte a sur. Respeta el movimiento reducido.
 - **Sin cifras inventadas:** ni clientes, ni documentos emitidos, ni comparaciones sin fuente.
 
+## ADR-0037 — Marca Nítido: esmeralda, oro precolombino y movimiento con propósito
+*2026-11-21 — elección del propietario; diseño propio*
+
+**Nombre:** Nítido. En Colombia "nítido" es lo que quedó bien hecho, y además significa claro. Es corto, se dice igual en todo el país y no suena a jerga contable. El logotipo lleva la tilde en oro: el sello del documento aceptado.
+
+**Pendiente:** consultar la marca en la SIC y comprar el dominio antes de invertir en publicidad.
+
+**Paleta:**
+- noche `#0b2a20`;
+- esmeralda `#0e7c5a` para las acciones;
+- oro `#e2b43b` solo como sello y acento, nunca texto sobre fondo claro (para eso, `--gold-ink` `#7a5a0e`);
+- papel `#f4f6f3` y tinta `#102019`.
+
+Todos los pares de texto pasan WCAG AA. Se descartaron los colores de la bandera: al lado de la DIAN la harían parecer una herramienta oficial.
+
+**Motivos:** dibujos originales inspirados en la orfebrería precolombina de Colombia: anillos concéntricos, granulado y greca escalonada. No reproducen piezas concretas y la página lo dice en el pie. Se usan en el ícono (medallón), el hero, los separadores y las viñetas de "Por qué Nítido".
+
+**Movimiento:** cada animación cuenta algo y todas respetan "reducir movimiento".
+- **Entrada del hero:** el país se enciende de norte a sur y la tilde cae como un sello.
+- **El viaje de una factura**, contado con el scroll en cuatro pasos (vendes, se numera y firma, la DIAN valida, tu cliente lo recibe). Un hilo de oro se dibuja entre ellos.
+- **En la app:** el sello dorado aparece cuando un documento pasa a aceptado en esa pantalla. Dice "en práctica" si no tiene validez, para nunca confundir.
+
+## ADR-0038 — SEO técnico: HTML prerenderizado sin depender del dominio en el build
+*2026-11-21 — aceptada*
+
+**Contexto:** la página pública se dibujaba con JavaScript. Google la puede renderizar; otros buscadores y las vistas previas de redes sociales en general no. Además, la imagen Docker es la misma para cualquier dominio.
+
+**Decisión:**
+- **Prerenderizado en el build:** `vite build --ssr` + `scripts/prerender.mjs` generan `dist/landing.html` con la página completa, el CSS de la página pública, metadatos, Open Graph y datos estructurados schema.org (Organization, WebSite, SoftwareApplication y FAQPage). La FAQ visible y la estructurada salen de la misma lista (`landing/faq.ts`).
+- **nginx** sirve `landing.html` solo en `/` y escribe el dominio real en la canónica y en Open Graph al servirla (`sub_filter` de `__SITE_URL__`).
+- **robots.txt y sitemap.xml** se generan en nginx con el dominio de la petición.
+- **Indexables:** la raíz, `/registro`, `/entrar`, `/terminos` y `/privacidad`.
+- **Todo lo demás** lleva `X-Robots-Tag: noindex, nofollow`: la app y, sobre todo, los documentos compartidos con datos tributarios.
+- **Cambio a la app:** mientras se comprueba la sesión, la página prerenderizada sigue visible, sin parpadeo. React la reemplaza al dibujar la suya, sin repetir la entrada animada, o la retira si hay sesión.
+- **Verificación:** prueba unitaria (un solo h1, encabezados en orden, FAQ = JSON-LD, largo del título y la descripción, `alt` en imágenes) y un paso de CI contra el contenedor real.
+
+**Lo que no depende del código:** el posicionamiento también exige dar de alta el dominio en Google Search Console y Bing Webmaster Tools, enviar el sitemap, crear el perfil de Google Business, conseguir enlaces de sitios reconocidos y publicar contenido útil con constancia. Nadie puede garantizar el primer lugar.
+
 ## Verificaciones normativas registradas
 
 | Fecha | Tema | Resultado | Fuente |

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { http } from '../api/client';
 import type { CorrectionConcept, Invoice, InvoiceSummary } from '../api/types';
@@ -28,6 +28,21 @@ export function InvoiceDetail() {
     const t = setInterval(() => void invoice.reload(), POLL_MS);
     return () => clearInterval(t);
   }, [inFlight, invoice.reload]);
+
+  // El momento de la aceptación se celebra con el sello dorado (solo si ocurre en esta pantalla).
+  const prevStatus = useRef<string | undefined>(undefined);
+  const [stamp, setStamp] = useState(false);
+  useEffect(() => {
+    const now = inv?.status;
+    const before = prevStatus.current;
+    prevStatus.current = now;
+    if (now === 'ACCEPTED' && (before === 'DRAFT' || before === 'PENDING_SUBMISSION' || before === 'SUBMITTED')) {
+      setStamp(true);
+      const t = window.setTimeout(() => setStamp(false), 2600);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [inv?.status]);
 
   if (invoice.loading && !inv) return <Loading />;
   if (invoice.error && !inv) return <Alert tone="error">{messageFor(invoice.error)}</Alert>;
@@ -63,6 +78,16 @@ export function InvoiceDetail() {
 
   return (
     <>
+      {stamp && (
+        <div className="accept-stamp" role="status">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="54" />
+            <circle cx="60" cy="60" r="40" className="accept-stamp-dash" />
+            <circle cx="60" cy="60" r="16" className="accept-stamp-core" />
+          </svg>
+          <span>{inv.legallyValid ? 'Aceptada por la DIAN' : 'Aceptada en práctica'}</span>
+        </div>
+      )}
       <PageHead
         title={documentTitle(inv.kind, inv.number)}
         subtitle={`${inv.customer.legalName} · ${formatDate(inv.issueDate)}`}

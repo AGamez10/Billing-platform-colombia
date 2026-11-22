@@ -7,7 +7,8 @@ import { QrCode } from './QrCode';
  * Representación gráfica imprimible (carta o A4; también se guarda como PDF desde el navegador).
  * Lo que no tiene validez tributaria lo dice en grande, arriba y en el pie: nunca se confunde.
  */
-export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
+/** `embedded`: dentro de otra página (p. ej. de ejemplo en la página pública), sin encabezados propios. */
+export function DocumentSheetView({ sheet, embedded = false }: { sheet: DocumentSheet; embedded?: boolean }) {
   const pos = sheet.kind === 'POS_EQUIVALENT';
   const note = sheet.kind === 'CREDIT_NOTE';
   const title = pos
@@ -23,12 +24,15 @@ export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
       : 'DOCUMENTO DE HABILITACIÓN (PRUEBAS) — no tiene validez tributaria';
   const a = sheet.authorization;
 
+  const H1 = embedded ? 'p' : 'h1';
+  const H2 = embedded ? 'p' : 'h2';
+
   return (
     <article className="doc-sheet" aria-label={`${title} ${sheet.number}`}>
       {warning && <p className="doc-warning">{warning}</p>}
       <header className="doc-head">
         <div>
-          <h1 className="doc-issuer">{sheet.issuer.legalName}</h1>
+          <H1 className="doc-issuer">{sheet.issuer.legalName}</H1>
           <PartyLines party={sheet.issuer} />
         </div>
         <div className="doc-number">
@@ -41,7 +45,7 @@ export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
 
       {sheet.correction && (
         <section className="doc-block">
-          <h2>Factura que corrige</h2>
+          <H2 className="doc-block-title">Factura que corrige</H2>
           <p>
             {sheet.correction.concept === 'ANNULMENT' ? 'Anulación' : 'Devolución parcial'} de la factura{' '}
             <strong>{sheet.correction.creditedNumber}</strong> del {formatDate(sheet.correction.creditedIssueDate)}. Motivo:{' '}
@@ -55,7 +59,7 @@ export function DocumentSheetView({ sheet }: { sheet: DocumentSheet }) {
       )}
 
       <section className="doc-block">
-        <h2>Adquiriente</h2>
+        <H2 className="doc-block-title">Adquiriente</H2>
         {sheet.finalConsumer ? (
           <p>Consumidor final</p>
         ) : (

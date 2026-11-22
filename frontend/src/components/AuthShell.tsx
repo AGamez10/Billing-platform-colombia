@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { BRAND_NAME } from '../brand';
+import { Wordmark } from './Wordmark';
 import { Icon } from './ui';
 
 /**
@@ -13,7 +14,7 @@ export function AuthShell({ children, wide = false }: { children: ReactNode; wid
       <aside className="auth-aside" aria-label={`Sobre ${BRAND_NAME}`}>
         <Link to="/" className="brand">
           {Icon.logo}
-          <span>{BRAND_NAME}</span>
+          <Wordmark />
         </Link>
         <div className="auth-aside-body">
           <p className="auth-aside-quote">Facturar bien no debería costarle el día a nadie.</p>
@@ -27,7 +28,7 @@ export function AuthShell({ children, wide = false }: { children: ReactNode; wid
       <main className={`auth-main${wide ? ' wide' : ''}`}>
         <Link to="/" className="brand auth-brand-mobile">
           {Icon.logo}
-          <span>{BRAND_NAME}</span>
+          <Wordmark />
         </Link>
         <div className="auth-card">{children}</div>
         <nav className="auth-legal small" aria-label="Legal">
