@@ -60,7 +60,7 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await page.getByRole('button', { name: 'Emitir factura' }).click();
   await expect(page.getByRole('heading', { name: 'Factura SETT1' })).toBeVisible();
   const invoiceUrl = page.url();
-  await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Aceptada en (simulación|habilitación)/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/sin validez tributaria/).first()).toBeVisible();
   await expect(page.getByText(/^SIMULATED-/)).toBeVisible();
 
@@ -105,7 +105,7 @@ test('una organización nueva factura en simulación de punta a punta', async ({
   await expect(page.getByText(/Devolución parcial de la/)).toBeVisible();
   await page.getByRole('button', { name: 'Emitir nota crédito' }).click();
   await expect(page.getByRole('heading', { name: 'Nota crédito NC1' })).toBeVisible();
-  await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Aceptada en (simulación|habilitación)/)).toBeVisible({ timeout: 30_000 });
 });
 
 test('comercio: venta rápida a consumidor final emite el POS en simulación', async ({ page }) => {

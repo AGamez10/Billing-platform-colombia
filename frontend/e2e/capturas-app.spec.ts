@@ -89,7 +89,7 @@ test('capturas de la app en uso', async ({ page }, info) => {
     await page.getByRole('button', { name: 'Guardar y revisar totales' }).click();
     await expect(page.getByRole('heading', { name: 'Borrador de factura' })).toBeVisible();
     await page.getByRole('button', { name: 'Emitir factura' }).click();
-    await expect(page.getByText(/Aceptada en/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Aceptada en (simulación|habilitación)/)).toBeVisible({ timeout: 30_000 });
     if (!firstInvoiceUrl) {
       firstInvoiceUrl = page.url();
       await shot('factura-detalle');
