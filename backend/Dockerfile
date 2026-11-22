@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Imagen del backend: compila con Maven y ejecuta con un JRE mínimo, sin root.
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /src
 # Primero solo el POM: las dependencias quedan en caché mientras no cambie.
 COPY pom.xml .
